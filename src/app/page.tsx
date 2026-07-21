@@ -465,7 +465,12 @@ export default function Home() {
         <div className="w-full max-w-sm glass-modal border border-slate-200/80 dark:border-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 animate-in zoom-in-95 duration-250">
           <div className="text-center">
             <h1 className="text-lg font-black text-slate-955 dark:text-white leading-tight">TH Room Booking Portal</h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Live Studio Scheduling System</p>
+            <p 
+              onClick={handleSilentTitleClick}
+              className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 cursor-default select-none"
+            >
+              Live Studio Scheduling System
+            </p>
           </div>
 
           <form onSubmit={handleLoginSubmit} className="w-full space-y-4">
