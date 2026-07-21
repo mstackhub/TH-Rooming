@@ -120,7 +120,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'getGlobalLockdown',
-          token: localStorage.getItem('th_session_token') || ''
+          token: localStorage.getItem('th_booking_token') || ''
         })
       });
       const data = await res.json();
@@ -132,9 +132,13 @@ export default function Home() {
         // If global database says locked, force non-masteradmin users to stay blocked
         if (data.systemLockdown) {
           const isMaster = currentUser?.email?.toLowerCase() === 'masteradmin' || currentUser?.role === 'Master Admin';
-          if (!isMaster && currentUser) {
-            // Force component sync
+          if (!isMaster) {
+            // Force component sync and reload page if they are logged in to push them out
             setSystemLocked(true);
+            if (currentUser) {
+              localStorage.removeItem('th_booking_token');
+              window.location.reload();
+            }
           }
         }
       }
@@ -170,7 +174,7 @@ export default function Home() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'saveGlobalLockdown',
-              token: localStorage.getItem('th_session_token') || '',
+              token: localStorage.getItem('th_booking_token') || '',
               systemLockdown: nextLockState,
               systemLockdownUntil: nextLockState ? until : '',
               scheduledLockEnabled: false,
@@ -228,7 +232,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'getActivityLogs',
-          token: localStorage.getItem('th_session_token') || ''
+          token: localStorage.getItem('th_booking_token') || ''
         })
       });
       const data = await res.json();
@@ -252,7 +256,7 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'saveGlobalLockdown',
-            token: localStorage.getItem('th_session_token') || '',
+            token: localStorage.getItem('th_booking_token') || '',
             systemLockdown: true,
             systemLockdownUntil: until,
             scheduledLockEnabled: scheduledLockEnabled,
@@ -279,7 +283,7 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'saveGlobalLockdown',
-            token: localStorage.getItem('th_session_token') || '',
+            token: localStorage.getItem('th_booking_token') || '',
             systemLockdown: false,
             systemLockdownUntil: '',
             scheduledLockEnabled: scheduledLockEnabled,
@@ -429,7 +433,7 @@ export default function Home() {
             {currentUser && (
               <button
                 onClick={() => {
-                  localStorage.removeItem('th_session_token');
+                  localStorage.removeItem('th_booking_token');
                   window.location.reload();
                 }}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-705 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-[0.98]"
