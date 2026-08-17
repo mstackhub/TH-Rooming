@@ -79,7 +79,7 @@ export interface SystemSettings {
 }
 
 export interface Filters {
-  room: string;
+  room: string[]; // Supported multi-select array
   brand: string[]; // Supported multi-select array
   status: string;
   action: 'all' | 'mine';
@@ -165,7 +165,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [highlightedBookingId, setHighlightedBookingId] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<Filters>({
-    room: '',
+    room: [],
     brand: [],
     status: '',
     action: 'all'

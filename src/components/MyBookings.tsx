@@ -79,7 +79,7 @@ export default function MyBookings() {
   const filteredBookings = useMemo(() => {
     return myBookings.filter(b => {
       // 1. Room name filter
-      if (filters.room && b.roomName !== filters.room) return false;
+      if (filters.room.length > 0 && !filters.room.includes(b.roomName)) return false;
       // 2. Status filter
       if (filters.status && getAutoStatus(b) !== filters.status) return false;
       // 3. Brand filter (assigned/selected brands)
@@ -120,11 +120,11 @@ export default function MyBookings() {
     return sorted;
   }, [filteredBookings, sortKey, sortOrder]);
 
-  const hasActiveFilters = filters.room !== '' || filters.status !== '' || selectedBrands.length > 0 || !allDates || searchQuery !== '';
+  const hasActiveFilters = filters.room.length > 0 || filters.status !== '' || selectedBrands.length > 0 || !allDates || searchQuery !== '';
 
   const clearFilters = () => {
     setFilters({
-      room: '',
+      room: [],
       brand: [],
       status: '',
       action: 'mine'

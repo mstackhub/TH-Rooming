@@ -164,7 +164,7 @@ export default function CalendarView() {
   const filteredBookings = useMemo(() => {
     return calendarBookings.filter(b => {
       if (b.status === 'Cancelled') return false;
-      if (filters.room && b.roomName !== filters.room) return false;
+      if (filters.room.length > 0 && !filters.room.includes(b.roomName)) return false;
       if (filters.brand.length > 0 && !filters.brand.includes(b.brandName)) return false;
       return true;
     });

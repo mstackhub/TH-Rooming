@@ -183,10 +183,50 @@ export default function TimelineScheduler() {
     setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
-  // Filters change
-  const handleRoomFilterChange = (roomName: string) => {
-    setFilters(prev => ({ ...prev, room: roomName }));
+  // Room filter handlers
+  const handleRoomCheckboxChange = (roomName: string, checked: boolean) => {
+    setFilters(prev => {
+      const nextRooms = checked
+        ? [...prev.room, roomName]
+        : prev.room.filter(r => r !== roomName);
+      return { ...prev, room: nextRooms };
+    });
   };
+
+  const handleSelectAllRooms = (checked: boolean) => {
+    const activeRooms = rooms.filter(r => r.status === 'Active');
+    setFilters(prev => ({
+      ...prev,
+      room: checked ? activeRooms.map(r => r.name) : []
+    }));
+  };
+
+  const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
+  const roomDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (roomDropdownRef.current && !roomDropdownRef.current.contains(e.target as Node)) {
+        setIsRoomDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const activeRooms = useMemo(() => rooms.filter(r => r.status === 'Active'), [rooms]);
+
+  const filteredRoomsForDropdown = useMemo(() => {
+    return activeRooms.filter(r =>
+      r.name.toLowerCase().includes(roomSearchQuery.toLowerCase())
+    );
+  }, [activeRooms, roomSearchQuery]);
+
+  const visibleRooms = useMemo(() => {
+    if (filters.room.length === 0) return activeRooms;
+    return activeRooms.filter(r => filters.room.includes(r.name));
+  }, [activeRooms, filters.room]);
 
   const handleStatusFilterChange = (status: string) => {
     setFilters(prev => ({ ...prev, status }));
@@ -210,7 +250,7 @@ export default function TimelineScheduler() {
 
   const clearAllFilters = () => {
     setFilters({
-      room: '',
+      room: [],
       brand: [],
       status: '',
       action: 'all'
@@ -222,7 +262,7 @@ export default function TimelineScheduler() {
   const filteredBookings = useMemo(() => {
     return bookings.filter(b => {
       // 1. Room name filter
-      if (filters.room && b.roomName !== filters.room) return false;
+      if (filters.room.length > 0 && !filters.room.includes(b.roomName)) return false;
       // 2. Multi brand filter
       if (filters.brand.length > 0 && !filters.brand.includes(b.brandName)) return false;
       // 3. Status filter
@@ -247,7 +287,7 @@ export default function TimelineScheduler() {
   }, [brands, brandSearchQuery]);
 
   const hasActiveFilters = 
-    filters.room !== '' || 
+    filters.room.length > 0 || 
     filters.brand.length > 0 || 
     filters.status !== '' || 
     schedulerSearch !== '';
@@ -427,17 +467,97 @@ export default function TimelineScheduler() {
           </div>
 
           {/* Room Filter */}
-          <CustomSelect
-            value={filters.room}
-            onChange={handleRoomFilterChange}
-            options={[
-              { value: '', label: 'ทุกห้องสตูดิโอ (All)' },
-              ...rooms.map(r => ({ value: r.name, label: r.name }))
-            ]}
-            searchable={rooms.length > 5}
-            searchPlaceholder="ค้นหาห้อง..."
-            className="min-w-[160px]"
-          />
+          <div className="relative" ref={roomDropdownRef}>
+            <button
+              onClick={() => setIsRoomDropdownOpen(!isRoomDropdownOpen)}
+              className={`flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer min-w-[160px] ${
+                isRoomDropdownOpen
+                  ? 'border-brand-500 ring-2 ring-brand-400/30 dark:border-brand-500'
+                  : 'border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              <span className="truncate select-none">
+                {filters.room.length === 0 
+                  ? 'ทุกห้องสตูดิโอ (All)' 
+                  : filters.room.length === activeRooms.length 
+                    ? `เลือกทุกห้อง (${filters.room.length})` 
+                    : filters.room.join(', ')}
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isRoomDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isRoomDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 z-50 min-w-full w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+                {/* Search */}
+                {activeRooms.length > 5 && (
+                  <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="ค้นหาห้อง..."
+                        value={roomSearchQuery}
+                        onChange={(e) => setRoomSearchQuery(e.target.value)}
+                        className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Select All */}
+                <div className="p-1">
+                  <div
+                    onClick={() => handleSelectAllRooms(!(filters.room.length === activeRooms.length && activeRooms.length > 0))}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                      filters.room.length === activeRooms.length && activeRooms.length > 0
+                        ? 'bg-brand-500 border-brand-500'
+                        : 'border-slate-300 dark:border-slate-600'
+                    }`}>
+                      {filters.room.length === activeRooms.length && activeRooms.length > 0 && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-xs text-slate-700 dark:text-slate-300 font-bold select-none">เลือกทั้งหมด (Select All)</span>
+                  </div>
+                </div>
+                
+                {/* Room list */}
+                <div className="flex flex-col overflow-y-auto flex-1 px-1 pb-1">
+                  {filteredRoomsForDropdown.map(room => {
+                    const isChecked = filters.room.includes(room.name);
+                    return (
+                      <div
+                        key={room.id}
+                        onClick={() => handleRoomCheckboxChange(room.name, !isChecked)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                          isChecked
+                            ? 'bg-brand-50 dark:bg-brand-900/20'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {isChecked && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className={`text-xs truncate select-none ${
+                          isChecked ? 'text-brand-700 dark:text-brand-300 font-bold' : 'text-slate-700 dark:text-slate-300 font-medium'
+                        }`}>{room.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Multi-brand filter checkbox dropdown */}
           <div className="relative" ref={brandDropdownRef}>
@@ -577,7 +697,7 @@ export default function TimelineScheduler() {
             </div>
             
             <div className="divide-y divide-slate-200 dark:divide-slate-800">
-              {rooms.filter(r => r.status === 'Active').map(room => {
+              {visibleRooms.map(room => {
                 const now = new Date();
                 const localYear = now.getFullYear();
                 const localMonth = String(now.getMonth() + 1).padStart(2, '0');
@@ -612,8 +732,8 @@ export default function TimelineScheduler() {
                   </div>
                 );
               })}
-              {rooms.filter(r => r.status === 'Active').length === 0 && (
-                <div className="p-4 text-center text-xs italic text-slate-400">ไม่มีข้อมูลห้อง</div>
+              {visibleRooms.length === 0 && (
+                <div className="p-4 text-center text-xs italic text-slate-400">ไม่มีห้องตามตัวกรองที่เลือก</div>
               )}
             </div>
           </div>
@@ -635,7 +755,7 @@ export default function TimelineScheduler() {
 
             {/* Timeline grid rows with booking absolute blocks */}
             <div className="divide-y divide-slate-200 dark:divide-slate-800 relative min-w-max">
-              {rooms.filter(r => r.status === 'Active').map(room => (
+              {visibleRooms.map(room => (
                 <div key={room.id} className="timeline-row flex shrink-0 relative h-[60px]">
                   {/* Empty cells background grids */}
                   {timeSlots.map((_, index) => {
