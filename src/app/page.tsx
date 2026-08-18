@@ -388,6 +388,7 @@ export default function Home() {
         return <AnalyticsView />;
       case 'rooms':
       case 'brands':
+      case 'mc-live':
       case 'users':
       case 'roles-mgmt':
       case 'audit-log':
