@@ -51,11 +51,15 @@ export default function CampaignSchedule() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [allDates, setAllDates] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState('All');
+  
+  // Upgraded Multi-Select Arrays
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedOwner, setSelectedOwner] = useState('All');
-  const [selectedBookingStatus, setSelectedBookingStatus] = useState('All');
-  const [selectedLiveProgress, setSelectedLiveProgress] = useState('All');
+  const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
+  const [selectedBookingStatuses, setSelectedBookingStatuses] = useState<string[]>([]);
+  const [selectedLiveProgresses, setSelectedLiveProgresses] = useState<string[]>([]);
+
   const [sortVal, setSortVal] = useState('date-desc');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -66,11 +70,31 @@ export default function CampaignSchedule() {
   // Selected row highlighting
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
-  // UI Control states
+  // Dropdown open control states
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
   const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
+  const [isOwnerDropdownOpen, setIsOwnerDropdownOpen] = useState(false);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [isProgressDropdownOpen, setIsProgressDropdownOpen] = useState(false);
+
+  // Dropdown search values
+  const [monthSearchQuery, setMonthSearchQuery] = useState('');
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
   const [brandSearchQuery, setBrandSearchQuery] = useState('');
+  const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
+  const [statusSearchQuery, setStatusSearchQuery] = useState('');
+  const [progressSearchQuery, setProgressSearchQuery] = useState('');
+
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // References for click-outside hooks
+  const monthDropdownRef = useRef<HTMLDivElement>(null);
+  const roomDropdownRef = useRef<HTMLDivElement>(null);
   const brandDropdownRef = useRef<HTMLDivElement>(null);
+  const ownerDropdownRef = useRef<HTMLDivElement>(null);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const progressDropdownRef = useRef<HTMLDivElement>(null);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -87,12 +111,16 @@ export default function CampaignSchedule() {
     setEndDate(todayStr);
   }, []);
 
-  // Click outside listener for brand dropdown
+  // Click outside listener for all custom dropdowns
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
-      if (brandDropdownRef.current && !brandDropdownRef.current.contains(e.target as Node)) {
-        setIsBrandDropdownOpen(false);
-      }
+      const target = e.target as Node;
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(target)) setIsMonthDropdownOpen(false);
+      if (roomDropdownRef.current && !roomDropdownRef.current.contains(target)) setIsRoomDropdownOpen(false);
+      if (brandDropdownRef.current && !brandDropdownRef.current.contains(target)) setIsBrandDropdownOpen(false);
+      if (ownerDropdownRef.current && !ownerDropdownRef.current.contains(target)) setIsOwnerDropdownOpen(false);
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(target)) setIsStatusDropdownOpen(false);
+      if (progressDropdownRef.current && !progressDropdownRef.current.contains(target)) setIsProgressDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
@@ -102,9 +130,9 @@ export default function CampaignSchedule() {
   useEffect(() => {
     setPage(1);
   }, [
-    startDate, endDate, allDates, selectedRoom, selectedBrands, selectedOwner, 
-    selectedBookingStatus, selectedLiveProgress, sortVal, searchQuery, 
-    kpiFilter, actionFilter
+    startDate, endDate, allDates, selectedMonths, selectedRooms, selectedBrands, 
+    selectedOwners, selectedBookingStatuses, selectedLiveProgresses, sortVal, 
+    searchQuery, kpiFilter, actionFilter
   ]);
 
   // Determine user permission context
@@ -295,14 +323,22 @@ export default function CampaignSchedule() {
     return 'Upcoming';
   };
 
-  // 6. Base Date filters
+  // 6. Base Date filters (including Month Filter)
   const bookingsInDateRange = useMemo(() => {
     return visibleBookings.filter(b => {
+      // 1. Month filter check (If selectedMonths has items, check the month of b.date)
+      if (selectedMonths.length > 0) {
+        if (!b.date) return false;
+        const dateObj = new Date(b.date);
+        const bookingMonth = dateObj.getMonth() + 1; // 1-12
+        if (!selectedMonths.includes(bookingMonth)) return false;
+      }
+
       if (allDates) return true;
       if (!startDate || !endDate) return true;
       return b.date >= startDate && b.date <= endDate;
     });
-  }, [visibleBookings, startDate, endDate, allDates]);
+  }, [visibleBookings, startDate, endDate, allDates, selectedMonths]);
 
   // Extract lists dynamically for dropdowns
   const activeRoomsList = useMemo(() => {
@@ -409,20 +445,20 @@ export default function CampaignSchedule() {
         if (!matchesSearch) return false;
       }
 
-      // Room filter
-      if (selectedRoom !== 'All' && b.roomName !== selectedRoom) return false;
+      // Room filter (multi-select)
+      if (selectedRooms.length > 0 && !selectedRooms.includes(b.roomName)) return false;
 
-      // Brand filter
+      // Brand filter (multi-select)
       if (selectedBrands.length > 0 && !selectedBrands.includes(b.brandName)) return false;
 
-      // Owner filter
-      if (selectedOwner !== 'All' && b.ownerName !== selectedOwner) return false;
+      // Owner filter (multi-select)
+      if (selectedOwners.length > 0 && !selectedOwners.includes(b.ownerName)) return false;
 
-      // Booking status filter
-      if (selectedBookingStatus !== 'All' && getAutoStatus(b) !== selectedBookingStatus) return false;
+      // Booking status filter (multi-select)
+      if (selectedBookingStatuses.length > 0 && !selectedBookingStatuses.includes(getAutoStatus(b))) return false;
 
-      // Live progress filter
-      if (selectedLiveProgress !== 'All' && progressStatus !== selectedLiveProgress) return false;
+      // Live progress filter (multi-select)
+      if (selectedLiveProgresses.length > 0 && !selectedLiveProgresses.includes(progressStatus)) return false;
 
       // KPI Card selection filters
       if (kpiFilter !== 'all') {
@@ -486,6 +522,43 @@ export default function CampaignSchedule() {
 
   const totalPages = Math.ceil(sortedBookings.length / pageSize) || 1;
 
+  // Custom Month dropdown handlers
+  const THAI_MONTHS_LIST = [
+    { value: 1, label: 'มกราคม' },
+    { value: 2, label: 'กุมภาพันธ์' },
+    { value: 3, label: 'มีนาคม' },
+    { value: 4, label: 'เมษายน' },
+    { value: 5, label: 'พฤษภาคม' },
+    { value: 6, label: 'มิถุนายน' },
+    { value: 7, label: 'กรกฎาคม' },
+    { value: 8, label: 'สิงหาคม' },
+    { value: 9, label: 'กันยายน' },
+    { value: 10, label: 'ตุลาคม' },
+    { value: 11, label: 'พฤศจิกายน' },
+    { value: 12, label: 'ธันวาคม' }
+  ];
+
+  const handleMonthCheckboxChange = (monthVal: number, checked: boolean) => {
+    setSelectedMonths(prev => {
+      return checked ? [...prev, monthVal] : prev.filter(m => m !== monthVal);
+    });
+  };
+
+  const handleSelectAllMonths = (checked: boolean) => {
+    setSelectedMonths(checked ? THAI_MONTHS_LIST.map(m => m.value) : []);
+  };
+
+  // Custom Room dropdown handlers
+  const handleRoomCheckboxChange = (roomName: string, checked: boolean) => {
+    setSelectedRooms(prev => {
+      return checked ? [...prev, roomName] : prev.filter(r => r !== roomName);
+    });
+  };
+
+  const handleSelectAllRooms = (checked: boolean) => {
+    setSelectedRooms(checked ? activeRoomsList : []);
+  };
+
   // Custom Brand drop handler
   const handleBrandCheckboxChange = (brandName: string, checked: boolean) => {
     setSelectedBrands(prev => {
@@ -499,6 +572,53 @@ export default function CampaignSchedule() {
     setSelectedBrands(checked ? activeBrandsList : []);
   };
 
+  // Custom Owner dropdown handlers
+  const handleOwnerCheckboxChange = (ownerName: string, checked: boolean) => {
+    setSelectedOwners(prev => {
+      return checked ? [...prev, ownerName] : prev.filter(o => o !== ownerName);
+    });
+  };
+
+  const handleSelectAllOwners = (checked: boolean) => {
+    setSelectedOwners(checked ? activeOwnersList : []);
+  };
+
+  // Custom Status dropdown handlers
+  const STATUS_LIST = [
+    { value: 'Pending', label: 'Pending (รอการยืนยัน)' },
+    { value: 'Confirmed', label: 'Confirmed (ยืนยันแล้ว)' },
+    { value: 'Completed', label: 'Completed (เสร็จสิ้น)' }
+  ];
+
+  const handleStatusCheckboxChange = (statusVal: string, checked: boolean) => {
+    setSelectedBookingStatuses(prev => {
+      return checked ? [...prev, statusVal] : prev.filter(s => s !== statusVal);
+    });
+  };
+
+  const handleSelectAllStatuses = (checked: boolean) => {
+    setSelectedBookingStatuses(checked ? STATUS_LIST.map(s => s.value) : []);
+  };
+
+  // Custom Live Progress dropdown handlers
+  const PROGRESS_LIST = [
+    { value: 'Upcoming', label: 'Upcoming (รอวันถัดไป)' },
+    { value: 'Starting Soon', label: 'Starting Soon (เริ่มใน 24 ชม.)' },
+    { value: 'Live Now', label: '🔴 Live Now (กำลังสด)' },
+    { value: 'Completed', label: 'Completed (จบไลฟ์แล้ว)' },
+    { value: 'Cancelled', label: 'Cancelled (ยกเลิกแล้ว)' }
+  ];
+
+  const handleProgressCheckboxChange = (progressVal: string, checked: boolean) => {
+    setSelectedLiveProgresses(prev => {
+      return checked ? [...prev, progressVal] : prev.filter(p => p !== progressVal);
+    });
+  };
+
+  const handleSelectAllProgresses = (checked: boolean) => {
+    setSelectedLiveProgresses(checked ? PROGRESS_LIST.map(p => p.value) : []);
+  };
+
   const filteredBrandsForDropdown = useMemo(() => {
     return activeBrandsList.filter(b => 
       b.toLowerCase().includes(brandSearchQuery.toLowerCase())
@@ -507,11 +627,12 @@ export default function CampaignSchedule() {
 
   // Clear all filters action
   const clearAllFilters = () => {
-    setSelectedRoom('All');
+    setSelectedMonths([]);
+    setSelectedRooms([]);
     setSelectedBrands([]);
-    setSelectedOwner('All');
-    setSelectedBookingStatus('All');
-    setSelectedLiveProgress('All');
+    setSelectedOwners([]);
+    setSelectedBookingStatuses([]);
+    setSelectedLiveProgresses([]);
     setSearchQuery('');
     setKpiFilter('all');
     setActionFilter('none');
@@ -834,8 +955,8 @@ export default function CampaignSchedule() {
           </button>
 
           {/* Clear Filters helper */}
-          {(selectedRoom !== 'All' || selectedBrands.length > 0 || selectedOwner !== 'All' || 
-            selectedBookingStatus !== 'All' || selectedLiveProgress !== 'All' || 
+          {(selectedMonths.length > 0 || selectedRooms.length > 0 || selectedBrands.length > 0 || 
+            selectedOwners.length > 0 || selectedBookingStatuses.length > 0 || selectedLiveProgresses.length > 0 || 
             searchQuery || kpiFilter !== 'all' || actionFilter !== 'none') && (
             <button
               onClick={clearAllFilters}
@@ -873,19 +994,174 @@ export default function CampaignSchedule() {
               />
             </div>
 
+            {/* Month selector (multi-select) */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">ช่วงเวลาเดือน (Months)</label>
+              <div className="relative" ref={monthDropdownRef}>
+                <button
+                  onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
+                  className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+                    isMonthDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedMonths.length === 0 
+                      ? 'ทุกเดือน (All)' 
+                      : selectedMonths.length === THAI_MONTHS_LIST.length 
+                        ? `เลือกทุกเดือน (${selectedMonths.length})` 
+                        : selectedMonths.map(m => THAI_MONTHS_LIST.find(x => x.value === m)?.label).join(', ')}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isMonthDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="ค้นหาเดือน..."
+                          value={monthSearchQuery}
+                          onChange={(e) => setMonthSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="p-1">
+                      <div
+                        onClick={() => handleSelectAllMonths(!(selectedMonths.length === THAI_MONTHS_LIST.length && THAI_MONTHS_LIST.length > 0))}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          selectedMonths.length === THAI_MONTHS_LIST.length && THAI_MONTHS_LIST.length > 0
+                            ? 'bg-brand-500 border-brand-500'
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {selectedMonths.length === THAI_MONTHS_LIST.length && THAI_MONTHS_LIST.length > 0 && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-700 dark:text-slate-300 font-bold select-none">เลือกทั้งหมด (Select All)</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col overflow-y-auto flex-1 px-1 pb-1">
+                      {THAI_MONTHS_LIST.filter(m => m.label.includes(monthSearchQuery)).map(m => {
+                        const isChecked = selectedMonths.includes(m.value);
+                        return (
+                          <div
+                            key={m.value}
+                            onClick={() => handleMonthCheckboxChange(m.value, !isChecked)}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{m.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Room selector */}
             <div className="flex flex-col gap-1">
               <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">ห้องสตูดิโอ (Room)</label>
-              <CustomSelect
-                value={selectedRoom}
-                onChange={setSelectedRoom}
-                options={[
-                  { value: 'All', label: 'ทุกห้องสตูดิโอ (All)' },
-                  ...activeRoomsList.map(name => ({ value: name, label: name }))
-                ]}
-                searchable={activeRoomsList.length > 5}
-                searchPlaceholder="ค้นหาห้อง..."
-              />
+              <div className="relative" ref={roomDropdownRef}>
+                <button
+                  onClick={() => setIsRoomDropdownOpen(!isRoomDropdownOpen)}
+                  className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+                    isRoomDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedRooms.length === 0 
+                      ? 'ทุกห้อง (All)' 
+                      : selectedRooms.length === activeRoomsList.length 
+                        ? `เลือกทุกห้อง (${selectedRooms.length})` 
+                        : selectedRooms.join(', ')}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isRoomDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isRoomDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="ค้นหาห้อง..."
+                          value={roomSearchQuery}
+                          onChange={(e) => setRoomSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="p-1">
+                      <div
+                        onClick={() => handleSelectAllRooms(!(selectedRooms.length === activeRoomsList.length && activeRoomsList.length > 0))}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          selectedRooms.length === activeRoomsList.length && activeRoomsList.length > 0
+                            ? 'bg-brand-500 border-brand-500'
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {selectedRooms.length === activeRoomsList.length && activeRoomsList.length > 0 && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-700 dark:text-slate-300 font-bold select-none">เลือกทั้งหมด (Select All)</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col overflow-y-auto flex-1 px-1 pb-1">
+                      {activeRoomsList.filter(r => r.toLowerCase().includes(roomSearchQuery.toLowerCase())).map(room => {
+                        const isChecked = selectedRooms.includes(room);
+                        return (
+                          <div
+                            key={room}
+                            onClick={() => handleRoomCheckboxChange(room, !isChecked)}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{room}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Brand MultiSelect */}
@@ -976,47 +1252,256 @@ export default function CampaignSchedule() {
             {/* Owner dropdown */}
             <div className="flex flex-col gap-1">
               <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">ผู้รับผิดชอบ (Owner)</label>
-              <CustomSelect
-                value={selectedOwner}
-                onChange={setSelectedOwner}
-                options={[
-                  { value: 'All', label: 'ผู้รับผิดชอบทั้งหมด (All)' },
-                  ...activeOwnersList.map(name => ({ value: name, label: name }))
-                ]}
-                searchable={activeOwnersList.length > 5}
-                searchPlaceholder="ค้นหาผู้รับผิดชอบ..."
-              />
+              <div className="relative" ref={ownerDropdownRef}>
+                <button
+                  onClick={() => setIsOwnerDropdownOpen(!isOwnerDropdownOpen)}
+                  className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+                    isOwnerDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedOwners.length === 0 
+                      ? 'ทุกคน (All)' 
+                      : selectedOwners.length === activeOwnersList.length 
+                        ? `เลือกทุกคน (${selectedOwners.length})` 
+                        : selectedOwners.join(', ')}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isOwnerDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isOwnerDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="ค้นหาผู้รับผิดชอบ..."
+                          value={ownerSearchQuery}
+                          onChange={(e) => setOwnerSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="p-1">
+                      <div
+                        onClick={() => handleSelectAllOwners(!(selectedOwners.length === activeOwnersList.length && activeOwnersList.length > 0))}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          selectedOwners.length === activeOwnersList.length && activeOwnersList.length > 0
+                            ? 'bg-brand-500 border-brand-500'
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {selectedOwners.length === activeOwnersList.length && activeOwnersList.length > 0 && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-700 dark:text-slate-300 font-bold select-none">เลือกทั้งหมด (Select All)</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col overflow-y-auto flex-1 px-1 pb-1">
+                      {activeOwnersList.filter(o => o.toLowerCase().includes(ownerSearchQuery.toLowerCase())).map(owner => {
+                        const isChecked = selectedOwners.includes(owner);
+                        return (
+                          <div
+                            key={owner}
+                            onClick={() => handleOwnerCheckboxChange(owner, !isChecked)}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{owner}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Booking Status Selector */}
             <div className="flex flex-col gap-1">
               <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">สถานะการจอง (Booking Status)</label>
-              <CustomSelect
-                value={selectedBookingStatus}
-                onChange={setSelectedBookingStatus}
-                options={[
-                  { value: 'All', label: 'ทุกสถานะจองห้อง (All)' },
-                  { value: 'Pending', label: 'Pending (รอการยืนยัน)' },
-                  { value: 'Confirmed', label: 'Confirmed (ยืนยันแล้ว)' },
-                  { value: 'Completed', label: 'Completed (เสร็จสิ้น)' },
-                ]}
-              />
+              <div className="relative" ref={statusDropdownRef}>
+                <button
+                  onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                  className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+                    isStatusDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedBookingStatuses.length === 0 
+                      ? 'ทุกสถานะ (All)' 
+                      : selectedBookingStatuses.length === STATUS_LIST.length 
+                        ? `เลือกทุกสถานะ (${selectedBookingStatuses.length})` 
+                        : selectedBookingStatuses.map(s => STATUS_LIST.find(x => x.value === s)?.label).join(', ')}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isStatusDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="ค้นหาสถานะ..."
+                          value={statusSearchQuery}
+                          onChange={(e) => setStatusSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="p-1">
+                      <div
+                        onClick={() => handleSelectAllStatuses(!(selectedBookingStatuses.length === STATUS_LIST.length && STATUS_LIST.length > 0))}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          selectedBookingStatuses.length === STATUS_LIST.length && STATUS_LIST.length > 0
+                            ? 'bg-brand-500 border-brand-500'
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {selectedBookingStatuses.length === STATUS_LIST.length && STATUS_LIST.length > 0 && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-700 dark:text-slate-300 font-bold select-none">เลือกทั้งหมด (Select All)</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col overflow-y-auto flex-1 px-1 pb-1">
+                      {STATUS_LIST.filter(s => s.label.toLowerCase().includes(statusSearchQuery.toLowerCase())).map(status => {
+                        const isChecked = selectedBookingStatuses.includes(status.value);
+                        return (
+                          <div
+                            key={status.value}
+                            onClick={() => handleStatusCheckboxChange(status.value, !isChecked)}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{status.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Live Progress Status Selector */}
             <div className="flex flex-col gap-1">
               <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">การดำเนินเวลาไลฟ์ (Live Progress)</label>
-              <CustomSelect
-                value={selectedLiveProgress}
-                onChange={setSelectedLiveProgress}
-                options={[
-                  { value: 'All', label: 'ทุกขั้นตอน (All)' },
-                  { value: 'Upcoming', label: 'Upcoming (รอวันถัดไป)' },
-                  { value: 'Starting Soon', label: 'Starting Soon (เริ่มใน 24 ชม.)' },
-                  { value: 'Live Now', label: '🔴 Live Now (กำลังสด)' },
-                  { value: 'Completed', label: 'Completed (จบไลฟ์แล้ว)' },
-                ]}
-              />
+              <div className="relative" ref={progressDropdownRef}>
+                <button
+                  onClick={() => setIsProgressDropdownOpen(!isProgressDropdownOpen)}
+                  className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+                    isProgressDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedLiveProgresses.length === 0 
+                      ? 'ทุกขั้นตอน (All)' 
+                      : selectedLiveProgresses.length === PROGRESS_LIST.length 
+                        ? `เลือกทุกขั้นตอน (${selectedLiveProgresses.length})` 
+                        : selectedLiveProgresses.map(p => PROGRESS_LIST.find(x => x.value === p)?.label).join(', ')}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isProgressDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isProgressDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="ค้นหาขั้นตอน..."
+                          value={progressSearchQuery}
+                          onChange={(e) => setProgressSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="p-1">
+                      <div
+                        onClick={() => handleSelectAllProgresses(!(selectedLiveProgresses.length === PROGRESS_LIST.length && PROGRESS_LIST.length > 0))}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          selectedLiveProgresses.length === PROGRESS_LIST.length && PROGRESS_LIST.length > 0
+                            ? 'bg-brand-500 border-brand-500'
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {selectedLiveProgresses.length === PROGRESS_LIST.length && PROGRESS_LIST.length > 0 && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-700 dark:text-slate-300 font-bold select-none">เลือกทั้งหมด (Select All)</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col overflow-y-auto flex-1 px-1 pb-1">
+                      {PROGRESS_LIST.filter(p => p.label.toLowerCase().includes(progressSearchQuery.toLowerCase())).map(progress => {
+                        const isChecked = selectedLiveProgresses.includes(progress.value);
+                        return (
+                          <div
+                            key={progress.value}
+                            onClick={() => handleProgressCheckboxChange(progress.value, !isChecked)}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{progress.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Sorting */}
