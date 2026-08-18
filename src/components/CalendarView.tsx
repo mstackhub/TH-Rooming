@@ -468,10 +468,6 @@ export default function CalendarView() {
                           return (
                             <div
                               key={b.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveBookingIdForEdit(b.id);
-                              }}
                               className={`calendar-badge border select-none truncate text-[8px] leading-tight px-1.5 py-0.5 rounded ${badgeColor}`}
                               title={`${b.brandName} (${b.startTime}-${b.endTime})`}
                             >
@@ -550,10 +546,6 @@ export default function CalendarView() {
                           return (
                             <div
                               key={b.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveBookingIdForEdit(b.id);
-                              }}
                               className={`p-1.5 border select-none text-[8px] leading-tight rounded-lg flex flex-col gap-0.5 hover:shadow-sm transition-all ${badgeColor}`}
                               title={`${b.brandName} (${b.startTime}-${b.endTime})`}
                             >
