@@ -167,8 +167,8 @@ export default function MyBookings() {
 
             {/* Room Filter */}
             <CustomSelect
-              value={filters.room}
-              onChange={(v) => setFilters(prev => ({ ...prev, room: v }))}
+              value={filters.room[0] || ''}
+              onChange={(v) => setFilters(prev => ({ ...prev, room: v ? [v] : [] }))}
               options={[
                 { value: '', label: 'ทุกห้องสตูดิโอ (All)' },
                 ...rooms.map(r => ({ value: r.name, label: r.name }))
