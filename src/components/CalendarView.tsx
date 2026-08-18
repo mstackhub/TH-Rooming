@@ -433,15 +433,6 @@ export default function CalendarView() {
                       key={day.dateStr}
                       onClick={() => {
                         setCalendarSelectedDate(day.dateStr);
-                        if (canWrite) {
-                          // Allow double click or single click to trigger creating booking prefilled with date
-                          setActiveBookingCreateData({
-                            date: day.dateStr,
-                            roomName: rooms[0]?.name || 'Room 01',
-                            startTime: '09:00',
-                            endTime: '10:00'
-                          });
-                        }
                       }}
                       className={`calendar-day-box min-h-[100px] flex flex-col justify-between cursor-pointer transition-all hover:bg-slate-50/50 dark:hover:bg-slate-800/20 ${
                         isSelected ? 'ring-2 ring-brand-500 dark:ring-brand-500 bg-brand-50/5 dark:bg-slate-800/10' : ''
@@ -522,14 +513,6 @@ export default function CalendarView() {
                       key={day.dateStr}
                       onClick={() => {
                         setCalendarSelectedDate(day.dateStr);
-                        if (canWrite) {
-                          setActiveBookingCreateData({
-                            date: day.dateStr,
-                            roomName: rooms[0]?.name || 'Room 01',
-                            startTime: '09:00',
-                            endTime: '10:00'
-                          });
-                        }
                       }}
                       className={`calendar-day-box min-h-[300px] flex flex-col justify-between cursor-pointer p-2 rounded-xl transition-all hover:bg-slate-50/50 dark:hover:bg-slate-800/20 ${
                         isSelected ? 'ring-2 ring-brand-500 bg-brand-50/5 dark:bg-slate-800/10' : 'bg-slate-50/10 dark:bg-slate-900/10 border border-slate-100 dark:border-slate-850'
