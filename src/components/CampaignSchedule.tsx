@@ -480,8 +480,8 @@ export default function CampaignSchedule() {
       return true;
     });
   }, [
-    bookingsInDateRange, searchQuery, selectedRoom, selectedBrands, selectedOwner,
-    selectedBookingStatus, selectedLiveProgress, kpiFilter, actionFilter, bookingConflicts
+    bookingsInDateRange, searchQuery, selectedRooms, selectedBrands, selectedOwners,
+    selectedBookingStatuses, selectedLiveProgresses, kpiFilter, actionFilter, bookingConflicts
   ]);
 
   // 10. Sorting logic
