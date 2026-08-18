@@ -41,7 +41,9 @@ export default function BookingModal() {
     showToast,
     setCurrentTab,
     setSelectedDate,
-    setHighlightedBookingId
+    setHighlightedBookingId,
+    mcList,
+    mcTiers
   } = useApp();
 
   const [loading, setLoading] = useState(false);
@@ -55,6 +57,7 @@ export default function BookingModal() {
   const [endTime, setEndTime] = useState('10:00');
   const [brandName, setBrandName] = useState('');
   const [campaignName, setCampaignName] = useState('');
+  const [mcId, setMcId] = useState('');
   const [briefText, setBriefText] = useState('');
   const [briefLink, setBriefLink] = useState('');
   const [remark, setRemark] = useState('');
@@ -106,6 +109,7 @@ export default function BookingModal() {
         setBriefLink(matchedBooking.briefLink);
         setRemark(matchedBooking.remark);
         setBookingStatus(matchedBooking.status as any);
+        setMcId(matchedBooking.mcId || '');
 
         // Parse readiness statuses from lsArtworkLayout JSON
         let bStatus = 'Not Added';
@@ -159,6 +163,7 @@ export default function BookingModal() {
         setArtworkLink('');
         setLastUpdated('');
         setLastUpdatedBy('');
+        setMcId('');
       }
     }
   }, [isOpen, activeBookingIdForEdit, activeBookingCreateData]);
@@ -279,7 +284,8 @@ export default function BookingModal() {
       briefLink: briefLink.trim(),
       lsArtworkLayout: lsArtworkLayoutPayload,
       status: bookingStatus,
-      remark: remark.trim()
+      remark: remark.trim(),
+      mcId: mcId || null
     };
 
     if (isEditMode && matchedBooking) {
@@ -340,7 +346,8 @@ export default function BookingModal() {
       rem: remark,
       bStatus: briefStatus,
       aStatus: artworkStatus,
-      aLink: artworkLink
+      aLink: artworkLink,
+      mcId: mcId
     };
 
     setActiveBookingIdForEdit(null);
@@ -360,6 +367,7 @@ export default function BookingModal() {
       setBriefStatus(copyData.bStatus);
       setArtworkStatus(copyData.aStatus);
       setArtworkLink(copyData.aLink);
+      setMcId(copyData.mcId);
     }, 50);
 
     showToast("คัดลอกแคมเปญเรียบร้อย กรุณาตรวจสอบวันเวลาและจัดเก็บ", "info");
@@ -545,6 +553,32 @@ export default function BookingModal() {
                 {brands.filter(b => b.status === 'Active' || b.name === brandName).map(b => (
                   <option key={b.id} value={b.name}>{b.name}{b.status === 'Inactive' ? ' (ปิดใช้งาน)' : ''}</option>
                 ))}
+              </select>
+            </div>
+
+            {/* MC Live selector */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เลือก MC ไลฟ์สด (MC Live)</label>
+              <select
+                value={mcId}
+                onChange={(e) => setMcId(e.target.value)}
+                disabled={!canSave}
+                className="w-full text-xs font-semibold"
+              >
+                <option value="">-- ไม่เลือก / ไม่ระบุ (No MC selected) --</option>
+                {mcTiers.map(tier => {
+                  const mcsInTier = mcList.filter(mc => mc.tierId === tier.id && (mc.status === 'Active' || mc.id === mcId));
+                  if (mcsInTier.length === 0) return null;
+                  return (
+                    <optgroup key={tier.id} label={tier.name}>
+                      {mcsInTier.map(mc => (
+                        <option key={mc.id} value={mc.id}>
+                          {mc.name}{mc.status === 'Inactive' ? ' (ปิดการใช้งาน)' : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
               </select>
             </div>
 

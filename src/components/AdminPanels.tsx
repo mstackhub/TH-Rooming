@@ -21,7 +21,7 @@ import {
   Clock
 } from 'lucide-react';
 
-type SubTab = 'rooms' | 'brands' | 'users' | 'roles' | 'logs' | 'settings';
+type SubTab = 'rooms' | 'brands' | 'users' | 'roles' | 'logs' | 'settings' | 'mc-live';
 
 export default function AdminPanels() {
   const {
@@ -39,7 +39,11 @@ export default function AdminPanels() {
     currentUser,
     calendarBookings,
     currentTab,
-    setCurrentTab
+    setCurrentTab,
+    mcList,
+    mcTiers,
+    setSelectedDate,
+    setHighlightedBookingId
   } = useApp();
 
   const allowedTabs = useMemo(() => currentUser?.permissions?.allowedTabs.split(',') || [], [currentUser]);
@@ -59,6 +63,7 @@ export default function AdminPanels() {
   const activeSubTab = useMemo<SubTab>(() => {
     if (currentTab === 'rooms') return 'rooms';
     if (currentTab === 'brands') return 'brands';
+    if (currentTab === 'mc-live') return 'mc-live';
     if (currentTab === 'users') return 'users';
     if (currentTab === 'roles-mgmt') return 'roles';
     if (currentTab === 'audit-log') return 'logs';
@@ -67,6 +72,7 @@ export default function AdminPanels() {
     // Fallback based on permissions
     if (allowedTabs.includes('rooms')) return 'rooms';
     if (allowedTabs.includes('brands')) return 'brands';
+    if (allowedTabs.includes('mc-live')) return 'mc-live';
     if (allowedTabs.includes('users')) return 'users';
     if (allowedTabs.includes('roles-mgmt')) return 'roles';
     if (allowedTabs.includes('audit-log')) return 'logs';
@@ -117,6 +123,39 @@ export default function AdminPanels() {
   const [settingsLineToken, setSettingsLineToken] = useState(settings?.lineChannelAccessToken || '');
   const [settingsLineDestId, setSettingsLineDestId] = useState(settings?.lineDestinationId || '');
   const [settingsUrl, setSettingsUrl] = useState(settings?.frontendUrl || '');
+
+  // Form states - MC LIVE MANAGEMENT
+  const [mcSubTab, setMcSubTab] = useState<'list' | 'tiers'>('list');
+  const [mcSearch, setMcSearch] = useState('');
+  const [mcFilterTier, setMcFilterTier] = useState('');
+  const [mcFilterStatus, setMcFilterStatus] = useState('');
+  const [mcSort, setMcSort] = useState<'name-asc' | 'name-desc' | 'tier-asc' | 'tier-desc'>('name-asc');
+
+  const [isMcModalOpen, setIsMcModalOpen] = useState(false);
+  const [editingMc, setEditingMc] = useState<any | null>(null);
+  const [mcName, setMcName] = useState('');
+  const [mcTierId, setMcTierId] = useState('');
+  const [mcStatus, setMcStatus] = useState<'Active' | 'Inactive'>('Active');
+
+  const [isTierModalOpen, setIsTierModalOpen] = useState(false);
+  const [editingTier, setEditingTier] = useState<any | null>(null);
+  const [tierName, setTierName] = useState('');
+
+  const [blockedBookings, setBlockedBookings] = useState<any[]>([]);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [blockedMcName, setBlockedMcName] = useState('');
+
+  const resetMcForm = () => {
+    setMcName('');
+    setMcTierId(mcTiers[0]?.id || '');
+    setMcStatus('Active');
+    setEditingMc(null);
+  };
+
+  const resetTierForm = () => {
+    setTierName('');
+    setEditingTier(null);
+  };
 
   // Reset all forms
   const resetRoomForm = () => {
@@ -338,6 +377,115 @@ export default function AdminPanels() {
       if (err) showToast(`ปิดใช้งานแบรนด์ "${brand.name}" ไม่สำเร็จ: ${err}`, "error");
       else {
         showToast(`ปิดใช้งานแบรนด์ "${brand.name}" แล้ว — ประวัติคิวเดิมยังคงอยู่`, "success");
+        refreshActiveTabData();
+      }
+    });
+  };
+
+  // CRUD Handles - MC LIVE MANAGEMENT
+  const handleSaveTier = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tierName.trim()) return showToast("กรุณากรอกชื่อ Tier", "warning");
+
+    setSubmitting(true);
+    const subAction = editingTier ? 'UPDATE' : 'CREATE';
+    const payload = editingTier 
+      ? { id: editingTier.id, name: tierName.trim() }
+      : { name: tierName.trim() };
+
+    await apiCall('manageMcTiers', { subAction, payload }, (err) => {
+      setSubmitting(false);
+      if (err) {
+        showToast(err, "error");
+      } else {
+        showToast(`${editingTier ? 'แก้ไข' : 'เพิ่ม'} Tier สำเร็จ`, "success");
+        setTierName('');
+        setEditingTier(null);
+        setIsTierModalOpen(false);
+        refreshActiveTabData();
+      }
+    });
+  };
+
+  const handleDeleteTier = async (tier: any) => {
+    if (!window.confirm(`คุณแน่ใจว่าต้องการลบ Tier "${tier.name}" ใช่หรือไม่?`)) return;
+
+    await apiCall('manageMcTiers', { subAction: 'DELETE', payload: { id: tier.id } }, (err) => {
+      if (err) {
+        showToast(err, "error");
+      } else {
+        showToast("ลบ Tier สำเร็จ", "success");
+        refreshActiveTabData();
+      }
+    });
+  };
+
+  const handleMoveTier = async (tierId: string, direction: 'up' | 'down') => {
+    const currentIndex = mcTiers.findIndex(t => t.id === tierId);
+    if (currentIndex === -1) return;
+    if (direction === 'up' && currentIndex === 0) return;
+    if (direction === 'down' && currentIndex === mcTiers.length - 1) return;
+
+    const newTiers = [...mcTiers];
+    const swapWithIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    const temp = newTiers[currentIndex];
+    newTiers[currentIndex] = newTiers[swapWithIndex];
+    newTiers[swapWithIndex] = temp;
+
+    const payloadTiers = newTiers.map((t, idx) => ({
+      id: t.id,
+      sortOrder: idx + 1
+    }));
+
+    await apiCall('manageMcTiers', { subAction: 'UPDATE_ORDER', payload: { tiers: payloadTiers } }, (err) => {
+      if (err) {
+        showToast(err, "error");
+      } else {
+        refreshActiveTabData();
+      }
+    });
+  };
+
+  const handleSaveMc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mcName.trim()) return showToast("กรุณากรอกชื่อ MC", "warning");
+    if (!mcTierId) return showToast("กรุณาเลือก Tier", "warning");
+
+    setSubmitting(true);
+    const subAction = editingMc ? 'UPDATE' : 'CREATE';
+    const payload = editingMc 
+      ? { id: editingMc.id, name: mcName.trim(), tierId: mcTierId, status: mcStatus }
+      : { name: mcName.trim(), tierId: mcTierId, status: mcStatus };
+
+    await apiCall('manageMcList', { subAction, payload }, (err) => {
+      setSubmitting(false);
+      if (err) {
+        showToast(err, "error");
+      } else {
+        showToast(`${editingMc ? 'แก้ไข' : 'เพิ่ม'} MC สำเร็จ`, "success");
+        setMcName('');
+        setMcTierId('');
+        setMcStatus('Active');
+        setEditingMc(null);
+        setIsMcModalOpen(false);
+        refreshActiveTabData();
+      }
+    });
+  };
+
+  const handleDeleteMc = async (mc: any) => {
+    if (!window.confirm(`คุณแน่ใจว่าต้องการลบ MC "${mc.name}" ใช่หรือไม่?`)) return;
+
+    await apiCall('manageMcList', { subAction: 'DELETE', payload: { id: mc.id, name: mc.name } }, (err, data) => {
+      if (err) {
+        showToast(err, "error");
+      } else if (data && data.success === false && data.bookings) {
+        setBlockedMcName(mc.name);
+        setBlockedBookings(data.bookings);
+        setIsBlockModalOpen(true);
+      } else {
+        showToast("ลบ MC สำเร็จ", "success");
         refreshActiveTabData();
       }
     });
@@ -1562,7 +1710,7 @@ export default function AdminPanels() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">Line Messaging Channel Access Token</label>
+                  <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wide">Line Messaging Channel Access Token</label>
                   <input
                     type="password"
                     placeholder="กรอก Messaging API channel access token ของไลน์บอท"
@@ -1607,7 +1755,471 @@ export default function AdminPanels() {
             </div>
           )}
 
+          {/* MC LIVE SUBTAB */}
+          {activeSubTab === 'mc-live' && (
+            <div className="flex flex-col gap-6 w-full">
+              {/* Inner Tab Header */}
+              <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 shrink-0">
+                <button
+                  onClick={() => setMcSubTab('list')}
+                  className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 ${
+                    mcSubTab === 'list'
+                      ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-250'
+                  }`}
+                >
+                  รายชื่อ MC (MC List)
+                </button>
+                <button
+                  onClick={() => setMcSubTab('tiers')}
+                  className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 ${
+                    mcSubTab === 'tiers'
+                      ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-250'
+                  }`}
+                >
+                  จัดการ Tier (Tier Management)
+                </button>
+              </div>
+
+              {/* TAB 1: MC LIST */}
+              {mcSubTab === 'list' && (
+                <div className="flex flex-col gap-4">
+                  {/* Filters & Actions bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-250/60 dark:border-slate-800/80 rounded-2xl">
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Search */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="ค้นหาชื่อ MC..."
+                          value={mcSearch}
+                          onChange={(e) => setMcSearch(e.target.value)}
+                          className="w-48 pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900"
+                        />
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      </div>
+
+                      {/* Filter by Tier */}
+                      <select
+                        value={mcFilterTier}
+                        onChange={(e) => setMcFilterTier(e.target.value)}
+                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900"
+                      >
+                        <option value="">ทุกระดับ Tier</option>
+                        {mcTiers.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+
+                      {/* Filter by Status */}
+                      <select
+                        value={mcFilterStatus}
+                        onChange={(e) => setMcFilterStatus(e.target.value)}
+                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900"
+                      >
+                        <option value="">ทุกสถานะ</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+
+                      {/* Sort Options */}
+                      <select
+                        value={mcSort}
+                        onChange={(e) => setMcSort(e.target.value as any)}
+                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900"
+                      >
+                        <option value="name-asc">ชื่อ MC (ก-ฮ)</option>
+                        <option value="name-desc">ชื่อ MC (ฮ-ก)</option>
+                        <option value="tier-asc">Tier (สูง-ต่ำ)</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        resetMcForm();
+                        setIsMcModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/25 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      เพิ่ม MC ใหม่
+                    </button>
+                  </div>
+
+                  {/* MC List Table */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                          <th className="p-4 font-bold">ชื่อ MC</th>
+                          <th className="p-4 font-bold">ระดับ Tier</th>
+                          <th className="p-4 font-bold">จำนวนคิวไลฟ์สด</th>
+                          <th className="p-4 font-bold">สถานะ</th>
+                          <th className="p-4 font-bold text-right">จัดการ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                        {(() => {
+                          let filtered = [...mcList];
+
+                          if (mcSearch.trim()) {
+                            const query = mcSearch.toLowerCase();
+                            filtered = filtered.filter(mc => mc.name.toLowerCase().includes(query));
+                          }
+
+                          if (mcFilterTier) {
+                            filtered = filtered.filter(mc => mc.tierId === mcFilterTier);
+                          }
+
+                          if (mcFilterStatus) {
+                            filtered = filtered.filter(mc => mc.status === mcFilterStatus);
+                          }
+
+                          filtered.sort((a, b) => {
+                            if (mcSort === 'name-asc') return a.name.localeCompare(b.name, 'th');
+                            if (mcSort === 'name-desc') return b.name.localeCompare(a.name, 'th');
+                            if (mcSort === 'tier-asc') {
+                              const tA = mcTiers.find(t => t.id === a.tierId)?.sortOrder || 999;
+                              const tB = mcTiers.find(t => t.id === b.tierId)?.sortOrder || 999;
+                              return tA - tB;
+                            }
+                            return 0;
+                          });
+
+                          if (filtered.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={5} className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium">
+                                  ไม่พบข้อมูลผู้ดำเนินรายการ (MC) ตามเงื่อนไขการค้นหา
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return filtered.map(mc => {
+                            const tier = mcTiers.find(t => t.id === mc.tierId);
+                            const count = calendarBookings.filter(b => b.mcId === mc.id && b.status !== 'Cancelled').length;
+
+                            return (
+                              <tr key={mc.id} className="hover:bg-slate-50/55 dark:hover:bg-slate-800/10">
+                                <td className="p-4 font-bold text-slate-900 dark:text-white">{mc.name}</td>
+                                <td className="p-4">
+                                  <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg font-bold text-[10px] text-slate-700 dark:text-slate-350">
+                                    {tier ? tier.name : 'ไม่ระบุ'}
+                                  </span>
+                                </td>
+                                <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">{count} คิว</td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    mc.status === 'Active'
+                                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
+                                      : 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 dark:text-rose-400'
+                                  }`}>
+                                    {mc.status === 'Active' ? 'Active' : 'Inactive'}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        setEditingMc(mc);
+                                        setMcName(mc.name);
+                                        setMcTierId(mc.tierId);
+                                        setMcStatus(mc.status);
+                                        setIsMcModalOpen(true);
+                                      }}
+                                      title="แก้ไขข้อมูล MC"
+                                      className="p-2 text-slate-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/20 rounded-lg transition-all cursor-pointer"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteMc(mc)}
+                                      title="ลบ MC"
+                                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: TIER MANAGEMENT */}
+              {mcSubTab === 'tiers' && (
+                <div className="flex flex-col gap-4 max-w-2xl">
+                  {/* Action row */}
+                  <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-250/60 dark:border-slate-800/80 rounded-2xl">
+                    <span className="text-xs font-semibold text-slate-500">ลำดับของ Tiers จะส่งผลต่อการเรียงลำดับ MC ในตัวเลือกหน้าฟอร์ม</span>
+                    <button
+                      onClick={() => {
+                        resetTierForm();
+                        setIsTierModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/25 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      เพิ่ม Tier ใหม่
+                    </button>
+                  </div>
+
+                  {/* Tier lists */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {mcTiers.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium text-xs">
+                          ยังไม่มีข้อมูลระดับ Tier ในระบบ
+                        </div>
+                      ) : (
+                        mcTiers.map((tier, idx) => {
+                          const mcsUsing = mcList.filter(mc => mc.tierId === tier.id).length;
+                          return (
+                            <div key={tier.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/10">
+                              <div className="flex items-center gap-3">
+                                {/* Up / Down Order buttons */}
+                                <div className="flex flex-col gap-0.5">
+                                  <button
+                                    disabled={idx === 0}
+                                    onClick={() => handleMoveTier(tier.id, 'up')}
+                                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-450 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                                  >
+                                    ▲
+                                  </button>
+                                  <button
+                                    disabled={idx === mcTiers.length - 1}
+                                    onClick={() => handleMoveTier(tier.id, 'down')}
+                                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-450 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                                  >
+                                    ▼
+                                  </button>
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-800 dark:text-white text-xs">{tier.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
+                                    มี MC ในระบบ {mcsUsing} คน
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    setEditingTier(tier);
+                                    setTierName(tier.name);
+                                    setIsTierModalOpen(true);
+                                  }}
+                                  className="p-2 text-slate-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/20 rounded-lg transition-all cursor-pointer"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTier(tier)}
+                                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
       </div>
+
+      {/* MC Add/Edit Modal */}
+      {isMcModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" onClick={() => setIsMcModalOpen(false)} />
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-5">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                {editingMc ? 'แก้ไขข้อมูล MC' : 'เพิ่ม MC ใหม่'}
+              </h3>
+              <button onClick={() => setIsMcModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMc} className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ชื่อ MC (MC Name)</label>
+                <input
+                  type="text"
+                  placeholder="กรอกชื่อสำหรับแสดงผล"
+                  value={mcName}
+                  onChange={(e) => setMcName(e.target.value)}
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ระดับ Tier (MC Tier)</label>
+                <select
+                  value={mcTierId}
+                  onChange={(e) => setMcTierId(e.target.value)}
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  required
+                >
+                  <option value="">-- เลือก Tier --</option>
+                  {mcTiers.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">สถานะการใช้งาน (Status)</label>
+                <select
+                  value={mcStatus}
+                  onChange={(e) => setMcStatus(e.target.value as any)}
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                >
+                  <option value="Active">Active (เปิดใช้งาน)</option>
+                  <option value="Inactive">Inactive (ปิดใช้งาน)</option>
+                </select>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsMcModalOpen(false)}
+                  className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/25"
+                >
+                  {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Tier Add/Edit Modal */}
+      {isTierModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" onClick={() => setIsTierModalOpen(false)} />
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-5">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                {editingTier ? 'แก้ไขระดับ Tier' : 'เพิ่ม Tier ใหม่'}
+              </h3>
+              <button onClick={() => setIsTierModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTier} className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ชื่อ Tier</label>
+                <input
+                  type="text"
+                  placeholder="เช่น Tier S, Tier VIP"
+                  value={tierName}
+                  onChange={(e) => setTierName(e.target.value)}
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  required
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTierModalOpen(false)}
+                  className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/25"
+                >
+                  {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Blocked Modal */}
+      {isBlockModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" onClick={() => setIsBlockModalOpen(false)} />
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4">
+              <h3 className="font-extrabold text-sm text-rose-600 dark:text-rose-450 flex items-center gap-2">
+                ⚠️ ไม่สามารถลบข้อมูล MC ท่านนี้ได้
+              </h3>
+              <button onClick={() => setIsBlockModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
+                เนื่องจาก MC <strong className="text-slate-900 dark:text-white font-bold">"{blockedMcName}"</strong> มีคิวไลฟ์สดที่ยังไม่ได้ยกเลิกหรือกำลังจะเกิดขึ้นในระบบ จำนวน <strong className="text-rose-650 font-bold">{blockedBookings.length} คิว</strong>:
+              </p>
+
+              <div className="max-h-60 overflow-y-auto border border-slate-150 dark:border-slate-800 rounded-2xl divide-y divide-slate-150 dark:divide-slate-800 text-[11px]">
+                {blockedBookings.map((b) => (
+                  <div key={b.id} className="p-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 flex items-center justify-between gap-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-slate-800 dark:text-slate-250">แบรนด์: {b.brandName}</span>
+                      <span className="text-slate-450 dark:text-slate-450">
+                        วันที่: {formatThaiDate(b.date)} | เวลา: {b.startTime} - {b.endTime} น.
+                      </span>
+                      <span className="text-[10px] text-slate-400">ห้องสตูดิโอ: {b.roomName}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsBlockModalOpen(false);
+                        setSelectedDate(b.date);
+                        setHighlightedBookingId(b.id);
+                        setCurrentTab('scheduler');
+                      }}
+                      className="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/20 dark:hover:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-lg font-bold transition-all text-[10px] shrink-0"
+                    >
+                      ดูคิวไลฟ์
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsBlockModalOpen(false)}
+                  className="px-5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

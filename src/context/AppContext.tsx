@@ -18,6 +18,20 @@ export interface Booking {
   status: 'Confirmed' | 'Live' | 'Completed' | 'Cancelled';
   remark: string;
   createdAt?: string;
+  mcId?: string | null;
+}
+
+export interface McTier {
+  id: string;
+  name: string;
+  sortOrder: number;
+}
+
+export interface McList {
+  id: string;
+  name: string;
+  tierId: string;
+  status: 'Active' | 'Inactive';
 }
 
 export interface Room {
@@ -107,6 +121,8 @@ interface AppContextType {
   roles: Role[];
   auditLogs: AuditLog[];
   settings: SystemSettings | null;
+  mcTiers: McTier[];
+  mcList: McList[];
   
   // State methods
   setCurrentTab: (tab: string) => void;
@@ -116,6 +132,8 @@ interface AppContextType {
   setSchedulerSearch: (search: string) => void;
   setAuditLogs: React.Dispatch<React.SetStateAction<AuditLog[]>>;
   setSettings: React.Dispatch<React.SetStateAction<SystemSettings | null>>;
+  setMcTiers: React.Dispatch<React.SetStateAction<McTier[]>>;
+  setMcList: React.Dispatch<React.SetStateAction<McList[]>>;
   
   // Modal states
   activeBookingIdForEdit: string | null;
@@ -178,6 +196,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const [mcTiers, setMcTiers] = useState<McTier[]>([]);
+  const [mcList, setMcList] = useState<McList[]>([]);
 
   // Initialize Dates
   useEffect(() => {
@@ -315,6 +335,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.allBrandsAdmin) setAllBrandsAdmin(data.allBrandsAdmin);
         if (data.allUsersAdmin) setAllUsersAdmin(data.allUsersAdmin);
         if (data.roles) setRoles(data.roles);
+        if (data.mcTiers) setMcTiers(data.mcTiers);
+        if (data.mcList) setMcList(data.mcList);
         
         // Local My Bookings filtering matching getMyBookings
         if (data.user && data.allBookings) {
@@ -403,6 +425,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (data.allBrandsAdmin) setAllBrandsAdmin(data.allBrandsAdmin);
             if (data.allUsersAdmin) setAllUsersAdmin(data.allUsersAdmin);
             if (data.roles) setRoles(data.roles);
+            if (data.mcTiers) setMcTiers(data.mcTiers);
+            if (data.mcList) setMcList(data.mcList);
             if (data.allBookings) {
               setMyBookings(data.allBookings.filter((b: Booking) => b.ownerEmail.toLowerCase() === data.user.email.toLowerCase()));
             }
@@ -466,6 +490,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       roles,
       auditLogs,
       settings,
+      mcTiers,
+      mcList,
       
       setCurrentTab,
       setFilters,
@@ -474,6 +500,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSchedulerSearch,
       setAuditLogs,
       setSettings,
+      setMcTiers,
+      setMcList,
       
       activeBookingIdForEdit,
       setActiveBookingIdForEdit,

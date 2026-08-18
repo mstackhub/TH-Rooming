@@ -57,7 +57,8 @@ function mapBookingToFrontend(b: any) {
     ownerName: b.owner_name,
     status: b.status,
     remark: b.remark,
-    createdAt: b.created_at
+    createdAt: b.created_at,
+    mcId: b.mc_id || null
   };
 }
 
@@ -76,7 +77,8 @@ function mapBookingToDb(b: any) {
     owner_email: b.ownerEmail,
     owner_name: b.ownerName,
     status: b.status || 'Confirmed',
-    remark: b.remark || ''
+    remark: b.remark || '',
+    mc_id: b.mcId || null
   };
 }
 
@@ -310,6 +312,8 @@ export async function POST(request: Request) {
         const rooms = await requestSupabase('GET', 'rooms?order=name.asc');
         const dbBrands = await requestSupabase('GET', 'brands?status=eq.Active&order=name.asc');
         const dbBookings = await requestSupabase('GET', 'bookings?order=date.asc,start_time.asc');
+        const mcTiers = await requestSupabase('GET', 'mc_tiers?order=sort_order.asc');
+        const mcList = await requestSupabase('GET', 'mc_list?order=name.asc');
         
         // Filter brands that the user is assigned to (or all if user is admin)
         const userEmailLower = user.email.toLowerCase();
@@ -324,6 +328,17 @@ export async function POST(request: Request) {
         });
 
         const mappedBookings = dbBookings.map(mapBookingToFrontend);
+        const mappedMcTiers = (mcTiers || []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          sortOrder: t.sort_order
+        }));
+        const mappedMcList = (mcList || []).map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          tierId: m.tier_id,
+          status: m.status
+        }));
 
         let allRoomsAdmin: any[] = [];
         let allBrandsAdmin: any[] = [];
@@ -385,7 +400,9 @@ export async function POST(request: Request) {
           allRoomsAdmin,
           allBrandsAdmin,
           allUsersAdmin: mappedUsersAdmin,
-          roles: mappedRolesAdmin
+          roles: mappedRolesAdmin,
+          mcTiers: mappedMcTiers,
+          mcList: mappedMcList
         }, { headers: corsHeaders });
       }
 
@@ -818,6 +835,97 @@ export async function POST(request: Request) {
         await requestSupabase('POST', 'settings', payloads, { 'Prefer': 'resolution=merge-duplicates' });
         await logActivity(user, "SAVE_SYSTEM_SETTINGS", "System", "Saved system settings configuration", clientIp, userAgent);
         
+        return NextResponse.json({ success: true }, { headers: corsHeaders });
+      }
+
+      case 'manageMcTiers': {
+        if (!isAdmin) return NextResponse.json({ success: false, message: 'คุณไม่มีสิทธิ์จัดการข้อมูล Tiers กรุณาติดต่อ Master Admin เพื่อขอเพิ่มสิทธิ์' }, { status: 403, headers: corsHeaders });
+        const subAction = params.subAction;
+        const p = params.payload;
+
+        if (subAction === 'CREATE') {
+          const existing = await requestSupabase('GET', `mc_tiers?name=eq.${encodeURIComponent(p.name)}`);
+          if (existing && existing.length > 0) {
+            return NextResponse.json({ success: false, message: 'มี Tier ชื่อนี้อยู่ในระบบแล้ว' }, { headers: corsHeaders });
+          }
+          const allTiers = await requestSupabase('GET', 'mc_tiers');
+          const maxSort = (allTiers || []).reduce((max: number, t: any) => t.sort_order > max ? t.sort_order : max, 0);
+          await requestSupabase('POST', 'mc_tiers', { name: p.name, sort_order: maxSort + 1 });
+          await logActivity(user, "CREATE_MC_TIER", p.name, `Created MC tier: ${p.name}`, clientIp, userAgent);
+        } else if (subAction === 'UPDATE') {
+          await requestSupabase('PATCH', `mc_tiers?id=eq.${encodeURIComponent(p.id)}`, { name: p.name });
+          await logActivity(user, "UPDATE_MC_TIER", p.name, `Updated MC tier: ${p.name} (ID: ${p.id})`, clientIp, userAgent);
+        } else if (subAction === 'UPDATE_ORDER') {
+          for (const item of p.tiers) {
+            await requestSupabase('PATCH', `mc_tiers?id=eq.${encodeURIComponent(item.id)}`, { sort_order: item.sortOrder });
+          }
+          await logActivity(user, "UPDATE_MC_TIERS_ORDER", "mc_tiers", `Updated MC tiers sort order`, clientIp, userAgent);
+        } else if (subAction === 'DELETE') {
+          const mcs = await requestSupabase('GET', `mc_list?tier_id=eq.${encodeURIComponent(p.id)}`);
+          if (mcs && mcs.length > 0) {
+            return NextResponse.json({ success: false, message: 'ไม่สามารถลบ Tier นี้ได้ เนื่องจากมี MC ที่ใช้ Tier นี้อยู่ในระบบ' }, { headers: corsHeaders });
+          }
+          await requestSupabase('DELETE', `mc_tiers?id=eq.${encodeURIComponent(p.id)}`);
+          await logActivity(user, "DELETE_MC_TIER", p.id, `Deleted MC tier ID: ${p.id}`, clientIp, userAgent);
+        }
+        return NextResponse.json({ success: true }, { headers: corsHeaders });
+      }
+
+      case 'manageMcList': {
+        if (!isAdmin) return NextResponse.json({ success: false, message: 'คุณไม่มีสิทธิ์จัดการข้อมูล MC กรุณาติดต่อ Master Admin เพื่อขอเพิ่มสิทธิ์' }, { status: 403, headers: corsHeaders });
+        const subAction = params.subAction;
+        const p = params.payload;
+
+        const thDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const localDateStr = thDate.getFullYear() + '-' + String(thDate.getMonth() + 1).padStart(2, '0') + '-' + String(thDate.getDate()).padStart(2, '0');
+        const localTimeStr = String(thDate.getHours()).padStart(2, '0') + ':' + String(thDate.getMinutes()).padStart(2, '0');
+
+        if (subAction === 'CREATE') {
+          const existing = await requestSupabase('GET', `mc_list?name=eq.${encodeURIComponent(p.name)}`);
+          if (existing && existing.length > 0) {
+            return NextResponse.json({ success: false, message: 'มี MC ชื่อนี้อยู่ในระบบแล้ว' }, { headers: corsHeaders });
+          }
+          await requestSupabase('POST', 'mc_list', { name: p.name, tier_id: p.tierId, status: p.status || 'Active' });
+          await logActivity(user, "CREATE_MC", p.name, `Created MC: ${p.name} (Tier ID: ${p.tierId})`, clientIp, userAgent);
+        } else if (subAction === 'UPDATE') {
+          if (p.status === 'Inactive') {
+            const bookings = await requestSupabase('GET', `bookings?mc_id=eq.${encodeURIComponent(p.id)}&status=neq.Cancelled&date=gte.${localDateStr}`);
+            const upcomingBookings = (bookings || []).filter((b: any) => {
+              if (b.date > localDateStr) return true;
+              if (b.date === localDateStr && b.end_time > localTimeStr) return true;
+              return false;
+            });
+            if (upcomingBookings.length > 0) {
+              return NextResponse.json({ success: false, message: 'ไม่สามารถปิดการใช้งาน MC ท่านนี้ได้ เนื่องจากยังมีคิวจองที่กำลังจะเกิดขึ้น' }, { headers: corsHeaders });
+            }
+          }
+          await requestSupabase('PATCH', `mc_list?id=eq.${encodeURIComponent(p.id)}`, { name: p.name, tier_id: p.tierId, status: p.status });
+          await logActivity(user, "UPDATE_MC", p.name, `Updated MC: ${p.name} (ID: ${p.id})`, clientIp, userAgent);
+        } else if (subAction === 'DELETE') {
+          const bookings = await requestSupabase('GET', `bookings?mc_id=eq.${encodeURIComponent(p.id)}&status=neq.Cancelled&date=gte.${localDateStr}`);
+          const upcomingBookings = (bookings || []).filter((b: any) => {
+            if (b.date > localDateStr) return true;
+            if (b.date === localDateStr && b.end_time > localTimeStr) return true;
+            return false;
+          });
+          if (upcomingBookings.length > 0) {
+            const bookingDetails = upcomingBookings.map((b: any) => ({
+              id: b.id,
+              date: b.date,
+              startTime: b.start_time,
+              endTime: b.end_time,
+              brandName: b.brand_name,
+              roomName: b.room_name
+            }));
+            return NextResponse.json({
+              success: false,
+              message: 'ไม่สามารถลบ MC ท่านนี้ได้ เนื่องจากมีคิวไลฟ์สดที่เกี่ยวข้องในระบบ',
+              bookings: bookingDetails
+            }, { headers: corsHeaders });
+          }
+          await requestSupabase('DELETE', `mc_list?id=eq.${encodeURIComponent(p.id)}`);
+          await logActivity(user, "DELETE_MC", p.name, `Deleted MC: ${p.name} (ID: ${p.id})`, clientIp, userAgent);
+        }
         return NextResponse.json({ success: true }, { headers: corsHeaders });
       }
 

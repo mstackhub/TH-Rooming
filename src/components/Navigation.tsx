@@ -19,7 +19,7 @@ export default function Navigation() {
 
   // Auto-expand settings dropdown when active tab is one of settings sub-tabs
   useEffect(() => {
-    if (['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'].includes(currentTab)) {
+    if (['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab)) {
       setIsSettingsExpanded(true);
     }
   }, [currentTab]);
@@ -40,7 +40,7 @@ export default function Navigation() {
   const visibleItems = allNavItems.filter(item => {
     if (item.id === 'settings') {
       return allowedTabs.some(tab => 
-        ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'].includes(tab)
+        ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(tab)
       );
     }
     return allowedTabs.includes(item.id);
@@ -60,7 +60,7 @@ export default function Navigation() {
           const Icon = item.icon;
           const isSettingsItem = item.id === 'settings';
           const isActive = isSettingsItem 
-            ? ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'].includes(currentTab)
+            ? ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab)
             : currentTab === item.id;
 
           return (
@@ -70,9 +70,9 @@ export default function Navigation() {
                   if (isSettingsItem) {
                     setIsSettingsExpanded(!isSettingsExpanded);
                     // Automatically switch to first allowed settings sub-tab if none are active
-                    const currentIsSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'].includes(currentTab);
+                    const currentIsSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab);
                     if (!currentIsSub) {
-                      const firstAllowedSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'].find(t => allowedTabs.includes(t));
+                      const firstAllowedSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].find(t => allowedTabs.includes(t));
                       if (firstAllowedSub) {
                         setCurrentTab(firstAllowedSub);
                       }
@@ -108,6 +108,7 @@ export default function Navigation() {
                   {[
                     { id: 'rooms', name: 'ห้องสตูดิโอ' },
                     { id: 'brands', name: 'แบรนด์ลูกค้า' },
+                    { id: 'mc-live', name: 'การจัดการ MC ไลฟ์สด' },
                     { id: 'users', name: 'ผู้ใช้งานระบบ' },
                     { id: 'roles-mgmt', name: 'ระดับสิทธิ์การจอง' },
                     { id: 'audit-log', name: 'ประวัติกิจกรรม' },
