@@ -42,6 +42,10 @@ export default function TimelineScheduler() {
   const [brandSearchQuery, setBrandSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Custom room order state
+  const [customRoomOrder, setCustomRoomOrder] = useState<string[]>([]);
+  const [draggedRoomName, setDraggedRoomName] = useState<string | null>(null);
+
   // Ref and click-outside for custom brand dropdown select
   const brandDropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -183,7 +187,61 @@ export default function TimelineScheduler() {
     setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
-  // Room filter handlers
+  // Initialize room order when rooms load
+  useEffect(() => {
+    if (rooms.length > 0 && customRoomOrder.length === 0) {
+      // Load saved order from localStorage if exists
+      const saved = localStorage.getItem('th_room_order');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Merge in case rooms list changed
+            const activeRoomNames = rooms.filter(r => r.status === 'Active').map(r => r.name);
+            const ordered = parsed.filter(name => activeRoomNames.includes(name));
+            const missing = activeRoomNames.filter(name => !ordered.includes(name));
+            setCustomRoomOrder([...ordered, ...missing]);
+            return;
+          }
+        } catch(e) {}
+      }
+      setCustomRoomOrder(rooms.filter(r => r.status === 'Active').map(r => r.name));
+    }
+  }, [rooms, customRoomOrder]);
+
+  // Drag and Drop rooms list logic
+
+  const handleDragStart = (e: React.DragEvent, roomName: string) => {
+    setDraggedRoomName(roomName);
+    e.dataTransfer.effectAllowed = 'move';
+    // Required to enable dragging in Firefox
+    e.dataTransfer.setData('text/plain', roomName);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetRoomName: string) => {
+    e.preventDefault();
+    if (!draggedRoomName || draggedRoomName === targetRoomName) return;
+
+    setCustomRoomOrder(prev => {
+      const idxSource = prev.indexOf(draggedRoomName);
+      const idxTarget = prev.indexOf(targetRoomName);
+      if (idxSource === -1 || idxTarget === -1) return prev;
+
+      const next = [...prev];
+      // Remove from old index
+      next.splice(idxSource, 1);
+      // Insert at new index
+      next.splice(idxTarget, 0, draggedRoomName);
+      return next;
+    });
+  };
+
+  const handleDragEnd = () => {
+    setDraggedRoomName(null);
+    localStorage.setItem('th_room_order', JSON.stringify(customRoomOrder));
+  };
+
+  // Filters change
   const handleRoomCheckboxChange = (roomName: string, checked: boolean) => {
     setFilters(prev => {
       const nextRooms = checked
@@ -194,10 +252,10 @@ export default function TimelineScheduler() {
   };
 
   const handleSelectAllRooms = (checked: boolean) => {
-    const activeRooms = rooms.filter(r => r.status === 'Active');
+    const activeRoomsVal = rooms.filter(r => r.status === 'Active');
     setFilters(prev => ({
       ...prev,
-      room: checked ? activeRooms.map(r => r.name) : []
+      room: checked ? activeRoomsVal.map(r => r.name) : []
     }));
   };
 
@@ -215,7 +273,20 @@ export default function TimelineScheduler() {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  const activeRooms = useMemo(() => rooms.filter(r => r.status === 'Active'), [rooms]);
+  const activeRooms = useMemo(() => {
+    const list = rooms.filter(r => r.status === 'Active');
+    // Sort according to custom room order
+    if (customRoomOrder.length > 0) {
+      list.sort((a, b) => {
+        let idxA = customRoomOrder.indexOf(a.name);
+        let idxB = customRoomOrder.indexOf(b.name);
+        if (idxA === -1) idxA = 999;
+        if (idxB === -1) idxB = 999;
+        return idxA - idxB;
+      });
+    }
+    return list;
+  }, [rooms, customRoomOrder]);
 
   const filteredRoomsForDropdown = useMemo(() => {
     return activeRooms.filter(r =>
@@ -718,8 +789,33 @@ export default function TimelineScheduler() {
                 const isLive = !!liveBooking;
 
                 return (
-                  <div key={room.id} className="h-[60px] px-4 flex flex-col justify-center select-none min-w-0">
-                    <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200">{room.name}</span>
+                  <div 
+                    key={room.id} 
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, room.name)}
+                    onDragOver={(e) => handleDragOver(e, room.name)}
+                    onDragEnd={handleDragEnd}
+                    className={`h-[60px] px-4 flex flex-col justify-center select-none min-w-0 cursor-grab active:cursor-grabbing hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors duration-150 group relative ${
+                      draggedRoomName === room.name ? 'opacity-40 border-y border-dashed border-brand-400 bg-brand-50/10' : ''
+                    }`}
+                  >
+                    {/* Tiny drag indicator handle shown on hover */}
+                    <div className="absolute left-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col gap-0.5 text-slate-355 dark:text-slate-600">
+                      <div className="flex gap-0.5">
+                        <span className="w-0.5 h-0.5 rounded-full bg-current"></span>
+                        <span className="w-0.5 h-0.5 rounded-full bg-current"></span>
+                      </div>
+                      <div className="flex gap-0.5">
+                        <span className="w-0.5 h-0.5 rounded-full bg-current"></span>
+                        <span className="w-0.5 h-0.5 rounded-full bg-current"></span>
+                      </div>
+                      <div className="flex gap-0.5">
+                        <span className="w-0.5 h-0.5 rounded-full bg-current"></span>
+                        <span className="w-0.5 h-0.5 rounded-full bg-current"></span>
+                      </div>
+                    </div>
+
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200 pl-1.5">{room.name}</span>
                     {isLive && liveBooking ? (
                       <span className="inline-flex items-center gap-1 text-[9px] font-black text-rose-500 dark:text-rose-400 animate-pulse mt-0.5 select-none whitespace-nowrap">
                         🔴 LIVE NOW ({liveBooking.startTime} - {liveBooking.endTime})
