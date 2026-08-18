@@ -1331,8 +1331,8 @@ export default function AdminPanels() {
                           <span className="text-[9px] text-brand-500 font-bold">
                             {roleAllowedTabs.filter(t => [
                               'scheduler','calendar','my-bookings','campaign-schedule','analytics',
-                              'rooms','brands','users','roles-mgmt','audit-log','settings'
-                            ].includes(t)).length} / 11
+                              'rooms','brands','users','roles-mgmt','audit-log','settings', 'mc-live'
+                            ].includes(t)).length} / 12
                           </span>
                         </div>
                         
@@ -1377,7 +1377,7 @@ export default function AdminPanels() {
                             <button
                               type="button"
                               onClick={() => {
-                                const settingsSubtabs = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'];
+                                const settingsSubtabs = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'];
                                 const allChecked = settingsSubtabs.every(id => roleAllowedTabs.includes(id));
                                 if (allChecked) {
                                   // remove all settings subtabs
@@ -1394,7 +1394,7 @@ export default function AdminPanels() {
                             >
                               <input
                                 type="checkbox"
-                                checked={['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'].every(id => roleAllowedTabs.includes(id))}
+                                checked={['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].every(id => roleAllowedTabs.includes(id))}
                                 readOnly
                                 className="w-3 h-3 rounded border-slate-350 dark:border-slate-700 text-brand-650 pointer-events-none"
                               />
@@ -1406,6 +1406,7 @@ export default function AdminPanels() {
                             {[
                               { id: 'rooms',            label: '🚪 ห้องสตูดิโอ' },
                               { id: 'brands',           label: '🏢 แบรนด์ลูกค้า' },
+                              { id: 'mc-live',          label: '🎙️ การจัดการ MC ไลฟ์สด' },
                               { id: 'users',            label: '👥 ผู้ใช้งานระบบ' },
                               { id: 'roles-mgmt',       label: '🔑 ระดับสิทธิ์การจอง' },
                               { id: 'audit-log',        label: '📝 ประวัติกิจกรรม' },
