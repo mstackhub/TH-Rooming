@@ -135,6 +135,30 @@ export default function CampaignSchedule() {
     searchQuery, kpiFilter, actionFilter
   ]);
 
+  // Automatically update start and end dates when month filters change
+  useEffect(() => {
+    if (selectedMonths.length > 0) {
+      const currentYear = new Date().getFullYear();
+      
+      // Find the min and max month value selected
+      const minMonth = Math.min(...selectedMonths);
+      const maxMonth = Math.max(...selectedMonths);
+      
+      // Start date: 1st of the minMonth
+      const startMonthStr = String(minMonth).padStart(2, '0');
+      const calculatedStartDate = `${currentYear}-${startMonthStr}-01`;
+      
+      // End date: last day of the maxMonth
+      // Creating date with next month 0 day returns the last day of the target month
+      const lastDay = new Date(currentYear, maxMonth, 0).getDate();
+      const endMonthStr = String(maxMonth).padStart(2, '0');
+      const calculatedEndDate = `${currentYear}-${endMonthStr}-${String(lastDay).padStart(2, '0')}`;
+      
+      setStartDate(calculatedStartDate);
+      setEndDate(calculatedEndDate);
+    }
+  }, [selectedMonths]);
+
   // Determine user permission context
   const isAdmin = currentUser?.permissions?.isAdmin || currentUser?.role === 'Master Admin';
 
