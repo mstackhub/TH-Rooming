@@ -172,13 +172,34 @@ export default function CalendarView() {
     });
   }, [calendarBookings, filters]);
 
-  // List of bookings on the currently clicked calendar date (Strictly sorted 00:00 to 23:59)
+  // List of bookings on the currently clicked calendar date (Strictly sorted: LIVE NOW first, then by startTime)
   const selectedDateBookings = useMemo(() => {
     const list = filteredBookings.filter(b => b.date === calendarSelectedDate);
+    
+    // Sort logic: 
+    // 1. Currently Live: if date is today and time is within range, rank higher.
+    // 2. Otherwise: sort ascending by startTime minutes.
     return list.sort((a, b) => {
-      const aMins = parseTimeToMinutes(a.startTime);
-      const bMins = parseTimeToMinutes(b.startTime);
-      return aMins - bMins;
+      const now = new Date();
+      const localYear = now.getFullYear();
+      const localMonth = String(now.getMonth() + 1).padStart(2, '0');
+      const localDay = String(now.getDate()).padStart(2, '0');
+      const todayStr = `${localYear}-${localMonth}-${localDay}`;
+      const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+
+      const aStartMins = parseTimeToMinutes(a.startTime);
+      const aEndMins = parseTimeToMinutes(a.endTime);
+      const aIsLive = a.status !== 'Cancelled' && a.date === todayStr && currentTotalMins >= aStartMins && currentTotalMins < aEndMins;
+
+      const bStartMins = parseTimeToMinutes(b.startTime);
+      const bEndMins = parseTimeToMinutes(b.endTime);
+      const bIsLive = b.status !== 'Cancelled' && b.date === todayStr && currentTotalMins >= bStartMins && currentTotalMins < bEndMins;
+
+      if (aIsLive && !bIsLive) return -1;
+      if (!aIsLive && bIsLive) return 1;
+
+      // Both live or both not live -> sort by start time
+      return aStartMins - bStartMins;
     });
   }, [filteredBookings, calendarSelectedDate]);
 
@@ -734,37 +755,39 @@ export default function CalendarView() {
                   <div
                     key={b.id}
                     onClick={() => setActiveBookingIdForEdit(b.id)}
-                    className={`p-4.5 rounded-xl border hover:shadow-md cursor-pointer transition-all flex flex-col gap-2 ${statusColor} ${
-                      matchedImportant ? 'ring-1 ring-amber-400/60 border-amber-400 bg-amber-50/10' : 'border-slate-200'
+                    className={`p-4 rounded-xl border hover:shadow-md cursor-pointer transition-all flex flex-col gap-2.5 ${statusColor} ${
+                      matchedImportant 
+                        ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/15 dark:bg-amber-950/20 ring-2 ring-amber-500/35 shadow-md shadow-amber-200/20' 
+                        : 'border-slate-200 dark:border-slate-800'
                     }`}
                   >
-                    <div className="flex justify-between items-start gap-2 border-b border-slate-200/50 dark:border-slate-800/40 pb-1.5">
+                    <div className="flex justify-between items-start gap-2 border-b border-slate-200/50 dark:border-slate-800/40 pb-2">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        {matchedImportant && <span className="text-amber-550 dark:text-amber-400 text-xs shrink-0 animate-bounce">⭐</span>}
-                        <span className="font-bold text-xs truncate">{b.brandName}</span>
+                        {matchedImportant && <span className="text-amber-500 dark:text-amber-400 text-sm shrink-0 animate-bounce">⭐</span>}
+                        <span className="font-extrabold text-sm text-slate-900 dark:text-white truncate">{b.brandName}</span>
                         {isLiveNow && (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black bg-rose-500 text-white animate-pulse">
                             🔴 LIVE NOW
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-950/40 shrink-0">{b.startTime} - {b.endTime} น.</span>
+                      <span className="text-xs font-extrabold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-950/40 shrink-0 text-slate-800 dark:text-slate-200">{b.startTime} - {b.endTime} น.</span>
                     </div>
 
-                    <div className="flex flex-col gap-1 text-[10px] leading-relaxed text-slate-600 dark:text-slate-350">
-                      <div className="font-semibold text-slate-800 dark:text-slate-100 text-xs truncate mb-0.5">{b.campaignName}</div>
-                      <div className="truncate"><span className="text-slate-400 font-semibold">ห้อง:</span> {b.roomName}</div>
+                    <div className="flex flex-col gap-1.5 text-xs leading-relaxed text-slate-700 dark:text-slate-350">
+                      <div className="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate mb-0.5">{b.campaignName}</div>
+                      <div className="truncate"><span className="text-slate-400 dark:text-slate-500 font-bold">ห้อง:</span> {b.roomName}</div>
                       
                       {/* Added requested fields */}
-                      <div className="flex flex-wrap gap-x-3 gap-y-1">
-                        <div><span className="text-slate-400 font-semibold">ขนาด:</span> {matchedScale}</div>
-                        {matchedChannel && <div><span className="text-slate-400 font-semibold">ช่องทาง:</span> {matchedChannel}</div>}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <div><span className="text-slate-400 dark:text-slate-500 font-bold">ขนาด:</span> {matchedScale}</div>
+                        {matchedChannel && <div><span className="text-slate-400 dark:text-slate-500 font-bold">ช่องทาง:</span> {matchedChannel}</div>}
                       </div>
                       {mcNamesStr && (
-                        <div className="truncate"><span className="text-slate-400 font-semibold">MC:</span> {mcNamesStr}</div>
+                        <div className="truncate"><span className="text-slate-400 dark:text-slate-500 font-bold">MC:</span> {mcNamesStr}</div>
                       )}
                       {staffNamesStr && (
-                        <div className="truncate"><span className="text-slate-400 font-semibold">ผู้ดูแล:</span> {staffNamesStr}</div>
+                        <div className="truncate"><span className="text-slate-400 dark:text-slate-500 font-bold">ผู้ดูแล:</span> {staffNamesStr}</div>
                       )}
                     </div>
                   </div>
