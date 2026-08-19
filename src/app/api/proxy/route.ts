@@ -589,26 +589,29 @@ export async function POST(request: Request) {
           }
         }
 
-        const dbPayloads = list.map((b: any) => {
-          const dbObj = mapBookingToDb(b);
-          if (dbObj) {
-            // Keep original owner if it's an update, fallback to current user
-            dbObj.owner_email = b.ownerEmail || user.email;
-            dbObj.owner_name = b.ownerName || user.name;
+        // Iterate through all slots to manually check and perform update or insert
+        for (const item of list) {
+          const dbObj = mapBookingToDb(item);
+          if (!dbObj) continue;
+
+          // Check if slot with exact date, room, and start/end time already exists
+          const existingSlot = await requestSupabase('GET', `bookings?room_name=eq.${encodeURIComponent(dbObj.room_name)}&date=eq.${dbObj.date}&start_time=eq.${dbObj.start_time}&end_time=eq.${dbObj.end_time}`);
+          
+          if (existingSlot && existingSlot.length > 0) {
+            // Keep original owner if it's an update
+            dbObj.owner_email = existingSlot[0].owner_email;
+            dbObj.owner_name = existingSlot[0].owner_name;
+            // UPDATE EXISTING SLOT
+            await requestSupabase('PATCH', `bookings?id=eq.${existingSlot[0].id}`, dbObj);
+          } else {
+            // INSERT NEW SLOT
+            dbObj.owner_email = item.ownerEmail || user.email;
+            dbObj.owner_name = item.ownerName || user.name;
+            await requestSupabase('POST', 'bookings', dbObj);
           }
-          return dbObj;
-        });
+        }
 
-        // Supabase REST upsert using POST with resolution=merge-duplicates header
-        // To support upsert without error, we use PUT/POST with merge-duplicates or resolution on conflict keys (date, room_name, start_time)
-        // Since Supabase REST api supports upsert via POST with 'Prefer: resolution=merge-duplicates'
-        // But conflict resolution requires a unique index on (date, room_name, start_time).
-        // Let's perform upsert query call.
-        await requestSupabase('POST', 'bookings', dbPayloads, { 
-          'Prefer': 'resolution=merge-duplicates'
-        });
-        await logActivity(user, "CREATE_BOOKINGS_BULK", `${list.length} slots`, `Bulk booking / Upsert of ${list.length} slots started on ${list[0]?.date}`, clientIp, userAgent);
-
+        await logActivity(user, "CREATE_BOOKINGS_BULK", `${list.length} slots`, `Bulk booking / Upsert of ${list.length} slots processed on ${list[0]?.date}`, clientIp, userAgent);
         return NextResponse.json({ success: true }, { headers: corsHeaders });
       }
 
