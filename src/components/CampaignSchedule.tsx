@@ -785,7 +785,7 @@ export default function CampaignSchedule() {
     const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     let csvContent = "\uFEFF"; // UTF-8 BOM
-    csvContent += "Live Date,Day,Start Time,End Time,Room,Brand,Campaign Name,Owner,Artwork Link,Booking Status,Last Updated\n";
+    csvContent += "Live Date,Day,Start Time,End Time,Room,Brand,Campaign Name,MC Name,Owner,Artwork Link,Booking Status,Last Updated\n";
 
     sortedBookings.forEach(b => {
       const meta = parseArtworkMetadata(b);
@@ -802,6 +802,16 @@ export default function CampaignSchedule() {
         return d.toLocaleDateString('en-US', { weekday: 'short' });
       })();
 
+      const mcName = (() => {
+        if (!b.mcId) return '';
+        const ids = b.mcId.split(',').map(x => x.trim()).filter(Boolean);
+        const names = ids.map(id => {
+          const matched = mcList.find(m => m.id === id);
+          return matched ? matched.name : 'MC ทั่วไป';
+        });
+        return names.join(', ');
+      })();
+
       const columns = [
         b.date,
         dayOfWeek,
@@ -810,6 +820,7 @@ export default function CampaignSchedule() {
         b.roomName,
         b.brandName,
         b.campaignName,
+        mcName,
         b.ownerName,
         meta.artworkLink || '',
         getAutoStatus(b),
