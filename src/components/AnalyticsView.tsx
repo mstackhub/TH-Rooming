@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useApp, Booking } from '@/context/AppContext';
-import { parseTimeToMinutes } from '@/utils/time';
+import { parseTimeToMinutes, formatThaiDate } from '@/utils/time';
 import { 
   Sparkles,
   TrendingUp,

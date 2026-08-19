@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 export default function Navigation() {
+  const { currentTab, setCurrentTab, currentUser, logout } = useApp();
   const [isAnalyticsExpanded, setIsAnalyticsExpanded] = useState(false);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
 
