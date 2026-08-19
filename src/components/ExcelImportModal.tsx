@@ -40,7 +40,8 @@ export default function ExcelImportModal() {
     calendarBookings,
     apiCall,
     refreshActiveTabData,
-    showToast
+    showToast,
+    mcList
   } = useApp();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,8 +140,6 @@ export default function ExcelImportModal() {
       showToast("คอลัมน์ในไฟล์ไม่ถูกต้องตามเทมเพลต กรุณาใช้ไฟล์ตัวอย่างที่กำหนดให้ดาวน์โหลด", "error");
       return;
     }
-
-    const { mcList } = useApp();
 
     const roomsList = rooms.map(r => r.name.toLowerCase().trim());
     const brandsList = brands.map(b => b.name.toLowerCase().trim());
