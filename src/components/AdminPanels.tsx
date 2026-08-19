@@ -1787,7 +1787,7 @@ export default function AdminPanels() {
               {mcSubTab === 'list' && (
                 <div className="flex flex-col gap-4">
                   {/* Filters & Actions bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-250/60 dark:border-slate-800/80 rounded-2xl">
+                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm">
                     <div className="flex flex-wrap items-center gap-3">
                       {/* Search */}
                       <div className="relative">
@@ -1796,7 +1796,7 @@ export default function AdminPanels() {
                           placeholder="ค้นหาชื่อ MC..."
                           value={mcSearch}
                           onChange={(e) => setMcSearch(e.target.value)}
-                          className="w-48 pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900"
+                          className="w-48 pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:border-brand-500"
                         />
                         <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       </div>
@@ -1805,7 +1805,7 @@ export default function AdminPanels() {
                       <select
                         value={mcFilterTier}
                         onChange={(e) => setMcFilterTier(e.target.value)}
-                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900"
+                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none"
                       >
                         <option value="">ทุกระดับ Tier</option>
                         {mcTiers.map(t => (
@@ -1817,7 +1817,7 @@ export default function AdminPanels() {
                       <select
                         value={mcFilterStatus}
                         onChange={(e) => setMcFilterStatus(e.target.value)}
-                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900"
+                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none"
                       >
                         <option value="">ทุกสถานะ</option>
                         <option value="Active">Active</option>
@@ -1828,7 +1828,7 @@ export default function AdminPanels() {
                       <select
                         value={mcSort}
                         onChange={(e) => setMcSort(e.target.value as any)}
-                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900"
+                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none"
                       >
                         <option value="name-asc">ชื่อ MC (ก-ฮ)</option>
                         <option value="name-desc">ชื่อ MC (ฮ-ก)</option>
