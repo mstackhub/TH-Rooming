@@ -25,6 +25,8 @@ interface ParsedRow {
   campaignName: string;
   briefText: string;
   remark: string;
+  mcName?: string;
+  mcId?: string | null;
   success: boolean;
   reason: string;
 }
@@ -131,11 +133,14 @@ export default function ExcelImportModal() {
     const idxCampaign = headers.findIndex(h => h.includes('แคมเปญ') || h.includes('campaign'));
     const idxBrief = headers.findIndex(h => h.includes('บรีฟ') || h.includes('รายละเอียด') || h.includes('brief'));
     const idxRemark = headers.findIndex(h => h.includes('หมายเหตุ') || h.includes('remark'));
+    const idxMc = headers.findIndex(h => h.includes('mc') || h.includes('พิธีกร'));
 
     if (idxDate === -1 || idxRoom === -1 || idxStart === -1 || idxEnd === -1 || idxBrand === -1) {
       showToast("คอลัมน์ในไฟล์ไม่ถูกต้องตามเทมเพลต กรุณาใช้ไฟล์ตัวอย่างที่กำหนดให้ดาวน์โหลด", "error");
       return;
     }
+
+    const { mcList } = useApp();
 
     const roomsList = rooms.map(r => r.name.toLowerCase().trim());
     const brandsList = brands.map(b => b.name.toLowerCase().trim());
@@ -157,12 +162,31 @@ export default function ExcelImportModal() {
       const campaignVal = idxCampaign !== -1 && cells[idxCampaign] ? cells[idxCampaign].trim() : '';
       const briefVal = idxBrief !== -1 && cells[idxBrief] ? cells[idxBrief].trim() : '';
       const remarkVal = idxRemark !== -1 && cells[idxRemark] ? cells[idxRemark].trim() : '';
+      const mcVal = idxMc !== -1 && cells[idxMc] ? cells[idxMc].trim() : '';
 
       const startMins = parseTimeToMinutes(startVal);
       const endMins = parseTimeToMinutes(endVal);
 
       let success = true;
       let reason = '';
+      let resolvedMcId = '';
+
+      // Check MC IDs
+      if (mcVal) {
+        const mcNames = mcVal.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+        const resolvedIds: string[] = [];
+        for (const name of mcNames) {
+          const matched = mcList.find(m => m.name.toLowerCase().trim() === name);
+          if (matched) {
+            resolvedIds.push(matched.id);
+          } else {
+            success = false;
+            reason = `ไม่พบรายชื่อ MC "${name}" ในระบบ`;
+            break;
+          }
+        }
+        resolvedMcId = resolvedIds.join(',');
+      }
 
       // 1. Structural Checks
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
@@ -179,13 +203,21 @@ export default function ExcelImportModal() {
         reason = 'ไม่พบชื่อแบรนด์ลูกค้านี้ในระบบ';
       }
 
-      // 2. Conflict database bookings
+      // 2. Conflict database bookings (Allow exact key match for overwrites/updates)
       if (success) {
         const conflict = calendarBookings.find(b => {
           if (b.status === 'Cancelled') return false;
           if (b.roomName.toLowerCase().trim() !== roomVal.toLowerCase() || b.date !== dateVal) return false;
+          
           const bStart = parseTimeToMinutes(b.startTime);
           const bEnd = parseTimeToMinutes(b.endTime);
+          
+          // If it matches date, room, and exact start/end time, it is an update/overwrite - ALLOW IT
+          if (bStart === startMins && bEnd === endMins) {
+            return false;
+          }
+          
+          // Otherwise check for overlapping collision
           return !(endMins <= bStart || startMins >= bEnd);
         });
 
@@ -220,6 +252,8 @@ export default function ExcelImportModal() {
         campaignName: campaignVal || 'Live Streaming',
         briefText: briefVal,
         remark: remarkVal,
+        mcName: mcVal,
+        mcId: resolvedMcId || null,
         success,
         reason
       });
@@ -296,6 +330,7 @@ export default function ExcelImportModal() {
       campaignName: r.campaignName,
       briefText: r.briefText,
       remark: r.remark,
+      mcId: r.mcId || null,
       status: 'Confirmed'
     }));
 
@@ -311,10 +346,9 @@ export default function ExcelImportModal() {
     });
   };
 
-  // Download template snippet
   const handleDownloadTemplate = () => {
-    const headers = "Date,Room,Start Time,End Time,Brand,Campaign,Brief Tag,Brief Link,Remark\n";
-    const example = `${new Date().toISOString().split('T')[0]},Room 01,09:00,10:00,Bau,7.7 Mid Year Sale,สเปคสินค้า,https://canva.com,จองผ่านเทมเพลต Excel\n`;
+    const headers = "Date,Room,Start Time,End Time,Brand,Campaign,Brief Tag,Brief Link,Remark,MC Name\n";
+    const example = `${new Date().toISOString().split('T')[0]},Room 01,09:00,10:00,Bau,7.7 Mid Year Sale,สเปคสินค้า,https://canva.com,จองผ่านเทมเพลต Excel,แอน,มีน\n`;
     
     // Attach BOM for Excel UTF-8 display compatibility
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), headers + example], { type: 'text/csv;charset=utf-8;' });

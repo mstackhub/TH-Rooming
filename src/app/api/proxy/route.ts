@@ -592,14 +592,22 @@ export async function POST(request: Request) {
         const dbPayloads = list.map((b: any) => {
           const dbObj = mapBookingToDb(b);
           if (dbObj) {
-            dbObj.owner_email = user.email;
-            dbObj.owner_name = user.name;
+            // Keep original owner if it's an update, fallback to current user
+            dbObj.owner_email = b.ownerEmail || user.email;
+            dbObj.owner_name = b.ownerName || user.name;
           }
           return dbObj;
         });
 
-        await requestSupabase('POST', 'bookings', dbPayloads, { 'Prefer': 'return=representation' });
-        await logActivity(user, "CREATE_BOOKINGS_BULK", `${list.length} slots`, `Bulk booking of ${list.length} slots started on ${list[0]?.date}`, clientIp, userAgent);
+        // Supabase REST upsert using POST with resolution=merge-duplicates header
+        // To support upsert without error, we use PUT/POST with merge-duplicates or resolution on conflict keys (date, room_name, start_time)
+        // Since Supabase REST api supports upsert via POST with 'Prefer: resolution=merge-duplicates'
+        // But conflict resolution requires a unique index on (date, room_name, start_time).
+        // Let's perform upsert query call.
+        await requestSupabase('POST', 'bookings', dbPayloads, { 
+          'Prefer': 'resolution=merge-duplicates'
+        });
+        await logActivity(user, "CREATE_BOOKINGS_BULK", `${list.length} slots`, `Bulk booking / Upsert of ${list.length} slots started on ${list[0]?.date}`, clientIp, userAgent);
 
         return NextResponse.json({ success: true }, { headers: corsHeaders });
       }
