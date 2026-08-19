@@ -1980,8 +1980,24 @@ export default function AdminPanels() {
                           ยังไม่มีข้อมูลระดับ Tier ในระบบ
                         </div>
                       ) : (
-                        mcTiers.map((tier, idx) => {
-                          const mcsUsing = mcList.filter(mc => mc.tierId === tier.id).length;
+                        [...mcTiers]
+                          .sort((a, b) => {
+                            const order = ['S', 'A', 'B', 'C', 'D', 'E'];
+                            const getLetter = (name: string) => {
+                              const match = name.match(/Tier\s+([S A-Z]+)/i) || name.match(/([S A-Z]+)/i);
+                              return match ? match[1].trim().toUpperCase() : name.toUpperCase();
+                            };
+                            const letA = getLetter(a.name);
+                            const letB = getLetter(b.name);
+                            const idxA = order.indexOf(letA);
+                            const idxB = order.indexOf(letB);
+                            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                            if (idxA !== -1) return -1;
+                            if (idxB !== -1) return 1;
+                            return a.name.localeCompare(b.name);
+                          })
+                          .map((tier, idx) => {
+                            const mcsUsing = mcList.filter(mc => mc.tierId === tier.id).length;
                           return (
                             <div key={tier.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/10 transition-colors">
                               <div className="flex items-center gap-3">
