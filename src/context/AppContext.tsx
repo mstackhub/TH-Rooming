@@ -353,12 +353,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const allowed = (currentUser.permissions.allowedTabs || '').split(',');
       if (allowed.length > 0) {
         // If currentTab is setting/admin subtabs and we have settings access
-        const isSettingsSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'].includes(currentTab);
+        const isSettingsSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab);
         const hasSettingsAccess = allowed.some(tab => 
-          ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings'].includes(tab)
+          ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(tab)
         );
         
         if (isSettingsSub && hasSettingsAccess) {
+          return;
+        }
+
+        // Support for analytics dashboard sub-tabs
+        const isAnalyticsSub = ['analytics', 'analytics-staff', 'analytics-mc'].includes(currentTab);
+        if (isAnalyticsSub && allowed.includes('analytics')) {
           return;
         }
         
