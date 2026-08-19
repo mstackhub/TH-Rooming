@@ -447,24 +447,48 @@ export async function POST(request: Request) {
           // Generate Custom ID: 20260822FMLZD005 => YYYYMMDD + Brand (Abbr 2 char) + Platform (Abbr 2 char) + Room Num (3 digits) + sequence (optional/fallback)
           const formattedDate = (dbPayload.date || '').replace(/-/g, ''); // "2026-08-22" -> "20260822"
           
-          // Brand Abbr (2 characters uppercase)
+          // Brand Abbr mapping (First letters of words, e.g. Foremost -> FM, Fineline -> FL, Eversense -> ES)
           let brandAbbr = 'XX';
           if (dbPayload.brand_name) {
-            const cleaned = dbPayload.brand_name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-            if (cleaned.length >= 2) {
-              brandAbbr = cleaned.substring(0, 2);
-            } else if (cleaned.length === 1) {
-              brandAbbr = cleaned + 'X';
+            const rawBrand = dbPayload.brand_name.trim().toUpperCase();
+            
+            // Explicit hardcoded overrides
+            if (rawBrand.startsWith('FOREMOST')) brandAbbr = 'FM';
+            else if (rawBrand.startsWith('FINELINE')) brandAbbr = 'FL';
+            else if (rawBrand.startsWith('EVERSENSE') || rawBrand.startsWith('EVERSENCE')) brandAbbr = 'ES';
+            else {
+              // Rule: take first letter of the first word, and next consonant or next letter, or if multiple words: first letters of first 2 words
+              const words = rawBrand.replace(/[^A-Z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+              if (words.length >= 2) {
+                brandAbbr = (words[0][0] + words[1][0]).substring(0, 2);
+              } else if (words.length === 1) {
+                const singleWord = words[0];
+                if (singleWord.length >= 2) {
+                  // For single words like Benice -> BE, Tros -> TR
+                  brandAbbr = singleWord.substring(0, 2);
+                } else {
+                  brandAbbr = singleWord + 'X';
+                }
+              }
             }
           }
 
-          // Platform Abbr (2 characters uppercase)
+          // Platform Abbr mapping (FB = Facebook, TT = Tiktok, LZ = Lazada, SP = Shopee)
           let platformAbbr = 'FB'; // Default fallback
           try {
             const parsedMeta = JSON.parse(dbPayload.ls_artwork_layout || '{}');
-            const rawChan = parsedMeta.liveChannel === 'Other' ? (parsedMeta.customLiveChannel || '') : (parsedMeta.liveChannel || '');
-            if (rawChan) {
-              const cleanedChan = rawChan.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            const rawChan = (parsedMeta.liveChannel === 'Other' ? (parsedMeta.customLiveChannel || '') : (parsedMeta.liveChannel || '')).trim().toUpperCase();
+            
+            if (rawChan.includes('FACEBOOK') || rawChan === 'FB') {
+              platformAbbr = 'FB';
+            } else if (rawChan.includes('TIKTOK') || rawChan.includes('TIK TOK') || rawChan === 'TT') {
+              platformAbbr = 'TT';
+            } else if (rawChan.includes('LAZADA') || rawChan === 'LZ') {
+              platformAbbr = 'LZ';
+            } else if (rawChan.includes('SHOPEE') || rawChan === 'SP') {
+              platformAbbr = 'SP';
+            } else if (rawChan) {
+              const cleanedChan = rawChan.replace(/[^A-Z0-9]/g, '');
               if (cleanedChan.length >= 2) {
                 platformAbbr = cleanedChan.substring(0, 2);
               } else if (cleanedChan.length === 1) {
@@ -473,19 +497,20 @@ export async function POST(request: Request) {
             }
           } catch (e) {}
 
-          // Room Number (extracted digits or fallback)
-          let roomNum = '000';
+          // Room Number mapping (Room 5 = R05, Room 10 = R10, e.g. R + 2 digits padding)
+          let roomNum = 'R00';
           if (dbPayload.room_name) {
             const digits = dbPayload.room_name.replace(/[^0-9]/g, '');
             if (digits) {
-              roomNum = digits.padStart(3, '0');
+              roomNum = 'R' + digits.padStart(2, '0');
             } else {
-              // Hash/Abbreviate letters to 3 digits
-              let sum = 0;
-              for (let i = 0; i < dbPayload.room_name.length; i++) {
-                sum += dbPayload.room_name.charCodeAt(i);
+              // Abbreviate letters to R + 2 characters
+              const cleanedRoom = dbPayload.room_name.replace(/[^A-Z0-9]/g, '').toUpperCase();
+              if (cleanedRoom.length >= 2) {
+                roomNum = 'R' + cleanedRoom.substring(0, 2);
+              } else {
+                roomNum = 'R' + (cleanedRoom || 'X').padEnd(2, 'X');
               }
-              roomNum = String(sum % 1000).padStart(3, '0');
             }
           }
 
