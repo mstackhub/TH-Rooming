@@ -44,6 +44,14 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
   const [overloadLimit, setOverloadLimit] = useState<number>(40);
   const [isOverloadEnabled, setIsOverloadEnabled] = useState<boolean>(true);
 
+  // Dynamic Staff Filters States
+  const [selectedStaffEmail, setSelectedStaffEmail] = useState<string>('');
+  const [minHours, setMinHours] = useState<string>('');
+  const [maxHours, setMaxHours] = useState<string>('');
+  const [minLives, setMinLives] = useState<string>('');
+  const [maxLives, setMaxLives] = useState<string>('');
+  const [selectDate, setSelectDate] = useState<string>('');
+
   // Filter bookings list based on timeframe selection
   const filteredBookings = useMemo(() => {
     if (dateRange === 'all') return calendarBookings;
@@ -332,9 +340,52 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
       });
     });
 
+    // Filter and compute based on inputs
+    let result = Object.values(staffStats);
+
+    // Apply staff dynamic selected date filter
+    if (selectDate) {
+      result = result.map(staff => {
+        const filteredBookings = staff.bookings.filter(b => b.date === selectDate);
+        let totalHrs = 0;
+        filteredBookings.forEach(b => {
+          const start = parseTimeToMinutes(b.startTime);
+          const end = parseTimeToMinutes(b.endTime);
+          if (end > start) totalHrs += (end - start) / 60;
+        });
+        return {
+          ...staff,
+          hours: totalHrs,
+          count: filteredBookings.length,
+          bookings: filteredBookings
+        };
+      });
+    }
+
+    // Filter by selected staff email
+    if (selectedStaffEmail) {
+      result = result.filter(s => s.email.toLowerCase() === selectedStaffEmail.toLowerCase());
+    }
+
+    // Filter by min/max hours
+    if (minHours !== '') {
+      result = result.filter(s => s.hours >= parseFloat(minHours));
+    }
+    if (maxHours !== '') {
+      result = result.filter(s => s.hours <= parseFloat(maxHours));
+    }
+
+    // Filter by min/max lives
+    if (minLives !== '') {
+      result = result.filter(s => s.count >= parseInt(minLives));
+    }
+    if (maxLives !== '') {
+      result = result.filter(s => s.count <= parseInt(maxLives));
+    }
+
     // Sort staff by total hours descending
-    return Object.values(staffStats).sort((a, b) => b.hours - a.hours);
-  }, [filteredBookings, allUsersAdmin]);
+    return result.sort((a, b) => b.hours - a.hours);
+  }, [filteredBookings, allUsersAdmin, selectedStaffEmail, minHours, maxHours, minLives, maxLives, selectDate]);
 
   // MC Performance Analytics Calculations
   const mcAnalyticsData = useMemo(() => {
@@ -430,6 +481,106 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
             <option value="week">ย้อนหลัง 7 วัน (Last 7 Days)</option>
             <option value="custom">กำหนดช่วงเวลาเอง...</option>
           </select>
+        </div>
+
+        {/* Dynamic Filters Control Panel */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-2">
+            <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">แผงควบคุมและตัวกรองข้อมูลละเอียด (Advanced Filters)</h3>
+            <button 
+              onClick={() => {
+                setSelectedStaffEmail('');
+                setMinHours('');
+                setMaxHours('');
+                setMinLives('');
+                setMaxLives('');
+                setSelectDate('');
+              }}
+              className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-705 border border-slate-200 dark:border-slate-750 text-slate-700 dark:text-slate-200 text-[10px] font-black rounded-lg transition-all cursor-pointer"
+            >
+              ล้างตัวกรอง (Clear Filters)
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+            {/* 1. Staff Selector */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400">รายชื่อ Staff:</span>
+              <select 
+                value={selectedStaffEmail} 
+                onChange={(e) => setSelectedStaffEmail(e.target.value)}
+                className="w-full text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-2.5 py-2 rounded-xl focus:outline-none"
+              >
+                <option value="">ทั้งหมด (All Staff)</option>
+                {allUsersAdmin.map(u => (
+                  <option key={u.email} value={u.email}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. Select Date (Dynamic) */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400">เลือกวันที่ทำงาน:</span>
+              <input 
+                type="date" 
+                value={selectDate} 
+                onChange={(e) => setSelectDate(e.target.value)}
+                className="w-full text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-2.5 py-1.5 rounded-xl focus:outline-none"
+              />
+            </div>
+
+            {/* 3. Min Hours */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400">ชั่วโมงสะสม ขั้นต่ำ (Min):</span>
+              <input 
+                type="number" 
+                min="0"
+                placeholder="ชั่วโมง" 
+                value={minHours} 
+                onChange={(e) => setMinHours(e.target.value)}
+                className="w-full text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-2.5 py-2 rounded-xl focus:outline-none"
+              />
+            </div>
+
+            {/* 4. Max Hours */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400">ชั่วโมงสะสม สูงสุด (Max):</span>
+              <input 
+                type="number" 
+                min="0"
+                placeholder="ชั่วโมง" 
+                value={maxHours} 
+                onChange={(e) => setMaxHours(e.target.value)}
+                className="w-full text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-2.5 py-2 rounded-xl focus:outline-none"
+              />
+            </div>
+
+            {/* 5. Min Lives */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400">คิวไลฟ์สด ขั้นต่ำ (Min):</span>
+              <input 
+                type="number" 
+                min="0"
+                placeholder="คิวงาน" 
+                value={minLives} 
+                onChange={(e) => setMinLives(e.target.value)}
+                className="w-full text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-2.5 py-2 rounded-xl focus:outline-none"
+              />
+            </div>
+
+            {/* 6. Max Lives */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400">คิวไลฟ์สด สูงสุด (Max):</span>
+              <input 
+                type="number" 
+                min="0"
+                placeholder="คิวงาน" 
+                value={maxLives} 
+                onChange={(e) => setMaxLives(e.target.value)}
+                className="w-full text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-2.5 py-2 rounded-xl focus:outline-none"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Custom date range & Overload settings control panel */}
