@@ -501,11 +501,27 @@ export default function BookingModal() {
               <Calendar className="w-4 h-4 text-brand-500" />
               {isEditMode ? 'รายละเอียดและจัดการคิวไลฟ์' : 'สร้างรายการจองห้องไลฟ์สดใหม่'}
             </h3>
-            {isEditMode && matchedBooking && (
-              <span className="text-[9px] text-slate-400 font-bold uppercase mt-0.5 tracking-wider">
-                ผู้จอง: {matchedBooking.ownerName} ({matchedBooking.ownerEmail})
-              </span>
-            )}
+            {isEditMode && matchedBooking && (() => {
+              let displayCustomId = '';
+              if (matchedBooking.lsArtworkLayout) {
+                try {
+                  const meta = JSON.parse(matchedBooking.lsArtworkLayout);
+                  displayCustomId = meta.customId || '';
+                } catch(e){}
+              }
+              return (
+                <div className="flex flex-col gap-0.5 mt-0.5 select-none font-bold">
+                  {displayCustomId && (
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                      คิวจอง ID: {displayCustomId}
+                    </span>
+                  )}
+                  <span className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">
+                    ผู้จอง: {matchedBooking.ownerName} ({matchedBooking.ownerEmail})
+                  </span>
+                </div>
+              );
+            })()}
           </div>
           <button 
             onClick={handleClose}

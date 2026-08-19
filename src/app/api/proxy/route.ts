@@ -64,8 +64,7 @@ function mapBookingToFrontend(b: any) {
 
 function mapBookingToDb(b: any) {
   if (!b) return null;
-  return {
-    id: b.id,
+  const dbObj: any = {
     room_name: b.roomName,
     date: b.date,
     start_time: b.startTime,
@@ -81,6 +80,11 @@ function mapBookingToDb(b: any) {
     remark: b.remark || '',
     mc_id: b.mcId || null
   };
+  
+  if (b.id) {
+    dbObj.id = b.id;
+  }
+  return dbObj;
 }
 
 // ── SECURITY & SESSION HELPERS ───────────────────────────────────────────────
@@ -522,23 +526,47 @@ export async function POST(request: Request) {
           const existingOnDate = await requestSupabase('GET', `bookings?date=eq.${dbPayload.date}`);
           let seq = 1;
           if (Array.isArray(existingOnDate)) {
-            const matches = existingOnDate.filter((b: any) => String(b.id || '').startsWith(prefixPattern));
+            // Find matches in either legacy id or in customId inside metadata JSON
+            const matches = existingOnDate.filter((b: any) => {
+              let bookingCustomId = '';
+              try {
+                if (b.ls_artwork_layout) {
+                  const meta = JSON.parse(b.ls_artwork_layout);
+                  bookingCustomId = meta.customId || '';
+                }
+              } catch(e){}
+              return String(b.id || '').startsWith(prefixPattern) || bookingCustomId.startsWith(prefixPattern);
+            });
             seq = matches.length + 1;
           }
           const customId = `${prefixPattern}${String(seq).padStart(3, '0')}`;
           
-          dbPayload.id = customId;
+          // Store customId in ls_artwork_layout JSON metadata instead of database Primary Key ID (since PK is forced to be a valid UUID)
+          try {
+            const parsedMeta = JSON.parse(dbPayload.ls_artwork_layout || '{}');
+            parsedMeta.customId = customId;
+            dbPayload.ls_artwork_layout = JSON.stringify(parsedMeta);
+          } catch(e){}
         }
 
         const newBookings = await requestSupabase('POST', 'bookings', dbPayload, { 'Prefer': 'return=representation' });
         const inserted = Array.isArray(newBookings) ? newBookings[0] : newBookings;
-        const bookingId = inserted ? inserted.id : (dbPayload ? dbPayload.id : null);
+        const bookingId = inserted ? inserted.id : null;
+
+        // Custom ID returned to UI as display ID
+        let responseCustomId = '';
+        try {
+          if (dbPayload && dbPayload.ls_artwork_layout) {
+            const parsed = JSON.parse(dbPayload.ls_artwork_layout);
+            responseCustomId = parsed.customId || '';
+          }
+        } catch(e){}
 
         if (dbPayload) {
-          await logActivity(user, "CREATE_BOOKING", dbPayload.room_name, `Created custom booking ID ${bookingId} for Room ${dbPayload.room_name}`, clientIp, userAgent);
+          await logActivity(user, "CREATE_BOOKING", dbPayload.room_name, `Created custom booking ID ${responseCustomId || bookingId} for Room ${dbPayload.room_name}`, clientIp, userAgent);
         }
         
-        return NextResponse.json({ success: true, bookingId: bookingId }, { headers: corsHeaders });
+        return NextResponse.json({ success: true, bookingId: bookingId, customId: responseCustomId }, { headers: corsHeaders });
       }
 
       case 'createBookingsBulk': {
