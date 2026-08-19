@@ -482,13 +482,13 @@ export default function TimelineScheduler() {
           </div>
 
           {/* Date input picker */}
-          <div className="relative flex items-center border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-brand-500">
-            <CalendarDays className="w-4 h-4 text-slate-400 mr-2" />
+          <div className="relative flex items-center border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-brand-500 max-w-[155px]">
+            <CalendarDays className="w-3.5 h-3.5 text-slate-450 mr-1.5 shrink-0" />
             <input 
               type="date" 
               value={selectedDate} 
               onChange={(e) => setSelectedDate(e.target.value)} 
-              className="text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer bg-transparent border-0 p-0"
+              className="text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer bg-transparent border-0 p-0 w-full"
             />
           </div>
 

@@ -233,7 +233,7 @@ export default function CalendarView() {
 
         <div className="flex flex-wrap items-center gap-2.5 select-none">
           {/* Month / Week / Day toggler */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-sm">
+          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-sm">
             <button 
               onClick={() => setViewMode('month')} 
               className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
