@@ -119,7 +119,7 @@ export default function Navigation() {
                       <button
                         key={sub.id}
                         onClick={() => setCurrentTab(sub.id)}
-                        className={`text-left px-3.5 py-2.5 rounded-xl text-[11px] font-semibold cursor-pointer transition-all ${
+                        className={`text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
                           isSubActive
                             ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/20 dark:text-brand-400 font-bold'
                             : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:text-slate-800 dark:hover:text-slate-200'
