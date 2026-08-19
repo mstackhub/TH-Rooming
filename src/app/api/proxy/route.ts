@@ -65,6 +65,7 @@ function mapBookingToFrontend(b: any) {
 function mapBookingToDb(b: any) {
   if (!b) return null;
   return {
+    id: b.id,
     room_name: b.roomName,
     date: b.date,
     start_time: b.startTime,
@@ -442,14 +443,70 @@ export async function POST(request: Request) {
         if (dbPayload) {
           dbPayload.owner_email = user.email;
           dbPayload.owner_name = user.name;
+
+          // Generate Custom ID: 20260822FMLZD005 => YYYYMMDD + Brand (Abbr 2 char) + Platform (Abbr 2 char) + Room Num (3 digits) + sequence (optional/fallback)
+          const formattedDate = (dbPayload.date || '').replace(/-/g, ''); // "2026-08-22" -> "20260822"
+          
+          // Brand Abbr (2 characters uppercase)
+          let brandAbbr = 'XX';
+          if (dbPayload.brand_name) {
+            const cleaned = dbPayload.brand_name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            if (cleaned.length >= 2) {
+              brandAbbr = cleaned.substring(0, 2);
+            } else if (cleaned.length === 1) {
+              brandAbbr = cleaned + 'X';
+            }
+          }
+
+          // Platform Abbr (2 characters uppercase)
+          let platformAbbr = 'FB'; // Default fallback
+          try {
+            const parsedMeta = JSON.parse(dbPayload.ls_artwork_layout || '{}');
+            const rawChan = parsedMeta.liveChannel === 'Other' ? (parsedMeta.customLiveChannel || '') : (parsedMeta.liveChannel || '');
+            if (rawChan) {
+              const cleanedChan = rawChan.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+              if (cleanedChan.length >= 2) {
+                platformAbbr = cleanedChan.substring(0, 2);
+              } else if (cleanedChan.length === 1) {
+                platformAbbr = cleanedChan + 'X';
+              }
+            }
+          } catch (e) {}
+
+          // Room Number (extracted digits or fallback)
+          let roomNum = '000';
+          if (dbPayload.room_name) {
+            const digits = dbPayload.room_name.replace(/[^0-9]/g, '');
+            if (digits) {
+              roomNum = digits.padStart(3, '0');
+            } else {
+              // Hash/Abbreviate letters to 3 digits
+              let sum = 0;
+              for (let i = 0; i < dbPayload.room_name.length; i++) {
+                sum += dbPayload.room_name.charCodeAt(i);
+              }
+              roomNum = String(sum % 1000).padStart(3, '0');
+            }
+          }
+
+          // Generate unique sequence to avoid ID collisions on the same date/room/brand
+          const prefixPattern = `${formattedDate}${brandAbbr}${platformAbbr}${roomNum}`;
+          const existingSamePrefix = await requestSupabase('GET', `bookings?id=like.${prefixPattern}*`);
+          let seq = 1;
+          if (Array.isArray(existingSamePrefix) && existingSamePrefix.length > 0) {
+            seq = existingSamePrefix.length + 1;
+          }
+          const customId = `${prefixPattern}${String(seq).padStart(3, '0')}`;
+          
+          dbPayload.id = customId;
         }
 
         const newBookings = await requestSupabase('POST', 'bookings', dbPayload, { 'Prefer': 'return=representation' });
         const inserted = Array.isArray(newBookings) ? newBookings[0] : newBookings;
-        const bookingId = inserted ? inserted.id : null;
+        const bookingId = inserted ? inserted.id : (dbPayload ? dbPayload.id : null);
 
         if (dbPayload) {
-          await logActivity(user, "CREATE_BOOKING", dbPayload.room_name, `Room ${dbPayload.room_name}, Date ${dbPayload.date}, ${dbPayload.start_time}-${dbPayload.end_time}`, clientIp, userAgent);
+          await logActivity(user, "CREATE_BOOKING", dbPayload.room_name, `Created custom booking ID ${bookingId} for Room ${dbPayload.room_name}`, clientIp, userAgent);
         }
         
         return NextResponse.json({ success: true, bookingId: bookingId }, { headers: corsHeaders });
