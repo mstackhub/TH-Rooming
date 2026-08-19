@@ -1932,7 +1932,7 @@ export default function CampaignSchedule() {
                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
                             {b.briefLink ? (
                               <a href={b.briefLink} target="_blank" rel="noopener noreferrer" className="font-extrabold text-indigo-650 dark:text-indigo-400 hover:underline flex items-center gap-0.5 truncate">
-                                {b.briefText || 'ลิงค์บรีฟงาน'} <ExternalLink className="w-2.5 h-2.5" />
+                                {b.briefText || 'บรีฟงาน'} <ExternalLink className="w-2.5 h-2.5" />
                               </a>
                             ) : (
                               <span className="font-bold truncate" title={b.briefText}>{b.briefText}</span>
