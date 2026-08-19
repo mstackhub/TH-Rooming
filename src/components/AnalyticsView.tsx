@@ -39,6 +39,10 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
   const [dateRange, setDateRange] = useState<'all' | 'month' | 'week' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  
+  // Custom Overload settings states
+  const [overloadLimit, setOverloadLimit] = useState<number>(40);
+  const [isOverloadEnabled, setIsOverloadEnabled] = useState<boolean>(true);
 
   // Filter bookings list based on timeframe selection
   const filteredBookings = useMemo(() => {
@@ -428,14 +432,44 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
           </select>
         </div>
 
-        {/* Custom date range fields */}
-        {dateRange === 'custom' && (
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-850 p-3.5 rounded-2xl w-fit">
-            <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none" />
-            <span className="text-slate-400 font-bold text-xs">ถึง</span>
-            <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+        {/* Custom date range & Overload settings control panel */}
+        <div className="flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl w-full">
+          {dateRange === 'custom' && (
+            <div className="flex items-center gap-2">
+              <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="text-xs font-bold border border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+              <span className="text-slate-400 font-bold text-xs">ถึง</span>
+              <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="text-xs font-bold border border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+            </div>
+          )}
+
+          {/* Overload Controls */}
+          <div className="flex items-center gap-4 ml-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200 dark:border-slate-800 w-full sm:w-auto">
+            <label className="inline-flex items-center gap-2 text-xs font-bold cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                checked={isOverloadEnabled} 
+                onChange={(e) => setIsOverloadEnabled(e.target.checked)}
+                className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500 cursor-pointer"
+              />
+              เปิดใช้งานการแจ้งเตือนภาระงานเกิน (Overload Alert)
+            </label>
+
+            {isOverloadEnabled && (
+              <div className="flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
+                <span className="text-xs text-slate-500">สีแดงเมื่อเกิน:</span>
+                <input 
+                  type="number" 
+                  min="1"
+                  max="168"
+                  value={overloadLimit} 
+                  onChange={(e) => setOverloadLimit(Math.max(1, parseInt(e.target.value) || 0))}
+                  className="w-14 text-center text-xs font-extrabold border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-brand-500" 
+                />
+                <span className="text-xs text-slate-500 font-bold">ชม.</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Staff Workload Leaderboard & Detailed List */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -447,12 +481,12 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
                 <Award className="w-4 h-4 text-brand-500" />
                 ภาระงาน Staff รายบุคคล (Support Staff Workload)
               </h3>
-              <p className="text-[10px] text-slate-400 mt-0.5">ชั่วโมงปฏิบัติงานดูแลไลฟ์สะสม (สีแดงหากสะสม &gt; 40 ชม. สุ่มเสี่ยง Overload)</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">ชั่วโมงปฏิบัติงานดูแลไลฟ์สะสม (สีแดงหากเปิดสัญลักษณ์แจ้งเตือนภาระงานเกิน {overloadLimit} ชม.)</p>
             </div>
 
             <div className="space-y-4 overflow-y-auto flex-1 pr-1 max-h-[480px]">
               {staffAnalyticsData.map((staff, idx) => {
-                const isOverloaded = staff.hours > 40;
+                const isOverloaded = isOverloadEnabled && staff.hours > overloadLimit;
                 return (
                   <div key={staff.email} className="flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs">
@@ -505,7 +539,8 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
                   {staffAnalyticsData.map(staff => {
-                    const isOverloaded = staff.hours > 40;
+                    const isOverloaded = isOverloadEnabled && staff.hours > overloadLimit;
+                    const highLoadThreshold = overloadLimit * 0.6;
                     const lastBooking = staff.bookings[staff.bookings.length - 1];
                     
                     return (
@@ -523,11 +558,11 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
                         <td className="p-3.5">
                           {isOverloaded ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-rose-50 dark:bg-rose-950/20 text-rose-650 dark:text-rose-400 border border-rose-200">
-                              🚨 Overloaded (&gt;40h)
+                              🚨 Overloaded (&gt;{overloadLimit}h)
                             </span>
-                          ) : staff.hours > 25 ? (
+                          ) : (isOverloadEnabled && staff.hours > highLoadThreshold) ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-amber-50 dark:bg-amber-950/20 text-amber-650 dark:text-amber-400 border border-amber-250">
-                              ⚠️ High Load
+                              ⚠️ High Load (&gt;{highLoadThreshold.toFixed(0)}h)
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-50 dark:bg-emerald-950/20 text-emerald-650 dark:text-emerald-400 border border-emerald-250">
