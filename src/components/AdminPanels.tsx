@@ -1958,8 +1958,8 @@ export default function AdminPanels() {
               {mcSubTab === 'tiers' && (
                 <div className="flex flex-col gap-4 max-w-2xl">
                   {/* Action row */}
-                  <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-250/60 dark:border-slate-800/80 rounded-2xl">
-                    <span className="text-xs font-semibold text-slate-500">ลำดับของ Tiers จะส่งผลต่อการเรียงลำดับ MC ในตัวเลือกหน้าฟอร์ม</span>
+                  <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm">
+                    <span className="text-xs font-semibold text-slate-500">ระดับ Tier (กลุ่มประเภท MC) สำหรับจัดกลุ่มคิวจองไลฟ์สด</span>
                     <button
                       onClick={() => {
                         resetTierForm();
@@ -1983,25 +1983,10 @@ export default function AdminPanels() {
                         mcTiers.map((tier, idx) => {
                           const mcsUsing = mcList.filter(mc => mc.tierId === tier.id).length;
                           return (
-                            <div key={tier.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/10">
+                            <div key={tier.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/10 transition-colors">
                               <div className="flex items-center gap-3">
-                                {/* Up / Down Order buttons */}
-                                <div className="flex flex-col gap-0.5">
-                                  <button
-                                    disabled={idx === 0}
-                                    onClick={() => handleMoveTier(tier.id, 'up')}
-                                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-450 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
-                                  >
-                                    ▲
-                                  </button>
-                                  <button
-                                    disabled={idx === mcTiers.length - 1}
-                                    onClick={() => handleMoveTier(tier.id, 'down')}
-                                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-450 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
-                                  >
-                                    ▼
-                                  </button>
-                                </div>
+                                {/* Bullet indicator */}
+                                <div className="w-2 h-2 rounded-full bg-brand-500" />
                                 <div className="flex flex-col">
                                   <span className="font-bold text-slate-800 dark:text-white text-xs">{tier.name}</span>
                                   <span className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
