@@ -469,7 +469,7 @@ export default function TimelineScheduler() {
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Today and Nav buttons */}
-          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-sm">
+          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-sm h-[38px]">
             <button onClick={handlePrevDay} className="p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded text-slate-500 dark:text-slate-400 cursor-pointer">
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -486,7 +486,7 @@ export default function TimelineScheduler() {
             type="date" 
             value={selectedDate} 
             onChange={(e) => setSelectedDate(e.target.value)} 
-            className="text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg pl-3 pr-2 h-[34px] bg-white dark:bg-slate-900 shadow-sm focus:ring-2 focus:ring-brand-500 w-[145px]"
+            className="text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg pl-3 pr-2 h-[38px] bg-white dark:bg-slate-900 shadow-sm focus:ring-2 focus:ring-brand-500 w-[145px]"
           />
 
           {/* Action buttons */}
