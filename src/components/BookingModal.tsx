@@ -132,12 +132,20 @@ export default function BookingModal() {
           setSelectedMcIds([]);
         }
 
-        // Load staff emails from briefLink (which stores them comma separated)
-        if (matchedBooking.briefLink && matchedBooking.briefLink.includes('@')) {
-          setSelectedStaffEmails(matchedBooking.briefLink.split(',').map(x => x.trim()).filter(Boolean));
-        } else {
-          setSelectedStaffEmails([]);
+        // Load staff emails from briefLink (if it contains emails) OR metadata JSON payload
+        let matchedStaffEmails: string[] = [];
+        if (matchedBooking.lsArtworkLayout) {
+          try {
+            const parsed = JSON.parse(matchedBooking.lsArtworkLayout);
+            if (parsed && typeof parsed === 'object' && Array.isArray(parsed.staffEmails)) {
+              matchedStaffEmails = parsed.staffEmails;
+            }
+          } catch (e) {}
         }
+        if (matchedStaffEmails.length === 0 && matchedBooking.briefLink && matchedBooking.briefLink.includes('@')) {
+          matchedStaffEmails = matchedBooking.briefLink.split(',').map(x => x.trim()).filter(Boolean);
+        }
+        setSelectedStaffEmails(matchedStaffEmails);
 
         // Parse readiness statuses from lsArtworkLayout JSON
         let bStatus = 'Not Added';
@@ -319,7 +327,8 @@ export default function BookingModal() {
       scale: scale,
       isImportant: isImportant,
       liveChannel: liveChannel,
-      customLiveChannel: customLiveChannel
+      customLiveChannel: customLiveChannel,
+      staffEmails: selectedStaffEmails
     });
 
     const bookingPayload = {
@@ -330,7 +339,7 @@ export default function BookingModal() {
       brandName,
       campaignName: campaignName.trim(),
       briefText: briefText.trim(),
-      // briefLink maps comma-separated selected user emails
+      // Keep briefLink mapping to briefText/briefLink URL or blank (or copy staff selection for backup)
       briefLink: selectedStaffEmails.join(','),
       lsArtworkLayout: lsArtworkLayoutPayload,
       status: bookingStatus,

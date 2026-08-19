@@ -688,6 +688,7 @@ export default function CalendarView() {
                 let matchedImportant = false;
                 let matchedScale = 'Medium Scale';
                 let matchedChannel = '';
+                let matchedStaffEmailsArray: string[] = [];
                 if (b.lsArtworkLayout) {
                   try {
                     const parsed = JSON.parse(b.lsArtworkLayout);
@@ -695,6 +696,9 @@ export default function CalendarView() {
                       matchedImportant = !!parsed.isImportant;
                       matchedScale = parsed.scale || 'Medium Scale';
                       matchedChannel = parsed.liveChannel === 'Other' ? (parsed.customLiveChannel || '') : (parsed.liveChannel || '');
+                      if (Array.isArray(parsed.staffEmails)) {
+                        matchedStaffEmailsArray = parsed.staffEmails;
+                      }
                     }
                   } catch(e){}
                 }
@@ -709,9 +713,12 @@ export default function CalendarView() {
 
                 // Match Staff names (comma separated)
                 let staffNamesStr = '';
-                if (b.briefLink && b.briefLink.includes('@')) {
-                  const emails = b.briefLink.split(',').map(x => x.trim()).filter(Boolean);
-                  const names = emails.map(email => {
+                const finalStaffEmails = matchedStaffEmailsArray.length > 0 
+                  ? matchedStaffEmailsArray 
+                  : (b.briefLink && b.briefLink.includes('@') ? b.briefLink.split(',').map(x => x.trim()).filter(Boolean) : []);
+
+                if (finalStaffEmails.length > 0) {
+                  const names = finalStaffEmails.map(email => {
                     const matchedUser = allUsersAdmin.find(u => u.email.toLowerCase() === email.toLowerCase());
                     return matchedUser?.name || email.split('@')[0];
                   }).filter(Boolean);
