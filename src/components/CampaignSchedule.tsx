@@ -44,7 +44,9 @@ export default function CampaignSchedule() {
     setSelectedDate,
     setHighlightedBookingId,
     setCurrentTab,
-    auditLogs
+    auditLogs,
+    mcList,
+    allUsersAdmin
   } = useApp();
 
   // Filter & Search States
@@ -59,6 +61,12 @@ export default function CampaignSchedule() {
   const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
   const [selectedBookingStatuses, setSelectedBookingStatuses] = useState<string[]>([]);
   const [selectedLiveProgresses, setSelectedLiveProgresses] = useState<string[]>([]);
+  
+  // New Multi-Select Filters
+  const [selectedStaffs, setSelectedStaffs] = useState<string[]>([]);
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
+  const [selectedScales, setSelectedScales] = useState<string[]>([]);
+  const [vipFilter, setVipFilter] = useState<'all' | 'vip' | 'normal'>('all');
 
   const [sortVal, setSortVal] = useState('date-desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,6 +85,9 @@ export default function CampaignSchedule() {
   const [isOwnerDropdownOpen, setIsOwnerDropdownOpen] = useState(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isProgressDropdownOpen, setIsProgressDropdownOpen] = useState(false);
+  const [isStaffDropdownOpen, setIsStaffDropdownOpen] = useState(false);
+  const [isChannelDropdownOpen, setIsChannelDropdownOpen] = useState(false);
+  const [isScaleDropdownOpen, setIsScaleDropdownOpen] = useState(false);
 
   // Dropdown search values
   const [monthSearchQuery, setMonthSearchQuery] = useState('');
@@ -85,6 +96,9 @@ export default function CampaignSchedule() {
   const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
   const [statusSearchQuery, setStatusSearchQuery] = useState('');
   const [progressSearchQuery, setProgressSearchQuery] = useState('');
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [channelSearchQuery, setChannelSearchQuery] = useState('');
+  const [scaleSearchQuery, setScaleSearchQuery] = useState('');
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -95,6 +109,9 @@ export default function CampaignSchedule() {
   const ownerDropdownRef = useRef<HTMLDivElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const progressDropdownRef = useRef<HTMLDivElement>(null);
+  const staffDropdownRef = useRef<HTMLDivElement>(null);
+  const channelDropdownRef = useRef<HTMLDivElement>(null);
+  const scaleDropdownRef = useRef<HTMLDivElement>(null);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -121,6 +138,9 @@ export default function CampaignSchedule() {
       if (ownerDropdownRef.current && !ownerDropdownRef.current.contains(target)) setIsOwnerDropdownOpen(false);
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(target)) setIsStatusDropdownOpen(false);
       if (progressDropdownRef.current && !progressDropdownRef.current.contains(target)) setIsProgressDropdownOpen(false);
+      if (staffDropdownRef.current && !staffDropdownRef.current.contains(target)) setIsStaffDropdownOpen(false);
+      if (channelDropdownRef.current && !channelDropdownRef.current.contains(target)) setIsChannelDropdownOpen(false);
+      if (scaleDropdownRef.current && !scaleDropdownRef.current.contains(target)) setIsScaleDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
@@ -132,7 +152,7 @@ export default function CampaignSchedule() {
   }, [
     startDate, endDate, allDates, selectedMonths, selectedRooms, selectedBrands, 
     selectedOwners, selectedBookingStatuses, selectedLiveProgresses, sortVal, 
-    searchQuery, kpiFilter, actionFilter
+    searchQuery, kpiFilter, actionFilter, selectedStaffs, selectedChannels, selectedScales, vipFilter
   ]);
 
   // Automatically update start and end dates when month filters change
@@ -501,11 +521,49 @@ export default function CampaignSchedule() {
         if (actionFilter === 'conflict' && !bookingConflicts.has(b.id)) return false;
       }
 
+      // VIP Filter
+      let isImportant = false;
+      let scale = 'Medium Scale';
+      let channel = '';
+      let staffEmails: string[] = [];
+      if (b.lsArtworkLayout) {
+        try {
+          const parsed = JSON.parse(b.lsArtworkLayout);
+          if (parsed && typeof parsed === 'object') {
+            isImportant = !!parsed.isImportant;
+            scale = parsed.scale || 'Medium Scale';
+            channel = (parsed.liveChannel === 'Other' ? (parsed.customLiveChannel || '') : (parsed.liveChannel || '')).trim();
+            if (Array.isArray(parsed.staffEmails)) {
+              staffEmails = parsed.staffEmails;
+            }
+          }
+        } catch(e){}
+      }
+      if (staffEmails.length === 0 && b.briefLink && b.briefLink.includes('@')) {
+        staffEmails = b.briefLink.split(',').map(x => x.trim()).filter(Boolean);
+      }
+
+      if (vipFilter === 'vip' && !isImportant) return false;
+      if (vipFilter === 'normal' && isImportant) return false;
+
+      // Scale Filter (multi-select)
+      if (selectedScales.length > 0 && !selectedScales.includes(scale)) return false;
+
+      // Channel Filter (multi-select)
+      if (selectedChannels.length > 0 && !selectedChannels.includes(channel)) return false;
+
+      // Support Staff Filter (multi-select: matches if any of the selected staffs match any of the booking's staff emails)
+      if (selectedStaffs.length > 0) {
+        const hasMatchingStaff = selectedStaffs.some(email => staffEmails.some(se => se.toLowerCase() === email.toLowerCase()));
+        if (!hasMatchingStaff) return false;
+      }
+
       return true;
     });
   }, [
     bookingsInDateRange, searchQuery, selectedRooms, selectedBrands, selectedOwners,
-    selectedBookingStatuses, selectedLiveProgresses, kpiFilter, actionFilter, bookingConflicts
+    selectedBookingStatuses, selectedLiveProgresses, kpiFilter, actionFilter, bookingConflicts,
+    selectedStaffs, selectedChannels, selectedScales, vipFilter
   ]);
 
   // 10. Sorting logic
@@ -570,6 +628,27 @@ export default function CampaignSchedule() {
 
   const handleSelectAllMonths = (checked: boolean) => {
     setSelectedMonths(checked ? THAI_MONTHS_LIST.map(m => m.value) : []);
+  };
+
+  // Custom Staff dropdown handlers
+  const handleStaffCheckboxChange = (email: string, checked: boolean) => {
+    setSelectedStaffs(prev => {
+      return checked ? [...prev, email] : prev.filter(e => e !== email);
+    });
+  };
+
+  // Custom Channel dropdown handlers
+  const handleChannelCheckboxChange = (chan: string, checked: boolean) => {
+    setSelectedChannels(prev => {
+      return checked ? [...prev, chan] : prev.filter(c => c !== chan);
+    });
+  };
+
+  // Custom Scale dropdown handlers
+  const handleScaleCheckboxChange = (scale: string, checked: boolean) => {
+    setSelectedScales(prev => {
+      return checked ? [...prev, scale] : prev.filter(s => s !== scale);
+    });
   };
 
   // Custom Room dropdown handlers
@@ -657,6 +736,10 @@ export default function CampaignSchedule() {
     setSelectedOwners([]);
     setSelectedBookingStatuses([]);
     setSelectedLiveProgresses([]);
+    setSelectedStaffs([]);
+    setSelectedChannels([]);
+    setSelectedScales([]);
+    setVipFilter('all');
     setSearchQuery('');
     setKpiFilter('all');
     setActionFilter('none');
@@ -981,6 +1064,7 @@ export default function CampaignSchedule() {
           {/* Clear Filters helper */}
           {(selectedMonths.length > 0 || selectedRooms.length > 0 || selectedBrands.length > 0 || 
             selectedOwners.length > 0 || selectedBookingStatuses.length > 0 || selectedLiveProgresses.length > 0 || 
+            selectedStaffs.length > 0 || selectedChannels.length > 0 || selectedScales.length > 0 || vipFilter !== 'all' ||
             searchQuery || kpiFilter !== 'all' || actionFilter !== 'none') && (
             <button
               onClick={clearAllFilters}
@@ -1528,6 +1612,179 @@ export default function CampaignSchedule() {
               </div>
             </div>
 
+            {/* VIP Filter */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">ไลฟ์สำคัญ (VIP / Importance)</label>
+              <CustomSelect
+                value={vipFilter}
+                onChange={setVipFilter as any}
+                options={[
+                  { value: 'all', label: 'ทั้งหมด (All)' },
+                  { value: 'vip', label: '⭐ เฉพาะไลฟ์สำคัญ (VIP Only)' },
+                  { value: 'normal', label: 'ไลฟ์ทั่วไป (Normal)' }
+                ]}
+              />
+            </div>
+
+            {/* Support Staff (multi-select) */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">ผู้ดูแลห้องไลฟ์ (Support Staff)</label>
+              <div className="relative" ref={staffDropdownRef}>
+                <button
+                  onClick={() => setIsStaffDropdownOpen(!isStaffDropdownOpen)}
+                  className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+                    isStaffDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedStaffs.length === 0 
+                      ? 'ทุกคน (All)' 
+                      : selectedStaffs.map(email => allUsersAdmin.find(u => u.email === email)?.name || email.split('@')[0]).join(', ')}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isStaffDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isStaffDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="ค้นหาผู้ดูแล..."
+                          value={staffSearchQuery}
+                          onChange={(e) => setStaffSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col overflow-y-auto flex-1 p-1">
+                      {allUsersAdmin.filter(u => u.name.toLowerCase().includes(staffSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(staffSearchQuery.toLowerCase())).map(u => {
+                        const isChecked = selectedStaffs.includes(u.email);
+                        return (
+                          <div
+                            key={u.email}
+                            onClick={() => handleStaffCheckboxChange(u.email, !isChecked)}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{u.name} ({u.email.split('@')[0]})</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Live Channel (multi-select) */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">ช่องทางการไลฟ์สด (Live Channel)</label>
+              <div className="relative" ref={channelDropdownRef}>
+                <button
+                  onClick={() => setIsChannelDropdownOpen(!isChannelDropdownOpen)}
+                  className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+                    isChannelDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedChannels.length === 0 ? 'ทุกช่องทาง (All)' : selectedChannels.join(', ')}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isChannelDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isChannelDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col animate-in fade-in duration-100" style={{ maxHeight: '280px' }}>
+                    <div className="flex flex-col overflow-y-auto flex-1 p-1">
+                      {['Facebook', 'TikTok', 'Shopee', 'Lazada'].filter(c => c.toLowerCase().includes(channelSearchQuery.toLowerCase())).map(chan => {
+                        const isChecked = selectedChannels.includes(chan);
+                        return (
+                          <div
+                            key={chan}
+                            onClick={() => handleChannelCheckboxChange(chan, !isChecked)}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{chan}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Live Scale (multi-select) */}
+            <div className="flex flex-col gap-1">
+              <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">ขนาดของไลฟ์สด (Live Scale)</label>
+              <div className="relative" ref={scaleDropdownRef}>
+                <button
+                  onClick={() => setIsScaleDropdownOpen(!isScaleDropdownOpen)}
+                  className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+                    isScaleDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedScales.length === 0 ? 'ทุกขนาด (All)' : selectedScales.join(', ')}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isScaleDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isScaleDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col animate-in fade-in duration-100" style={{ maxHeight: '200px' }}>
+                    <div className="flex flex-col overflow-y-auto flex-1 p-1">
+                      {['Small Scale', 'Medium Scale', 'Large Scale'].map(sc => {
+                        const isChecked = selectedScales.includes(sc);
+                        return (
+                          <div
+                            key={sc}
+                            onClick={() => handleScaleCheckboxChange(sc, !isChecked)}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{sc}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Sorting */}
             <div className="flex flex-col gap-1">
               <label className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[10px]">การจัดเรียง (Sort By)</label>
@@ -1623,12 +1880,34 @@ export default function CampaignSchedule() {
                     {/* Campaign (Brand & Name) */}
                     <td className="p-4">
                       <div className="flex flex-col gap-0.5 max-w-[220px]">
-                        <span className="font-extrabold text-brand-600 dark:text-brand-400 text-xs hover:underline cursor-pointer" onClick={() => openBookingDetail(b.id)}>
-                          {b.brandName}
+                        <span className="font-extrabold text-brand-600 dark:text-brand-400 text-xs hover:underline cursor-pointer flex items-center gap-1" onClick={() => openBookingDetail(b.id)}>
+                          {(() => {
+                            let isImportant = false;
+                            if (b.lsArtworkLayout) {
+                              try {
+                                const parsed = JSON.parse(b.lsArtworkLayout);
+                                isImportant = !!parsed?.isImportant;
+                              } catch(e){}
+                            }
+                            return isImportant && <span className="text-amber-500 shrink-0 select-none animate-pulse" title="แคมเปญสำคัญ/VIP">⭐ VIP</span>;
+                          })()}
+                          <span>{b.brandName}</span>
                         </span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-semibold animate-in fade-in" title={b.campaignName}>
                           {b.campaignName || <span className="text-slate-400 dark:text-slate-650 italic font-normal">ยังไม่ระบุชื่อแคมเปญ</span>}
                         </span>
+                        {/* MC Names */}
+                        {(() => {
+                          if (!b.mcId) return null;
+                          const ids = b.mcId.split(',').map(x => x.trim()).filter(Boolean);
+                          const names = ids.map(id => mcList.find(mc => mc.id === id)?.name).filter(Boolean);
+                          if (names.length === 0) return null;
+                          return (
+                            <span className="text-[9px] text-brand-550 dark:text-brand-350 font-bold truncate mt-0.5" title={`MC: ${names.join(', ')}`}>
+                              🎤 MC: {names.join(', ')}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </td>
                     
