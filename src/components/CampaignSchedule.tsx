@@ -1926,23 +1926,7 @@ export default function CampaignSchedule() {
                     {/* Readiness (Brief & Artwork Link) */}
                     <td className="p-4">
                       <div className="flex flex-col gap-1.5 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                        {/* Brief Tag or Link */}
-                        {(b.briefLink || b.briefText) ? (
-                          <div className="flex items-center gap-1 text-[11px] text-slate-700 dark:text-slate-350">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
-                            {b.briefLink ? (
-                              <a href={b.briefLink} target="_blank" rel="noopener noreferrer" className="font-extrabold text-indigo-650 dark:text-indigo-400 hover:underline flex items-center gap-0.5 truncate">
-                                {b.briefText || 'บรีฟงาน'} <ExternalLink className="w-2.5 h-2.5" />
-                              </a>
-                            ) : (
-                              <span className="font-bold truncate" title={b.briefText}>{b.briefText}</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-rose-500 font-bold flex items-center gap-0.5">
-                            <XCircle className="w-3.5 h-3.5 shrink-0" /> ไม่มีบรีฟงาน
-                          </span>
-                        )}
+                        {/* Deleted Brief Tag or Link */}
 
                         {/* Artwork Link */}
                         {meta.artworkLink ? (
