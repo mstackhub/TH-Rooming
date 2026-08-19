@@ -460,12 +460,18 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
                 <input 
                   type="number" 
                   min="1"
-                  max="168"
+                  max="1000"
                   value={overloadLimit} 
                   onChange={(e) => setOverloadLimit(Math.max(1, parseInt(e.target.value) || 0))}
-                  className="w-14 text-center text-xs font-extrabold border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-brand-500" 
+                  className="w-24 text-center text-xs font-extrabold border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500" 
                 />
-                <span className="text-xs text-slate-500 font-bold">ชม.</span>
+                <span className="text-xs text-slate-505 font-extrabold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/20 px-2 py-1 rounded">
+                  ชม. {
+                    dateRange === 'week' ? 'ต่อสัปดาห์' :
+                    dateRange === 'month' ? 'ต่อเดือน' :
+                    dateRange === 'custom' ? 'ต่อช่วงเวลาที่เลือก' : 'รวมทั้งหมด'
+                  }
+                </span>
               </div>
             )}
           </div>
