@@ -123,6 +123,7 @@ export default function AdminPanels() {
   const [settingsLineToken, setSettingsLineToken] = useState(settings?.lineChannelAccessToken || '');
   const [settingsLineDestId, setSettingsLineDestId] = useState(settings?.lineDestinationId || '');
   const [settingsUrl, setSettingsUrl] = useState(settings?.frontendUrl || '');
+  const [settingsLiveChannels, setSettingsLiveChannels] = useState(settings?.liveChannels || '');
 
   // Form states - MC LIVE MANAGEMENT
   const [mcSubTab, setMcSubTab] = useState<'list' | 'tiers'>('list');
@@ -201,6 +202,7 @@ export default function AdminPanels() {
       setSettingsLineToken(settings.lineChannelAccessToken);
       setSettingsLineDestId(settings.lineDestinationId);
       setSettingsUrl(settings.frontendUrl);
+      setSettingsLiveChannels(settings.liveChannels || '');
     }
   }, [settings]);
 
@@ -631,7 +633,8 @@ export default function AdminPanels() {
         lineNotificationsEnabled: settingsLineEnabled,
         lineChannelAccessToken: settingsLineToken,
         lineDestinationId: settingsLineDestId,
-        frontendUrl: settingsUrl
+        frontendUrl: settingsUrl,
+        liveChannels: settingsLiveChannels
       }
     };
 
@@ -1741,6 +1744,18 @@ export default function AdminPanels() {
                     onChange={(e) => setSettingsUrl(e.target.value)}
                     className="w-full text-xs font-semibold"
                   />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-460 dark:text-slate-400 uppercase tracking-wide">ช่องทางการไลฟ์สด (Live Channels)</label>
+                  <input
+                    type="text"
+                    placeholder="เช่น Facebook,TikTok,Shopee,Lazada (คั่นด้วยเครื่องหมายจุลภาค ,)"
+                    value={settingsLiveChannels}
+                    onChange={(e) => setSettingsLiveChannels(e.target.value)}
+                    className="w-full text-xs font-semibold"
+                  />
+                  <span className="text-[9px] text-slate-400 font-medium">ระบุรายการช่องทางการไลฟ์โดยคั่นด้วยเครื่องหมายจุลภาค เพื่อให้ผู้ใช้สามารถเลือกได้ขณะทำรายการจองห้องไลฟ์</span>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">

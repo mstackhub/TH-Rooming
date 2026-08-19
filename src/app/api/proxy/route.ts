@@ -760,7 +760,8 @@ export async function POST(request: Request) {
           lineNotificationsEnabled: dict['line_notifications_enabled'] === 'true',
           lineChannelAccessToken: dict['line_channel_access_token'] || '',
           lineDestinationId: dict['line_destination_id'] || '',
-          frontendUrl: dict['frontend_url'] || ''
+          frontendUrl: dict['frontend_url'] || '',
+          liveChannels: dict['live_channels'] || 'Facebook,TikTok,Shopee,Lazada'
         }, { headers: corsHeaders });
       }
 
@@ -828,7 +829,8 @@ export async function POST(request: Request) {
           { key: 'line_notifications_enabled', value: String(!!dict.lineNotificationsEnabled) },
           { key: 'line_channel_access_token', value: dict.lineChannelAccessToken || '' },
           { key: 'line_destination_id', value: dict.lineDestinationId || '' },
-          { key: 'frontend_url', value: dict.frontendUrl || '' }
+          { key: 'frontend_url', value: dict.frontendUrl || '' },
+          { key: 'live_channels', value: dict.liveChannels || '' }
         ];
 
         await requestSupabase('POST', 'settings', payloads, { 'Prefer': 'resolution=merge-duplicates' });

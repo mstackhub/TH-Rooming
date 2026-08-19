@@ -90,6 +90,7 @@ export interface SystemSettings {
   lineChannelAccessToken: string;
   lineDestinationId: string;
   frontendUrl: string;
+  liveChannels: string; // Comma-separated list of live streaming channels
 }
 
 export interface Filters {

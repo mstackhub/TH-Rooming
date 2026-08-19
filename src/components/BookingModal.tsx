@@ -44,7 +44,8 @@ export default function BookingModal() {
     setHighlightedBookingId,
     mcList,
     mcTiers,
-    allUsersAdmin
+    allUsersAdmin,
+    settings
   } = useApp();
 
   const [loading, setLoading] = useState(false);
@@ -69,6 +70,10 @@ export default function BookingModal() {
   
   // Important Live (Star/VIP indicator)
   const [isImportant, setIsImportant] = useState(false);
+
+  // Live Channel configuration
+  const [liveChannel, setLiveChannel] = useState<string>('Facebook');
+  const [customLiveChannel, setCustomLiveChannel] = useState<string>('');
 
   const [briefText, setBriefText] = useState('');
   const [briefLink, setBriefLink] = useState('');
@@ -142,6 +147,8 @@ export default function BookingModal() {
         let updBy = '';
         let matchedScale: any = 'Medium Scale';
         let matchedImportant = false;
+        let matchedChannel = 'Facebook';
+        let matchedCustomChannel = '';
 
         if (matchedBooking.lsArtworkLayout) {
           try {
@@ -158,6 +165,8 @@ export default function BookingModal() {
               updBy = parsed.lastUpdatedBy || '';
               matchedScale = parsed.scale || 'Medium Scale';
               matchedImportant = !!parsed.isImportant;
+              matchedChannel = parsed.liveChannel || 'Facebook';
+              matchedCustomChannel = parsed.customLiveChannel || '';
             }
           } catch (e) {
             bStatus = matchedBooking.briefLink ? 'Submitted' : 'Not Added';
@@ -175,6 +184,8 @@ export default function BookingModal() {
         setLastUpdatedBy(updBy);
         setScale(matchedScale);
         setIsImportant(matchedImportant);
+        setLiveChannel(matchedChannel);
+        setCustomLiveChannel(matchedCustomChannel);
       } else if (activeBookingCreateData) {
         // Pre-fill fields from click action
         setRoomName(activeBookingCreateData.roomName || (rooms[0]?.name || ''));
@@ -196,6 +207,8 @@ export default function BookingModal() {
         setSelectedStaffEmails([]);
         setScale('Medium Scale');
         setIsImportant(false);
+        setLiveChannel('Facebook');
+        setCustomLiveChannel('');
       }
     }
   }, [isOpen, activeBookingIdForEdit, activeBookingCreateData]);
@@ -304,7 +317,9 @@ export default function BookingModal() {
       lastUpdated: new Date().toISOString(),
       lastUpdatedBy: currentUser?.name || currentUser?.email || 'System',
       scale: scale,
-      isImportant: isImportant
+      isImportant: isImportant,
+      liveChannel: liveChannel,
+      customLiveChannel: customLiveChannel
     });
 
     const bookingPayload = {
@@ -385,7 +400,9 @@ export default function BookingModal() {
       mcIds: selectedMcIds,
       staffEmails: selectedStaffEmails,
       scale: scale,
-      isImportant: isImportant
+      isImportant: isImportant,
+      liveChannel: liveChannel,
+      customLiveChannel: customLiveChannel
     };
 
     setActiveBookingIdForEdit(null);
@@ -408,6 +425,8 @@ export default function BookingModal() {
       setSelectedStaffEmails(copyData.staffEmails);
       setScale(copyData.scale);
       setIsImportant(copyData.isImportant);
+      setLiveChannel(copyData.liveChannel);
+      setCustomLiveChannel(copyData.customLiveChannel);
     }, 50);
 
     showToast("คัดลอกแคมเปญเรียบร้อย กรุณาตรวจสอบวันเวลาและจัดเก็บ", "info");
@@ -641,7 +660,7 @@ export default function BookingModal() {
                 <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
                   ⭐ ไลฟ์สดสำคัญ (VIP / ดารา / ไลฟ์ใหญ่)
                 </span>
-                <span className="text-[9px] text-slate-450 dark:text-slate-400 font-semibold leading-tight">
+                <span className="text-[9px] text-slate-455 dark:text-slate-400 font-semibold leading-tight">
                   เปิดการใช้งานนี้เพื่อเน้นย้ำและติดสัญลักษณ์ดาวแจ้งเตือนให้ทีมงานทุกคนทราบ
                 </span>
               </div>
@@ -659,6 +678,54 @@ export default function BookingModal() {
                   }`}
                 />
               </button>
+            </div>
+
+            {/* Live Streaming Channel Selection dropdown */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ช่องทางการไลฟ์สด (Live Channel)</label>
+                <select
+                  value={liveChannel}
+                  onChange={(e) => {
+                    setLiveChannel(e.target.value);
+                    if (e.target.value !== 'Other') {
+                      setCustomLiveChannel('');
+                    }
+                  }}
+                  disabled={!canSave}
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                >
+                  {(settings?.liveChannels || 'Facebook,TikTok,Shopee,Lazada')
+                    .split(',')
+                    .map(x => x.trim())
+                    .filter(Boolean)
+                    .map(ch => (
+                      <option key={ch} value={ch}>{ch}</option>
+                    ))
+                  }
+                  <option value="Other">อื่นๆ (ระบุเอง)</option>
+                </select>
+              </div>
+
+              {/* Custom Channel Input (Visible if 'Other' or 'อื่นๆ (ระบุเอง)' is selected) */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">
+                  ระบุช่องทางอื่น {liveChannel === 'Other' && <span className="text-rose-500 font-bold">*</span>}
+                </label>
+                <input
+                  type="text"
+                  placeholder="เช่น YouTube, Zoom, LINE"
+                  value={customLiveChannel}
+                  onChange={(e) => setCustomLiveChannel(e.target.value)}
+                  disabled={!canSave || liveChannel !== 'Other'}
+                  className={`w-full text-xs font-semibold rounded-xl border p-2.5 bg-white dark:bg-slate-900 ${
+                    liveChannel === 'Other' 
+                      ? 'border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400' 
+                      : 'border-slate-200 dark:border-slate-800 opacity-60'
+                  }`}
+                  required={liveChannel === 'Other'}
+                />
+              </div>
             </div>
 
             {/* Multi MC Live selector (Max 4) */}

@@ -406,11 +406,13 @@ export default function TimelineScheduler() {
       }
 
       let matchedImportant = false;
+      let matchedChannel = '';
       if (b.lsArtworkLayout) {
         try {
           const parsed = JSON.parse(b.lsArtworkLayout);
           if (parsed && typeof parsed === 'object') {
             matchedImportant = !!parsed.isImportant;
+            matchedChannel = parsed.liveChannel === 'Other' ? (parsed.customLiveChannel || '') : (parsed.liveChannel || '');
           }
         } catch(e){}
       }
@@ -429,13 +431,18 @@ export default function TimelineScheduler() {
             e.stopPropagation();
             setActiveBookingIdForEdit(b.id);
           }}
-          title={`${matchedImportant ? '⭐ [VIP] ' : ''}${b.brandName} - ${b.campaignName} (${b.startTime} - ${b.endTime})`}
+          title={`${matchedImportant ? '⭐ [VIP] ' : ''}${b.brandName} - ${b.campaignName} (${b.startTime} - ${b.endTime})${matchedChannel ? ` [ช่องทาง: ${matchedChannel}]` : ''}`}
         >
-          <div className="font-extrabold truncate text-[10px] leading-tight select-none flex items-center gap-1">
+          <div className="font-extrabold truncate text-[10px] leading-tight select-none flex flex-wrap items-center gap-1">
             {matchedImportant && (
               <span className="text-[10px] text-amber-550 dark:text-amber-400 animate-bounce shrink-0">⭐</span>
             )}
             <span>{b.brandName}</span>
+            {matchedChannel && (
+              <span className="inline-flex items-center px-1 py-0.2 text-[7px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded shrink-0 select-none border border-slate-200 dark:border-slate-700">
+                {matchedChannel}
+              </span>
+            )}
             {isLiveNow && (
               <span className="inline-flex items-center px-1.5 py-0.5 text-[7px] font-black bg-rose-200 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded animate-pulse shrink-0 select-none">
                 LIVE NOW 🔴
