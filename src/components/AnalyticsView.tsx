@@ -42,7 +42,7 @@ export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewPro
   
   // Custom Overload settings states
   const [overloadLimit, setOverloadLimit] = useState<number>(40);
-  const [isOverloadEnabled, setIsOverloadEnabled] = useState<boolean>(true);
+  const [isOverloadEnabled, setIsOverloadEnabled] = useState<boolean>(false);
 
   // Dynamic Staff Filters States
   const [selectedStaffEmail, setSelectedStaffEmail] = useState<string>('');
