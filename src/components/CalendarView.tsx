@@ -538,6 +538,16 @@ export default function CalendarView() {
                           const endMins = parseTimeToMinutes(b.endTime);
                           const isLiveNow = b.status !== 'Cancelled' && b.date === todayStr && currentTotalMins >= startMins && currentTotalMins < endMins;
 
+                          let matchedImportant = false;
+                          if (b.lsArtworkLayout) {
+                            try {
+                              const parsed = JSON.parse(b.lsArtworkLayout);
+                              if (parsed && typeof parsed === 'object') {
+                                matchedImportant = !!parsed.isImportant;
+                              }
+                            } catch(e){}
+                          }
+
                           let badgeColor = 'bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300 border-blue-200';
                           if (isLiveNow) badgeColor = 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-350 border-rose-200';
                           else if (autoStatus === 'Completed') badgeColor = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-350 border-emerald-200';
@@ -546,11 +556,16 @@ export default function CalendarView() {
                           return (
                             <div
                               key={b.id}
-                              className={`p-1.5 border select-none text-[8px] leading-tight rounded-lg flex flex-col gap-0.5 hover:shadow-sm transition-all ${badgeColor}`}
-                              title={`${b.brandName} (${b.startTime}-${b.endTime})`}
+                              className={`p-1.5 border select-none text-[8px] leading-tight rounded-lg flex flex-col gap-0.5 hover:shadow-sm transition-all ${badgeColor} ${
+                                matchedImportant ? 'ring-2 ring-amber-400 bg-amber-50/10 dark:bg-amber-950/10 border-amber-400' : ''
+                              }`}
+                              title={`${matchedImportant ? '⭐ [VIP] ' : ''}${b.brandName} (${b.startTime}-${b.endTime})`}
                             >
                               <span className="font-extrabold truncate">{b.startTime} - {b.endTime}</span>
-                              <span className="font-black truncate">{b.brandName}</span>
+                              <span className="font-black truncate flex items-center gap-0.5">
+                                {matchedImportant && <span className="text-amber-500">⭐</span>}
+                                {b.brandName}
+                              </span>
                               <span className="opacity-80 truncate text-[7px]">{b.roomName}</span>
                             </div>
                           );
@@ -600,19 +615,36 @@ export default function CalendarView() {
                             ไม่มีคิวจองในห้องนี้ (คลิกการ์ดเพื่อจองคิวใหม่)
                           </div>
                         ) : (
-                          roomBookings.map(b => (
-                            <div 
-                              key={b.id} 
-                              onClick={() => setActiveBookingIdForEdit(b.id)}
-                              className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl hover:shadow-md cursor-pointer transition-all flex flex-col justify-between"
-                            >
-                              <div className="flex justify-between items-center">
-                                <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{b.brandName}</span>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-650 dark:text-slate-350">{b.startTime} - {b.endTime} น.</span>
+                          roomBookings.map(b => {
+                            let matchedImportant = false;
+                            if (b.lsArtworkLayout) {
+                              try {
+                                const parsed = JSON.parse(b.lsArtworkLayout);
+                                if (parsed && typeof parsed === 'object') {
+                                  matchedImportant = !!parsed.isImportant;
+                                }
+                              } catch(e){}
+                            }
+
+                            return (
+                              <div 
+                                key={b.id} 
+                                onClick={() => setActiveBookingIdForEdit(b.id)}
+                                className={`p-3 bg-white dark:bg-slate-950 border rounded-xl hover:shadow-md cursor-pointer transition-all flex flex-col justify-between ${
+                                  matchedImportant ? 'border-amber-400 ring-1 ring-amber-400/50 bg-amber-50/5 dark:bg-amber-955/5' : 'border-slate-200 dark:border-slate-800'
+                                }`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                                    {matchedImportant && <span className="text-amber-550 dark:text-amber-400 text-[10px]">⭐</span>}
+                                    {b.brandName}
+                                  </span>
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-650 dark:text-slate-350">{b.startTime} - {b.endTime} น.</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-semibold truncate">{b.campaignName || 'ยังไม่ระบุชื่อแคมเปญ'}</p>
                               </div>
-                              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-semibold truncate">{b.campaignName || 'ยังไม่ระบุชื่อแคมเปญ'}</p>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </div>
@@ -651,6 +683,16 @@ export default function CalendarView() {
                 const endMins = parseTimeToMinutes(b.endTime);
                 const isLiveNow = b.status !== 'Cancelled' && b.date === todayStr && currentTotalMins >= startMins && currentTotalMins < endMins;
 
+                let matchedImportant = false;
+                if (b.lsArtworkLayout) {
+                  try {
+                    const parsed = JSON.parse(b.lsArtworkLayout);
+                    if (parsed && typeof parsed === 'object') {
+                      matchedImportant = !!parsed.isImportant;
+                    }
+                  } catch(e){}
+                }
+
                 let statusColor = 'border-l-4 border-blue-500 bg-blue-50/20 text-blue-900 dark:text-blue-300';
                 if (isLiveNow) statusColor = 'border-l-4 border-rose-500 bg-rose-50/20 text-rose-900 dark:text-rose-350';
                 else if (autoStatus === 'Completed') statusColor = 'border-l-4 border-emerald-500 bg-emerald-50/20 text-emerald-900 dark:text-emerald-300';
@@ -660,10 +702,13 @@ export default function CalendarView() {
                   <div
                     key={b.id}
                     onClick={() => setActiveBookingIdForEdit(b.id)}
-                    className={`p-3 rounded-xl border border-slate-200 hover:shadow-md cursor-pointer transition-all flex flex-col justify-between ${statusColor}`}
+                    className={`p-3 rounded-xl border hover:shadow-md cursor-pointer transition-all flex flex-col justify-between ${statusColor} ${
+                      matchedImportant ? 'ring-1 ring-amber-400/60 border-amber-400 bg-amber-50/10' : 'border-slate-200'
+                    }`}
                   >
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
+                        {matchedImportant && <span className="text-amber-550 dark:text-amber-400 text-xs shrink-0 animate-bounce">⭐</span>}
                         <span className="font-bold text-xs truncate">{b.brandName}</span>
                         {isLiveNow && (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black bg-rose-500 text-white animate-pulse">

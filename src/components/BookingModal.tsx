@@ -66,6 +66,9 @@ export default function BookingModal() {
 
   // Scale: Full Scale, Medium Scale (Default), Mini Scale
   const [scale, setScale] = useState<'Full Scale' | 'Medium Scale' | 'Mini Scale'>('Medium Scale');
+  
+  // Important Live (Star/VIP indicator)
+  const [isImportant, setIsImportant] = useState(false);
 
   const [briefText, setBriefText] = useState('');
   const [briefLink, setBriefLink] = useState('');
@@ -138,6 +141,7 @@ export default function BookingModal() {
         let updDate = '';
         let updBy = '';
         let matchedScale: any = 'Medium Scale';
+        let matchedImportant = false;
 
         if (matchedBooking.lsArtworkLayout) {
           try {
@@ -153,6 +157,7 @@ export default function BookingModal() {
               updDate = parsed.lastUpdated || '';
               updBy = parsed.lastUpdatedBy || '';
               matchedScale = parsed.scale || 'Medium Scale';
+              matchedImportant = !!parsed.isImportant;
             }
           } catch (e) {
             bStatus = matchedBooking.briefLink ? 'Submitted' : 'Not Added';
@@ -169,6 +174,7 @@ export default function BookingModal() {
         setLastUpdated(updDate);
         setLastUpdatedBy(updBy);
         setScale(matchedScale);
+        setIsImportant(matchedImportant);
       } else if (activeBookingCreateData) {
         // Pre-fill fields from click action
         setRoomName(activeBookingCreateData.roomName || (rooms[0]?.name || ''));
@@ -189,6 +195,7 @@ export default function BookingModal() {
         setSelectedMcIds([]);
         setSelectedStaffEmails([]);
         setScale('Medium Scale');
+        setIsImportant(false);
       }
     }
   }, [isOpen, activeBookingIdForEdit, activeBookingCreateData]);
@@ -296,7 +303,8 @@ export default function BookingModal() {
       artworkStatus: artworkStatus,
       lastUpdated: new Date().toISOString(),
       lastUpdatedBy: currentUser?.name || currentUser?.email || 'System',
-      scale: scale
+      scale: scale,
+      isImportant: isImportant
     });
 
     const bookingPayload = {
@@ -376,7 +384,8 @@ export default function BookingModal() {
       aLink: artworkLink,
       mcIds: selectedMcIds,
       staffEmails: selectedStaffEmails,
-      scale: scale
+      scale: scale,
+      isImportant: isImportant
     };
 
     setActiveBookingIdForEdit(null);
@@ -398,6 +407,7 @@ export default function BookingModal() {
       setSelectedMcIds(copyData.mcIds);
       setSelectedStaffEmails(copyData.staffEmails);
       setScale(copyData.scale);
+      setIsImportant(copyData.isImportant);
     }, 50);
 
     showToast("คัดลอกแคมเปญเรียบร้อย กรุณาตรวจสอบวันเวลาและจัดเก็บ", "info");
@@ -623,6 +633,32 @@ export default function BookingModal() {
                   <option value="Mini Scale">Mini Scale</option>
                 </select>
               </div>
+            </div>
+
+            {/* Toggle Important Live Selector */}
+            <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                  ⭐ ไลฟ์สดสำคัญ (VIP / ดารา / ไลฟ์ใหญ่)
+                </span>
+                <span className="text-[9px] text-slate-450 dark:text-slate-400 font-semibold leading-tight">
+                  เปิดการใช้งานนี้เพื่อเน้นย้ำและติดสัญลักษณ์ดาวแจ้งเตือนให้ทีมงานทุกคนทราบ
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => canSave && setIsImportant(!isImportant)}
+                disabled={!canSave}
+                className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  isImportant ? 'bg-amber-500' : 'bg-slate-205 dark:bg-slate-800'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    isImportant ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
 
             {/* Multi MC Live selector (Max 4) */}

@@ -405,10 +405,22 @@ export default function TimelineScheduler() {
         statusColorClass = 'status-confirmed'; // 🔵 Blue = Upcoming / not yet live
       }
 
+      let matchedImportant = false;
+      if (b.lsArtworkLayout) {
+        try {
+          const parsed = JSON.parse(b.lsArtworkLayout);
+          if (parsed && typeof parsed === 'object') {
+            matchedImportant = !!parsed.isImportant;
+          }
+        } catch(e){}
+      }
+
       return (
         <div
           key={b.id}
-          className={`booking-bar ${statusColorClass} ${b.id === highlightedBookingId ? 'ring-4 ring-amber-500 shadow-lg shadow-amber-500/50 scale-[1.03] z-20 border-amber-400 animate-pulse' : ''}`}
+          className={`booking-bar ${statusColorClass} ${
+            matchedImportant ? 'ring-2 ring-amber-400 bg-gradient-to-r from-amber-500/10 to-transparent border-amber-400 dark:border-amber-550' : ''
+          } ${b.id === highlightedBookingId ? 'ring-4 ring-amber-500 shadow-lg shadow-amber-500/50 scale-[1.03] z-20 border-amber-400 animate-pulse' : ''}`}
           style={{
             left: `${leftVal}px`,
             width: `${widthVal}px`
@@ -417,9 +429,12 @@ export default function TimelineScheduler() {
             e.stopPropagation();
             setActiveBookingIdForEdit(b.id);
           }}
-          title={`${b.brandName} - ${b.campaignName} (${b.startTime} - ${b.endTime})`}
+          title={`${matchedImportant ? '⭐ [VIP] ' : ''}${b.brandName} - ${b.campaignName} (${b.startTime} - ${b.endTime})`}
         >
-          <div className="font-extrabold truncate text-[10px] leading-tight select-none flex items-center gap-1.5">
+          <div className="font-extrabold truncate text-[10px] leading-tight select-none flex items-center gap-1">
+            {matchedImportant && (
+              <span className="text-[10px] text-amber-550 dark:text-amber-400 animate-bounce shrink-0">⭐</span>
+            )}
             <span>{b.brandName}</span>
             {isLiveNow && (
               <span className="inline-flex items-center px-1.5 py-0.5 text-[7px] font-black bg-rose-200 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded animate-pulse shrink-0 select-none">
@@ -427,7 +442,7 @@ export default function TimelineScheduler() {
               </span>
             )}
           </div>
-          <div className="truncate text-[9px] opacity-90 leading-tight select-none">
+          <div className="truncate text-[9px] opacity-90 leading-tight select-none font-bold">
             {b.campaignName}
           </div>
         </div>
