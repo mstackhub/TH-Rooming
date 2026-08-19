@@ -746,19 +746,19 @@ export default function CalendarView() {
                   staffNamesStr = names.join(', ');
                 }
 
-                let statusColor = 'border-l-4 border-blue-500 bg-blue-50/20 text-blue-900 dark:text-blue-300';
-                if (isLiveNow) statusColor = 'border-l-4 border-rose-500 bg-rose-50/20 text-rose-900 dark:text-rose-350';
-                else if (autoStatus === 'Completed') statusColor = 'border-l-4 border-emerald-500 bg-emerald-50/20 text-emerald-900 dark:text-emerald-300';
-                else if (autoStatus === 'Cancelled') statusColor = 'border-l-4 border-slate-400 bg-slate-50/20 text-slate-700 dark:text-slate-400';
+                let statusColor = 'border-l-4 border-blue-500 bg-blue-50/20 text-blue-900 dark:text-blue-300 border-slate-200 dark:border-slate-800';
+                if (isLiveNow) statusColor = 'border-l-4 border-rose-500 bg-rose-50/20 text-rose-900 dark:text-rose-350 border-slate-200 dark:border-slate-800';
+                else if (autoStatus === 'Completed') statusColor = 'border-l-4 border-emerald-500 bg-emerald-50/20 text-emerald-900 dark:text-emerald-300 border-slate-200 dark:border-slate-800';
+                else if (autoStatus === 'Cancelled') statusColor = 'border-l-4 border-slate-400 bg-slate-50/20 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-800';
 
                 return (
                   <div
                     key={b.id}
                     onClick={() => setActiveBookingIdForEdit(b.id)}
-                    className={`p-4 rounded-xl border hover:shadow-md cursor-pointer transition-all flex flex-col gap-2.5 ${statusColor} ${
+                    className={`p-4 rounded-xl border hover:shadow-md cursor-pointer transition-all flex flex-col gap-2.5 ${
                       matchedImportant 
-                        ? 'border-2 border-amber-400 dark:border-amber-500 bg-amber-50/15 dark:bg-amber-950/20 ring-2 ring-amber-500/35 shadow-md shadow-amber-200/20' 
-                        : 'border-slate-200 dark:border-slate-800'
+                        ? 'border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50/20 to-amber-100/5 dark:from-amber-950/20 dark:to-slate-900/40 ring-1 ring-amber-400/40 shadow-md shadow-amber-500/5 text-amber-950 dark:text-amber-100' 
+                        : statusColor
                     }`}
                   >
                     <div className="flex justify-between items-start gap-2 border-b border-slate-200/50 dark:border-slate-800/40 pb-2">
