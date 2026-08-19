@@ -1796,7 +1796,7 @@ export default function AdminPanels() {
                           placeholder="ค้นหาชื่อ MC..."
                           value={mcSearch}
                           onChange={(e) => setMcSearch(e.target.value)}
-                          className="w-48 pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:border-brand-500"
+                          className="w-48 pl-9 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:border-brand-500"
                         />
                         <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       </div>
