@@ -14,13 +14,16 @@ import {
 } from 'lucide-react';
 
 export default function Navigation() {
-  const { currentTab, setCurrentTab, currentUser, logout } = useApp();
+  const [isAnalyticsExpanded, setIsAnalyticsExpanded] = useState(false);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
 
-  // Auto-expand settings dropdown when active tab is one of settings sub-tabs
+  // Auto-expand dropdowns when active tab is one of their sub-tabs
   useEffect(() => {
     if (['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab)) {
       setIsSettingsExpanded(true);
+    }
+    if (['analytics', 'analytics-staff', 'analytics-mc'].includes(currentTab)) {
+      setIsAnalyticsExpanded(true);
     }
   }, [currentTab]);
 
@@ -33,7 +36,7 @@ export default function Navigation() {
     { id: 'calendar', name: 'ปฏิทินห้องไลฟ์ (Calendar)', icon: Calendar },
     { id: 'my-bookings', name: 'ประวัติการจองของฉัน (My Bookings)', icon: UserIcon },
     { id: 'campaign-schedule', name: 'แคมเปญทั้งหมด (Campaigns)', icon: BookOpen },
-    { id: 'analytics', name: 'สถิติและการใช้งาน (Analytics)', icon: LineChart },
+    { id: 'analytics', name: 'รายงาน (Dashboard)', icon: LineChart },
     { id: 'settings', name: 'ตั้งค่า (Settings)', icon: Settings, adminOnly: true }
   ];
 
@@ -42,6 +45,10 @@ export default function Navigation() {
       return allowedTabs.some(tab => 
         ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(tab)
       );
+    }
+    // Dashboard also visible if they have permission to see 'analytics'
+    if (item.id === 'analytics') {
+      return allowedTabs.includes('analytics');
     }
     return allowedTabs.includes(item.id);
   });
@@ -59,9 +66,13 @@ export default function Navigation() {
         {visibleItems.map(item => {
           const Icon = item.icon;
           const isSettingsItem = item.id === 'settings';
+          const isAnalyticsItem = item.id === 'analytics';
+          
           const isActive = isSettingsItem 
             ? ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab)
-            : currentTab === item.id;
+            : isAnalyticsItem
+              ? ['analytics', 'analytics-staff', 'analytics-mc'].includes(currentTab)
+              : currentTab === item.id;
 
           return (
             <div key={item.id} className="w-full flex flex-col gap-1 shrink-0">
@@ -69,13 +80,18 @@ export default function Navigation() {
                 onClick={() => {
                   if (isSettingsItem) {
                     setIsSettingsExpanded(!isSettingsExpanded);
-                    // Automatically switch to first allowed settings sub-tab if none are active
                     const currentIsSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab);
                     if (!currentIsSub) {
                       const firstAllowedSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].find(t => allowedTabs.includes(t));
                       if (firstAllowedSub) {
                         setCurrentTab(firstAllowedSub);
                       }
+                    }
+                  } else if (isAnalyticsItem) {
+                    setIsAnalyticsExpanded(!isAnalyticsExpanded);
+                    const currentIsSub = ['analytics', 'analytics-staff', 'analytics-mc'].includes(currentTab);
+                    if (!currentIsSub) {
+                      setCurrentTab('analytics');
                     }
                   } else {
                     setCurrentTab(item.id);
@@ -88,19 +104,45 @@ export default function Navigation() {
                 }`}
               >
                 {/* Active Item Vertical Accent Bar */}
-                {isActive && !isSettingsItem && (
+                {isActive && !isSettingsItem && !isAnalyticsItem && (
                   <div className="absolute left-0 top-1/3 bottom-1/3 w-1.5 bg-white rounded-r-full" />
                 )}
                 <Icon className={`w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-110 ${
                   isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'
                 }`} />
                 <span className="flex-1">{item.name}</span>
-                {isSettingsItem && (
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isSettingsExpanded ? 'rotate-180' : ''} ${
-                    isActive ? 'text-white' : 'text-slate-400'
-                  }`} />
+                {(isSettingsItem || isAnalyticsItem) && (
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    isSettingsItem ? (isSettingsExpanded ? 'rotate-180' : '') : (isAnalyticsExpanded ? 'rotate-180' : '')
+                  } ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 )}
               </button>
+
+              {/* Indented Collapsible Analytics Sub-menus */}
+              {isAnalyticsItem && isAnalyticsExpanded && (
+                <div className="pl-5 pr-2 py-1 flex flex-col gap-1 border-l border-slate-200 dark:border-slate-800 ml-6 mt-1.5 animate-in slide-in-from-top-1 duration-150">
+                  {[
+                    { id: 'analytics', name: 'สถิติและการใช้งาน' },
+                    { id: 'analytics-staff', name: 'ประสิทธิภาพ Staff' },
+                    { id: 'analytics-mc', name: 'ประสิทธิภาพ MC' }
+                  ].map(sub => {
+                    const isSubActive = currentTab === sub.id;
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => setCurrentTab(sub.id)}
+                        className={`text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                          isSubActive
+                            ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/20 dark:text-brand-400 font-bold'
+                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        {sub.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Indented Collapsible Settings Sub-menus */}
               {isSettingsItem && isSettingsExpanded && (

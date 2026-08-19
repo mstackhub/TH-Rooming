@@ -385,7 +385,9 @@ export default function Home() {
       case 'campaign-schedule':
         return <CampaignSchedule />;
       case 'analytics':
-        return <AnalyticsView />;
+      case 'analytics-staff':
+      case 'analytics-mc':
+        return <AnalyticsView subTab={currentTab} />;
       case 'rooms':
       case 'brands':
       case 'mc-live':

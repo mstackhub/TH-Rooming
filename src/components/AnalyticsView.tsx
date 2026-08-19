@@ -10,16 +10,30 @@ import {
   Calendar,
   Layers,
   ChevronDown,
-  Building
+  Building,
+  Users,
+  Mic,
+  BarChart3,
+  ShieldAlert,
+  AlertTriangle,
+  Award,
+  Star,
+  List
 } from 'lucide-react';
 
 const THAI_DAY_NAMES = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
 
-export default function AnalyticsView() {
+interface AnalyticsViewProps {
+  subTab?: string;
+}
+
+export default function AnalyticsView({ subTab = 'analytics' }: AnalyticsViewProps) {
   const {
     calendarBookings,
     rooms,
-    brands
+    brands,
+    mcList,
+    allUsersAdmin
   } = useApp();
 
   const [dateRange, setDateRange] = useState<'all' | 'month' | 'week' | 'custom'>('all');
@@ -261,6 +275,108 @@ export default function AnalyticsView() {
     };
   }, [filteredBookings, peakHoursData]);
 
+  // Staff Performance Analytics Calculations
+  const staffAnalyticsData = useMemo(() => {
+    const staffStats: Record<string, { email: string; name: string; hours: number; count: number; bookings: Booking[] }> = {};
+    
+    // Initialize stats with all users
+    allUsersAdmin.forEach(u => {
+      staffStats[u.email.toLowerCase()] = {
+        email: u.email,
+        name: u.name,
+        hours: 0,
+        count: 0,
+        bookings: []
+      };
+    });
+
+    filteredBookings.forEach(b => {
+      if (b.status === 'Cancelled') return;
+
+      let staffEmails: string[] = [];
+      if (b.lsArtworkLayout) {
+        try {
+          const parsed = JSON.parse(b.lsArtworkLayout);
+          if (parsed && Array.isArray(parsed.staffEmails)) {
+            staffEmails = parsed.staffEmails;
+          }
+        } catch(e){}
+      }
+      if (staffEmails.length === 0 && b.briefLink && b.briefLink.includes('@')) {
+        staffEmails = b.briefLink.split(',').map(x => x.trim()).filter(Boolean);
+      }
+
+      const start = parseTimeToMinutes(b.startTime);
+      const end = parseTimeToMinutes(b.endTime);
+      const hrs = end > start ? (end - start) / 60 : 0;
+
+      staffEmails.forEach(email => {
+        const key = email.toLowerCase().trim();
+        if (!staffStats[key]) {
+          const matchedUser = allUsersAdmin.find(u => u.email.toLowerCase() === key);
+          staffStats[key] = {
+            email,
+            name: matchedUser?.name || email.split('@')[0],
+            hours: 0,
+            count: 0,
+            bookings: []
+          };
+        }
+        staffStats[key].hours += hrs;
+        staffStats[key].count += 1;
+        staffStats[key].bookings.push(b);
+      });
+    });
+
+    // Sort staff by total hours descending
+    return Object.values(staffStats).sort((a, b) => b.hours - a.hours);
+  }, [filteredBookings, allUsersAdmin]);
+
+  // MC Performance Analytics Calculations
+  const mcAnalyticsData = useMemo(() => {
+    const mcStats: Record<string, { id: string; name: string; hours: number; count: number; bookings: Booking[] }> = {};
+
+    // Initialize with all MCs
+    mcList.forEach(mc => {
+      mcStats[mc.id] = {
+        id: mc.id,
+        name: mc.name,
+        hours: 0,
+        count: 0,
+        bookings: []
+      };
+    });
+
+    filteredBookings.forEach(b => {
+      if (b.status === 'Cancelled') return;
+
+      if (b.mcId) {
+        const mcIds = b.mcId.split(',').map(x => x.trim()).filter(Boolean);
+        const start = parseTimeToMinutes(b.startTime);
+        const end = parseTimeToMinutes(b.endTime);
+        const hrs = end > start ? (end - start) / 60 : 0;
+
+        mcIds.forEach(id => {
+          if (!mcStats[id]) {
+            const matchedMc = mcList.find(mc => mc.id === id);
+            mcStats[id] = {
+              id,
+              name: matchedMc?.name || 'MC ทั่วไป',
+              hours: 0,
+              count: 0,
+              bookings: []
+            };
+          }
+          mcStats[id].hours += hrs;
+          mcStats[id].count += 1;
+          mcStats[id].bookings.push(b);
+        });
+      }
+    });
+
+    return Object.values(mcStats).sort((a, b) => b.hours - a.hours);
+  }, [filteredBookings, mcList]);
+
   // Max values for relative progress bar scaling
   const maxBrandHours = useMemo(() => {
     return Math.max(...analyticsInsights.sortedBrands.map(b => b.hours), 1);
@@ -269,6 +385,325 @@ export default function AnalyticsView() {
   const maxRoomHours = useMemo(() => {
     return Math.max(...analyticsInsights.sortedRooms.map(r => r.hours), 1);
   }, [analyticsInsights.sortedRooms]);
+
+  const maxStaffHours = useMemo(() => {
+    return Math.max(...staffAnalyticsData.map(s => s.hours), 1);
+  }, [staffAnalyticsData]);
+
+  const maxMcHours = useMemo(() => {
+    return Math.max(...mcAnalyticsData.map(m => m.hours), 1);
+  }, [mcAnalyticsData]);
+
+  // RENDER DYNAMIC SUB-TABS VIEWS
+  if (subTab === 'analytics-staff') {
+    return (
+      <div className="flex-1 p-6 overflow-y-auto space-y-6 animate-in fade-in duration-200 text-slate-800 dark:text-slate-200">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-850 pb-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+              <Users className="w-5.5 h-5.5 text-brand-500" />
+              รายงานประสิทธิภาพการปฏิบัติงานของ Staff ผู้ดูแล
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">วิเคราะห์ภาระงาน (Workload) ชั่วโมงดูแลสะสม และประเมินความสุ่มเสี่ยงเกิดความเหนื่อยล้าสะสม (Overload)</p>
+          </div>
+          
+          <select
+            value={dateRange}
+            onChange={(e) => {
+              const val = e.target.value as any;
+              setDateRange(val);
+              if (val === 'custom') {
+                const today = new Date();
+                setCustomStartDate(today.toISOString().split('T')[0]);
+                setCustomEndDate(today.toISOString().split('T')[0]);
+              }
+            }}
+            className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 focus:outline-none cursor-pointer"
+          >
+            <option value="all">ข้อมูลทั้งหมด (All History)</option>
+            <option value="month">ย้อนหลัง 30 วัน (Last 30 Days)</option>
+            <option value="week">ย้อนหลัง 7 วัน (Last 7 Days)</option>
+            <option value="custom">กำหนดช่วงเวลาเอง...</option>
+          </select>
+        </div>
+
+        {/* Custom date range fields */}
+        {dateRange === 'custom' && (
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-850 p-3.5 rounded-2xl w-fit">
+            <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+            <span className="text-slate-400 font-bold text-xs">ถึง</span>
+            <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+          </div>
+        )}
+
+        {/* Staff Workload Leaderboard & Detailed List */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          
+          {/* Workload Ranking List */}
+          <div className="xl:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between space-y-4">
+            <div>
+              <h3 className="text-xs font-black text-slate-450 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-brand-500" />
+                ภาระงาน Staff รายบุคคล (Support Staff Workload)
+              </h3>
+              <p className="text-[10px] text-slate-400 mt-0.5">ชั่วโมงปฏิบัติงานดูแลไลฟ์สะสม (สีแดงหากสะสม &gt; 40 ชม. สุ่มเสี่ยง Overload)</p>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto flex-1 pr-1 max-h-[480px]">
+              {staffAnalyticsData.map((staff, idx) => {
+                const isOverloaded = staff.hours > 40;
+                return (
+                  <div key={staff.email} className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border ${
+                          isOverloaded 
+                            ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/20 dark:text-rose-400' 
+                            : 'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/40 dark:text-slate-450'
+                        }`}>
+                          {idx + 1}
+                        </span>
+                        <span className="font-extrabold truncate text-slate-900 dark:text-white">{staff.name}</span>
+                      </div>
+                      <div className={`text-[10px] font-bold ${isOverloaded ? 'text-rose-600 dark:text-rose-400 font-extrabold animate-pulse' : 'text-slate-500'}`}>
+                        {staff.hours.toFixed(1)} ชม. ({staff.count} ไลฟ์)
+                      </div>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-800/60 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${isOverloaded ? 'bg-rose-500' : 'bg-brand-500'}`}
+                        style={{ width: `${(staff.hours / maxStaffHours) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              {staffAnalyticsData.length === 0 && (
+                <div className="text-center py-12 text-slate-400 italic text-xs">ไม่พบข้อมูลการสแตนด์บายของ Staff ในตารางจอง</div>
+              )}
+            </div>
+          </div>
+
+          {/* Workload detailed analytics reports (Right) */}
+          <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+              <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide">ตารางบันทึกการจัดไลฟ์แยกตาม Staff (Staff Sessions Logs)</h3>
+            </div>
+            
+            <div className="flex-1 overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="bg-slate-50/30 dark:bg-slate-900/10 border-b border-slate-200 dark:border-slate-800 text-slate-450 uppercase font-black tracking-wider text-[10px]">
+                    <th className="p-3.5">ชื่อ Staff</th>
+                    <th className="p-3.5 text-center">คิวไลฟ์ทั้งหมด</th>
+                    <th className="p-3.5 text-center">ชั่วโมงไลฟ์สะสม</th>
+                    <th className="p-3.5">ประเมินสภาวะงาน (Status)</th>
+                    <th className="p-3.5">แคมเปญล่าสุดที่ดูแล</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
+                  {staffAnalyticsData.map(staff => {
+                    const isOverloaded = staff.hours > 40;
+                    const lastBooking = staff.bookings[staff.bookings.length - 1];
+                    
+                    return (
+                      <tr key={staff.email} className="hover:bg-slate-50/40 dark:hover:bg-slate-805/30 transition-colors">
+                        <td className="p-3.5">
+                          <div className="flex flex-col">
+                            <span className="font-extrabold text-slate-900 dark:text-white text-xs">{staff.name}</span>
+                            <span className="text-[9px] text-slate-400 font-semibold">{staff.email}</span>
+                          </div>
+                        </td>
+                        <td className="p-3.5 text-center font-bold text-xs">{staff.count} ครั้ง</td>
+                        <td className="p-3.5 text-center">
+                          <span className={`font-extrabold text-xs ${isOverloaded ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-150'}`}>{staff.hours.toFixed(1)} ชม.</span>
+                        </td>
+                        <td className="p-3.5">
+                          {isOverloaded ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-rose-50 dark:bg-rose-950/20 text-rose-650 dark:text-rose-400 border border-rose-200">
+                              🚨 Overloaded (&gt;40h)
+                            </span>
+                          ) : staff.hours > 25 ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-amber-50 dark:bg-amber-950/20 text-amber-650 dark:text-amber-400 border border-amber-250">
+                              ⚠️ High Load
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-50 dark:bg-emerald-950/20 text-emerald-650 dark:text-emerald-400 border border-emerald-250">
+                              ✅ Good Balance
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3.5 max-w-[200px] truncate">
+                          {lastBooking ? (
+                            <div className="flex flex-col">
+                              <span className="font-extrabold truncate text-slate-800 dark:text-slate-200">{lastBooking.brandName}</span>
+                              <span className="text-[9px] text-slate-400 font-semibold truncate">{formatThaiDate(lastBooking.date)} ({lastBooking.startTime}น.)</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic font-normal text-[10px]">ไม่มีงานในระบบ</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (subTab === 'analytics-mc') {
+    return (
+      <div className="flex-1 p-6 overflow-y-auto space-y-6 animate-in fade-in duration-200 text-slate-800 dark:text-slate-200">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-850 pb-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+              <Mic className="w-5.5 h-5.5 text-brand-500" />
+              รายงานสถิติประสิทธิภาพ MC พิธีกรไลฟ์สดเชิงลึก
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">วิเคราะห์ตารางงาน MC รายคน จำนวนครั้งการขึ้นจัดรายการ ช่วงเวลาไลฟ์ยอดนิยม และการประเมินการทำงานเชิงลึก</p>
+          </div>
+          
+          <select
+            value={dateRange}
+            onChange={(e) => {
+              const val = e.target.value as any;
+              setDateRange(val);
+              if (val === 'custom') {
+                const today = new Date();
+                setCustomStartDate(today.toISOString().split('T')[0]);
+                setCustomEndDate(today.toISOString().split('T')[0]);
+              }
+            }}
+            className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-900 focus:outline-none cursor-pointer"
+          >
+            <option value="all">ข้อมูลทั้งหมด (All History)</option>
+            <option value="month">ย้อนหลัง 30 วัน (Last 30 Days)</option>
+            <option value="week">ย้อนหลัง 7 วัน (Last 7 Days)</option>
+            <option value="custom">กำหนดช่วงเวลาเอง...</option>
+          </select>
+        </div>
+
+        {/* Custom date range fields */}
+        {dateRange === 'custom' && (
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-850 p-3.5 rounded-2xl w-fit">
+            <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+            <span className="text-slate-400 font-bold text-xs">ถึง</span>
+            <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+          </div>
+        )}
+
+        {/* MC Performance Analytics Table grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Workload MC leaderboard (Left) */}
+          <div className="xl:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between space-y-4">
+            <div>
+              <h3 className="text-xs font-black text-slate-450 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                <Star className="w-4 h-4 text-brand-500" />
+                ชั่วโมงสะสมการจัดไลฟ์ของ MC (MC Accumulated Hours)
+              </h3>
+              <p className="text-[10px] text-slate-400 mt-0.5">จัดอันดับพิธีกรที่มีเวลาออนแอร์ออกอากาศสดรวมมากที่สุดในระบบ</p>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto flex-1 pr-1 max-h-[480px]">
+              {mcAnalyticsData.map((mc, idx) => (
+                <div key={mc.id} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-850 dark:text-slate-450`}>
+                        {idx + 1}
+                      </span>
+                      <span className="font-extrabold truncate text-slate-900 dark:text-white">{mc.name}</span>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-550 dark:text-slate-400">
+                      {mc.hours.toFixed(1)} ชม. ({mc.count} คิว)
+                    </div>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-800/60 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                      style={{ width: `${(mc.hours / maxMcHours) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {mcAnalyticsData.length === 0 && (
+                <div className="text-center py-12 text-slate-400 italic text-xs">ไม่พบข้อมูลการรันคิวของ MC ในระบบ</div>
+              )}
+            </div>
+          </div>
+
+          {/* MC Sessions Log (Right) */}
+          <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+              <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide">สถิติและเซสชันการจัดรายการเชิงลึกของ MC</h3>
+            </div>
+
+            <div className="flex-1 overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-slate-50/30 dark:bg-slate-900/10 border-b border-slate-200 dark:border-slate-800 text-slate-450 uppercase font-black tracking-wider text-[10px]">
+                    <th className="p-3.5">ชื่อ MC</th>
+                    <th className="p-3.5 text-center">ขึ้นไลฟ์สะสม</th>
+                    <th className="p-3.5 text-center">เวลาจัดรายการสะสม</th>
+                    <th className="p-3.5">ช่วงเวลาไลฟ์ยอดนิยมประจำตัว</th>
+                    <th className="p-3.5">แคมเปญล่าสุด</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-350">
+                  {mcAnalyticsData.map(mc => {
+                    const lastBooking = mc.bookings[mc.bookings.length - 1];
+                    
+                    // Simple logic to find peak hour for this specific MC
+                    const hoursCount = Array(24).fill(0);
+                    mc.bookings.forEach(b => {
+                      const hour = Math.floor(parseTimeToMinutes(b.startTime) / 60);
+                      if (hour >= 0 && hour < 24) hoursCount[hour]++;
+                    });
+                    const peakHour = hoursCount.reduce((maxIdx, val, idx, arr) => val > arr[maxIdx] ? idx : maxIdx, 0);
+                    const peakHourVal = hoursCount[peakHour];
+
+                    return (
+                      <tr key={mc.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-805/30 transition-colors">
+                        <td className="p-3.5 font-extrabold text-slate-900 dark:text-white text-xs">{mc.name}</td>
+                        <td className="p-3.5 text-center font-bold text-xs">{mc.count} ครั้ง</td>
+                        <td className="p-3.5 text-center font-extrabold text-xs text-slate-800 dark:text-slate-150">{mc.hours.toFixed(1)} ชม.</td>
+                        <td className="p-3.5">
+                          {peakHourVal > 0 ? (
+                            <span className="text-[10px] font-bold text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 px-2.5 py-0.5 rounded border border-indigo-200">
+                              🕒 {String(peakHour).padStart(2, '0')}:00 น. ({peakHourVal} ไลฟ์)
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic text-[10px]">-</span>
+                          )}
+                        </td>
+                        <td className="p-3.5 max-w-[220px] truncate">
+                          {lastBooking ? (
+                            <div className="flex flex-col">
+                              <span className="font-extrabold truncate text-slate-800 dark:text-slate-200">{lastBooking.brandName}</span>
+                              <span className="text-[9px] text-slate-400 font-semibold truncate">{formatThaiDate(lastBooking.date)} ({lastBooking.startTime}น.)</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic font-normal text-[10px]">ไม่มีงานในระบบ</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 p-6 overflow-y-auto space-y-6 animate-in fade-in duration-200">
