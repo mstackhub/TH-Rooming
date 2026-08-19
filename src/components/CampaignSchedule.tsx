@@ -875,9 +875,9 @@ export default function CampaignSchedule() {
           )}
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-extrabold shadow-md shadow-emerald-500/25 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-extrabold shadow-md shadow-indigo-500/25 flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <UploadCloud className="w-4 h-4" /> นำเข้าข้อมูลจองห้องไลฟ์
+            <FileSpreadsheet className="w-4 h-4" /> นำเข้าคิวจอง Excel
           </button>
           <button
             onClick={handleExportCSV}
