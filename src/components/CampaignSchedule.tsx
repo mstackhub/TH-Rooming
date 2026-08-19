@@ -774,7 +774,7 @@ export default function CampaignSchedule() {
               }}
               className="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-extrabold shadow-md shadow-brand-500/25 flex items-center gap-1.5 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> สร้างแคมเปญใหม่
+              <Plus className="w-4 h-4" /> จองห้องไลฟ์
             </button>
           )}
           <button

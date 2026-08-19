@@ -352,9 +352,8 @@ export async function POST(request: Request) {
         if (isAdmin || tabs.includes('brands')) {
           allBrandsAdmin = await requestSupabase('GET', 'brands?order=name.asc');
         }
-        if (isAdmin || tabs.includes('users')) {
-          allUsersAdmin = await requestSupabase('GET', 'users?select=*,roles(*)&order=email.asc');
-        }
+        // Fetch users list unconditionally for staff dropdown selection in booking modal
+        allUsersAdmin = await requestSupabase('GET', 'users?select=*,roles(*)&order=name.asc');
         if (isAdmin || tabs.includes('roles-mgmt')) {
           roles = await requestSupabase('GET', 'roles?order=role_name.asc');
         }

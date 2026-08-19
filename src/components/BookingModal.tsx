@@ -43,7 +43,8 @@ export default function BookingModal() {
     setSelectedDate,
     setHighlightedBookingId,
     mcList,
-    mcTiers
+    mcTiers,
+    allUsersAdmin
   } = useApp();
 
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,15 @@ export default function BookingModal() {
   const [endTime, setEndTime] = useState('10:00');
   const [brandName, setBrandName] = useState('');
   const [campaignName, setCampaignName] = useState('');
-  const [mcId, setMcId] = useState('');
+  
+  // Support Multi MCs up to 4. We store them as comma-separated IDs in the same mcId DB column.
+  const [selectedMcIds, setSelectedMcIds] = useState<string[]>([]);
+  // Support Multi Staff/Users up to 4. We map them into the briefLink column as comma-separated emails.
+  const [selectedStaffEmails, setSelectedStaffEmails] = useState<string[]>([]);
+
+  // Scale: Full Scale, Medium Scale (Default), Mini Scale
+  const [scale, setScale] = useState<'Full Scale' | 'Medium Scale' | 'Mini Scale'>('Medium Scale');
+
   const [briefText, setBriefText] = useState('');
   const [briefLink, setBriefLink] = useState('');
   const [remark, setRemark] = useState('');
@@ -67,8 +76,6 @@ export default function BookingModal() {
   const [artworkLink, setArtworkLink] = useState('');
   const [lastUpdated, setLastUpdated] = useState('');
   const [lastUpdatedBy, setLastUpdatedBy] = useState('');
-
-
 
   const isOpen = activeBookingIdForEdit !== null || activeBookingCreateData !== null;
   const isEditMode = activeBookingIdForEdit !== null;
@@ -109,7 +116,20 @@ export default function BookingModal() {
         setBriefLink(matchedBooking.briefLink);
         setRemark(matchedBooking.remark);
         setBookingStatus(matchedBooking.status as any);
-        setMcId(matchedBooking.mcId || '');
+
+        // Load multiple MC IDs
+        if (matchedBooking.mcId) {
+          setSelectedMcIds(matchedBooking.mcId.split(',').map(x => x.trim()).filter(Boolean));
+        } else {
+          setSelectedMcIds([]);
+        }
+
+        // Load staff emails from briefLink (which stores them comma separated)
+        if (matchedBooking.briefLink && matchedBooking.briefLink.includes('@')) {
+          setSelectedStaffEmails(matchedBooking.briefLink.split(',').map(x => x.trim()).filter(Boolean));
+        } else {
+          setSelectedStaffEmails([]);
+        }
 
         // Parse readiness statuses from lsArtworkLayout JSON
         let bStatus = 'Not Added';
@@ -117,6 +137,7 @@ export default function BookingModal() {
         let aLink = '';
         let updDate = '';
         let updBy = '';
+        let matchedScale: any = 'Medium Scale';
 
         if (matchedBooking.lsArtworkLayout) {
           try {
@@ -131,6 +152,7 @@ export default function BookingModal() {
               aLink = parsed.artworks?.[0]?.url || '';
               updDate = parsed.lastUpdated || '';
               updBy = parsed.lastUpdatedBy || '';
+              matchedScale = parsed.scale || 'Medium Scale';
             }
           } catch (e) {
             bStatus = matchedBooking.briefLink ? 'Submitted' : 'Not Added';
@@ -146,6 +168,7 @@ export default function BookingModal() {
         setArtworkLink(aLink);
         setLastUpdated(updDate);
         setLastUpdatedBy(updBy);
+        setScale(matchedScale);
       } else if (activeBookingCreateData) {
         // Pre-fill fields from click action
         setRoomName(activeBookingCreateData.roomName || (rooms[0]?.name || ''));
@@ -163,7 +186,9 @@ export default function BookingModal() {
         setArtworkLink('');
         setLastUpdated('');
         setLastUpdatedBy('');
-        setMcId('');
+        setSelectedMcIds([]);
+        setSelectedStaffEmails([]);
+        setScale('Medium Scale');
       }
     }
   }, [isOpen, activeBookingIdForEdit, activeBookingCreateData]);
@@ -270,7 +295,8 @@ export default function BookingModal() {
       briefStatus: briefStatus,
       artworkStatus: artworkStatus,
       lastUpdated: new Date().toISOString(),
-      lastUpdatedBy: currentUser?.name || currentUser?.email || 'System'
+      lastUpdatedBy: currentUser?.name || currentUser?.email || 'System',
+      scale: scale
     });
 
     const bookingPayload = {
@@ -281,11 +307,13 @@ export default function BookingModal() {
       brandName,
       campaignName: campaignName.trim(),
       briefText: briefText.trim(),
-      briefLink: briefLink.trim(),
+      // briefLink maps comma-separated selected user emails
+      briefLink: selectedStaffEmails.join(','),
       lsArtworkLayout: lsArtworkLayoutPayload,
       status: bookingStatus,
       remark: remark.trim(),
-      mcId: mcId || null
+      // mcId maps comma-separated selected MC IDs
+      mcId: selectedMcIds.join(',') || null
     };
 
     if (isEditMode && matchedBooking) {
@@ -342,12 +370,13 @@ export default function BookingModal() {
       brand: brandName,
       campaign: campaignName,
       briefTxt: briefText,
-      briefLnk: briefLink,
       rem: remark,
       bStatus: briefStatus,
       aStatus: artworkStatus,
       aLink: artworkLink,
-      mcId: mcId
+      mcIds: selectedMcIds,
+      staffEmails: selectedStaffEmails,
+      scale: scale
     };
 
     setActiveBookingIdForEdit(null);
@@ -362,12 +391,13 @@ export default function BookingModal() {
       setBrandName(copyData.brand);
       setCampaignName(copyData.campaign ? `${copyData.campaign} (Copy)` : 'Copy');
       setBriefText(copyData.briefTxt);
-      setBriefLink(copyData.briefLnk);
       setRemark(copyData.rem);
       setBriefStatus(copyData.bStatus);
       setArtworkStatus(copyData.aStatus);
       setArtworkLink(copyData.aLink);
-      setMcId(copyData.mcId);
+      setSelectedMcIds(copyData.mcIds);
+      setSelectedStaffEmails(copyData.staffEmails);
+      setScale(copyData.scale);
     }, 50);
 
     showToast("คัดลอกแคมเปญเรียบร้อย กรุณาตรวจสอบวันเวลาและจัดเก็บ", "info");
@@ -390,23 +420,53 @@ export default function BookingModal() {
     
   const canCancel = isEditMode && currentUser?.permissions?.canCancelBooking && (isAdmin || isOwner);
 
+  // Toggle MC Selection (Max 4)
+  const handleToggleMc = (mcIdVal: string) => {
+    if (!canSave) return;
+    setSelectedMcIds(prev => {
+      if (prev.includes(mcIdVal)) {
+        return prev.filter(id => id !== mcIdVal);
+      }
+      if (prev.length >= 4) {
+        showToast("สามารถเลือก MC ได้สูงสุด 4 คนเท่านั้น", "warning");
+        return prev;
+      }
+      return [...prev, mcIdVal];
+    });
+  };
+
+  // Toggle Staff Selection (Max 4)
+  const handleToggleStaff = (email: string) => {
+    if (!canSave) return;
+    setSelectedStaffEmails(prev => {
+      if (prev.includes(email)) {
+        return prev.filter(e => e !== email);
+      }
+      if (prev.length >= 4) {
+        showToast("สามารถเลือกผู้ดูแลระบบห้องไลฟ์ได้สูงสุด 4 คนเท่านั้น", "warning");
+        return prev;
+      }
+      return [...prev, email];
+    });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
       {/* Black backdrop */}
       <div 
         onClick={handleClose}
         className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm animate-fade-in"
       />
 
-      {/* Slide Drawer Panel */}
+      {/* Centered Modal Panel */}
       <div 
         id="booking-modal-panel"
-        className={`relative w-full max-w-lg h-full glass-modal bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-2xl z-10 transition-transform duration-300 transform translate-x-0 ${
+        className={`relative w-full max-w-lg md:max-w-xl max-h-[90vh] glass-modal bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col rounded-3xl shadow-2xl z-10 animate-in zoom-in duration-200 ${
           isShake ? 'animate-shake' : ''
         }`}
       >
         {/* Modal Header */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 flex items-center justify-between shrink-0">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between shrink-0">
           <div className="flex flex-col">
             <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-brand-500" />
@@ -420,7 +480,7 @@ export default function BookingModal() {
           </div>
           <button 
             onClick={handleClose}
-            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer text-slate-400 hover:text-slate-600"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer text-slate-450"
           >
             <X className="w-4 h-4" />
           </button>
@@ -440,20 +500,18 @@ export default function BookingModal() {
             </div>
           )}
 
-
-
           {/* Form Fields controls */}
           <form onSubmit={handleSaveBooking} className="space-y-4">
             
             <div className="grid grid-cols-2 gap-4">
               {/* Studio Room selector */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ห้องสตูดิโอ (Live Studio Room)</label>
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ห้องสตูดิโอ (Live Studio Room)</label>
                 <select
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   disabled={!canSave}
-                  className="w-full text-xs font-semibold"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {rooms.filter(r => r.status === 'Active' || r.name === roomName).map(r => (
                     <option key={r.id} value={r.name}>{r.name}{r.status === 'Inactive' ? ' (ปิดใช้งาน)' : ''}</option>
@@ -463,13 +521,13 @@ export default function BookingModal() {
 
               {/* Date Picker */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">วันที่จองห้องไลฟ์สด (Live Date)</label>
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">วันที่จองห้องไลฟ์สด (Live Date)</label>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   disabled={!canSave}
-                  className="w-full text-xs font-semibold"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                   required
                 />
               </div>
@@ -478,24 +536,21 @@ export default function BookingModal() {
             <div className="grid grid-cols-2 gap-4">
               {/* Start Time selector */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เวลาเริ่มไลฟ์สด (Start Time)</label>
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">เวลาเริ่มไลฟ์สด (Start Time)</label>
                 <select
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   disabled={!canSave}
-                  className="w-full text-xs font-semibold"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {hourOptions.map(slot => {
                     const slotMins = parseTimeToMinutes(slot);
-                    // Check if slot falls within any booking time range for the selected date & room
                     const isOccupied = calendarBookings.some(b => {
                       if (b.status === 'Cancelled') return false;
                       if (isEditMode && matchedBooking && b.id === matchedBooking.id) return false;
                       if (b.date !== date || b.roomName !== roomName) return false;
-                      
                       const start = parseTimeToMinutes(b.startTime);
                       const end = parseTimeToMinutes(b.endTime);
-                      // If slot is inside start <= slot < end, it is occupied
                       return slotMins >= start && slotMins < end;
                     });
                     
@@ -510,24 +565,21 @@ export default function BookingModal() {
 
               {/* End Time selector */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เวลาจบการไลฟ์ (End Time)</label>
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">เวลาจบการไลฟ์ (End Time)</label>
                 <select
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   disabled={!canSave}
-                  className="w-full text-xs font-semibold"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {hourOptions.map(slot => {
                     const slotMins = parseTimeToMinutes(slot);
-                    // Check if slot falls within any booking time range for the selected date & room
                     const isOccupied = calendarBookings.some(b => {
                       if (b.status === 'Cancelled') return false;
                       if (isEditMode && matchedBooking && b.id === matchedBooking.id) return false;
                       if (b.date !== date || b.roomName !== roomName) return false;
-                      
                       const start = parseTimeToMinutes(b.startTime);
                       const end = parseTimeToMinutes(b.endTime);
-                      // If slot is inside start < slot <= end, it is occupied
                       return slotMins > start && slotMins <= end;
                     });
 
@@ -542,69 +594,130 @@ export default function BookingModal() {
             </div>
 
             {/* Brand Customer selector */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">แบรนด์สินค้า (Brand Partner)</label>
-              <select
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-                disabled={!canSave}
-                className="w-full text-xs font-semibold"
-              >
-                {brands.filter(b => b.status === 'Active' || b.name === brandName).map(b => (
-                  <option key={b.id} value={b.name}>{b.name}{b.status === 'Inactive' ? ' (ปิดใช้งาน)' : ''}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">แบรนด์สินค้า (Brand Partner)</label>
+                <select
+                  value={brandName}
+                  onChange={(e) => setBrandName(e.target.value)}
+                  disabled={!canSave}
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                >
+                  {brands.filter(b => b.status === 'Active' || b.name === brandName).map(b => (
+                    <option key={b.id} value={b.name}>{b.name}{b.status === 'Inactive' ? ' (ปิดใช้งาน)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Scale Selector */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ขนาดของไลฟ์สด (Live Scale)</label>
+                <select
+                  value={scale}
+                  onChange={(e) => setScale(e.target.value as any)}
+                  disabled={!canSave}
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                >
+                  <option value="Medium Scale">Medium Scale (Default)</option>
+                  <option value="Full Scale">Full Scale</option>
+                  <option value="Mini Scale">Mini Scale</option>
+                </select>
+              </div>
             </div>
 
-            {/* MC Live selector */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เลือก MC ไลฟ์สด (MC Live)</label>
-              <select
-                value={mcId}
-                onChange={(e) => setMcId(e.target.value)}
-                disabled={!canSave}
-                className="w-full text-xs font-semibold"
-              >
-                <option value="">-- ไม่เลือก / ไม่ระบุ (No MC selected) --</option>
-                {mcTiers.map(tier => {
-                  const mcsInTier = mcList.filter(mc => mc.tierId === tier.id && (mc.status === 'Active' || mc.id === mcId));
-                  if (mcsInTier.length === 0) return null;
-                  return (
-                    <optgroup key={tier.id} label={tier.name}>
-                      {mcsInTier.map(mc => (
-                        <option key={mc.id} value={mc.id}>
-                          {mc.name}{mc.status === 'Inactive' ? ' (ปิดการใช้งาน)' : ''}
-                        </option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
-              </select>
+            {/* Multi MC Live selector (Max 4) */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">
+                เลือก MC ไลฟ์สด (MC Live) <span className="text-slate-400 font-bold">(เลือกได้สูงสุด 4 คน)</span>
+              </label>
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-950/30 flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto">
+                {mcList.length === 0 ? (
+                  <span className="text-slate-400 font-semibold text-[10px]">ไม่มีข้อมูลผู้ดำเนินรายการ (MC) ในระบบ</span>
+                ) : (
+                  mcList.filter(mc => mc.status === 'Active' || selectedMcIds.includes(mc.id)).map(mc => {
+                    const isSelected = selectedMcIds.includes(mc.id);
+                    const tier = mcTiers.find(t => t.id === mc.tierId);
+                    return (
+                      <button
+                        type="button"
+                        key={mc.id}
+                        onClick={() => handleToggleMc(mc.id)}
+                        disabled={!canSave}
+                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
+                          isSelected
+                            ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-350'
+                        }`}
+                      >
+                        <span>{mc.name}</span>
+                        {tier && (
+                          <span className={`text-[8px] font-black uppercase px-1 rounded ${
+                            isSelected ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                          }`}>
+                            {tier.name.replace('Tier ', '')}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Staff / System Support selector (Max 4) */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">
+                เลือกผู้ดูแลห้องไลฟ์ (Live Support Staff) <span className="text-slate-400 font-bold">(เลือกได้สูงสุด 4 คน)</span>
+              </label>
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-950/30 flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto">
+                {(allUsersAdmin || []).length === 0 ? (
+                  <span className="text-slate-400 font-semibold text-[10px]">ไม่มีข้อมูลผู้ใช้งานระบบ</span>
+                ) : (
+                  (allUsersAdmin || []).filter(u => u.status === 'Active' || selectedStaffEmails.includes(u.email)).map(u => {
+                    const isSelected = selectedStaffEmails.includes(u.email);
+                    return (
+                      <button
+                        type="button"
+                        key={u.email}
+                        onClick={() => handleToggleStaff(u.email)}
+                        disabled={!canSave}
+                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
+                          isSelected
+                            ? 'bg-indigo-500 border-indigo-500 text-white shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-350'
+                        }`}
+                      >
+                        <span>{u.name || u.email.split('@')[0]}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             {/* Campaign Name input */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ชื่อแคมเปญ / หัวข้อไลฟ์ (Campaign Name)</label>
+              <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ชื่อแคมเปญ / หัวข้อไลฟ์ (Campaign Name)</label>
               <input
                 type="text"
                 placeholder="เช่น 7.7 Mid Year Sale, Live เปิดตัวสินค้า"
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
                 disabled={!canSave}
-                className="w-full text-xs font-semibold"
+                className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
               />
             </div>
 
             {/* Brief Label */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">รายละเอียด</label>
+              <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">รายละเอียด</label>
               <input
                 type="text"
                 placeholder="เช่น สเปคสินค้า, รายละเอียดไลฟ์"
                 value={briefText}
                 onChange={(e) => setBriefText(e.target.value)}
                 disabled={!canSave}
-                className="w-full text-xs font-semibold"
+                className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
               />
             </div>
 
@@ -618,7 +731,7 @@ export default function BookingModal() {
               {/* Artwork Link Input */}
               <div className="flex flex-col gap-1">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ลิงค์ส่งงานอาร์ตเวิร์ก (Artwork URL Link)</label>
+                  <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ลิงค์ส่งงานอาร์ตเวิร์ก (Artwork URL Link)</label>
                   {artworkLink && (
                     <a
                       href={artworkLink}
@@ -636,13 +749,13 @@ export default function BookingModal() {
                   value={artworkLink}
                   onChange={(e) => setArtworkLink(e.target.value)}
                   disabled={!canSave}
-                  className="w-full text-xs font-semibold"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 />
               </div>
 
               {/* Last updated timestamp */}
               {isEditMode && lastUpdated && (
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold italic flex items-center gap-1 select-none">
+                <div className="text-[10px] text-slate-450 dark:text-slate-500 font-semibold italic flex items-center gap-1 select-none">
                   <span>แก้ไขล่าสุดเมื่อ: {new Date(lastUpdated).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</span>
                   {lastUpdatedBy && <span>โดย {lastUpdatedBy}</span>}
                 </div>
@@ -651,13 +764,13 @@ export default function BookingModal() {
 
             {/* Remarks input */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">หมายเหตุคำขออื่นๆ (Remarks)</label>
+              <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">หมายเหตุคำขออื่นๆ (Remarks)</label>
               <textarea
                 placeholder="เช่น ต้องการกล้องสเปคพิเศษ หรือขอแอดมินสนับสนุนเพิ่มเติม"
                 value={remark}
                 onChange={(e) => setRemark(e.target.value)}
                 disabled={!canSave}
-                className="w-full text-xs"
+                className="w-full text-xs rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 min-h-[70px]"
               />
             </div>
 
@@ -680,7 +793,7 @@ export default function BookingModal() {
                   <button
                     type="button"
                     onClick={handleGoToScheduler}
-                    className="py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40 rounded-xl text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                    className="py-2.5 bg-indigo-55/60 hover:bg-indigo-100/80 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40 rounded-xl text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
                   >
                     <Calendar className="w-3.5 h-3.5" /> ดูใน Scheduler
                   </button>
@@ -708,7 +821,6 @@ export default function BookingModal() {
                 </button>
               )}
             </div>
-
           </form>
         </div>
       </div>
