@@ -516,10 +516,14 @@ export async function POST(request: Request) {
 
           // Generate unique sequence to avoid ID collisions on the same date/room/brand
           const prefixPattern = `${formattedDate}${brandAbbr}${platformAbbr}${roomNum}`;
-          const existingSamePrefix = await requestSupabase('GET', `bookings?id=like.${prefixPattern}*`);
+          
+          // Since the Supabase table definition might enforce uuid type (or text depending on schema), 
+          // we fetch bookings of that date and filter them in JavaScript to find collisions instead of using like query which causes casting error.
+          const existingOnDate = await requestSupabase('GET', `bookings?date=eq.${dbPayload.date}`);
           let seq = 1;
-          if (Array.isArray(existingSamePrefix) && existingSamePrefix.length > 0) {
-            seq = existingSamePrefix.length + 1;
+          if (Array.isArray(existingOnDate)) {
+            const matches = existingOnDate.filter((b: any) => String(b.id || '').startsWith(prefixPattern));
+            seq = matches.length + 1;
           }
           const customId = `${prefixPattern}${String(seq).padStart(3, '0')}`;
           
