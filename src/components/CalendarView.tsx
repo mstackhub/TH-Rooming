@@ -32,7 +32,9 @@ export default function CalendarView() {
     setActiveBookingIdForEdit,
     setActiveBookingCreateData,
     setIsImportModalOpen,
-    currentUser
+    currentUser,
+    mcList,
+    allUsersAdmin
   } = useApp();
 
   // Calendar View mode states
@@ -684,13 +686,33 @@ export default function CalendarView() {
                 const isLiveNow = b.status !== 'Cancelled' && b.date === todayStr && currentTotalMins >= startMins && currentTotalMins < endMins;
 
                 let matchedImportant = false;
+                let matchedScale = 'Medium Scale';
+                let matchedChannel = '';
                 if (b.lsArtworkLayout) {
                   try {
                     const parsed = JSON.parse(b.lsArtworkLayout);
                     if (parsed && typeof parsed === 'object') {
                       matchedImportant = !!parsed.isImportant;
+                      matchedScale = parsed.scale || 'Medium Scale';
+                      matchedChannel = parsed.liveChannel === 'Other' ? (parsed.customLiveChannel || '') : (parsed.liveChannel || '');
                     }
                   } catch(e){}
+                }
+
+                // Match MC names (comma separated)
+                let mcNamesStr = '';
+                if (b.mcId) {
+                  const ids = b.mcId.split(',').map(x => x.trim()).filter(Boolean);
+                  const names = ids.map(id => mcList.find(mc => mc.id === id)?.name).filter(Boolean);
+                  mcNamesStr = names.join(', ');
+                }
+
+                // Match Staff names (comma separated)
+                let staffNamesStr = '';
+                if (b.briefLink && b.briefLink.includes('@')) {
+                  const emails = b.briefLink.split(',').map(x => x.trim()).filter(Boolean);
+                  const names = emails.map(email => allUsersAdmin.find(u => u.email.toLowerCase() === email.toLowerCase())?.name).filter(Boolean);
+                  staffNamesStr = names.join(', ');
                 }
 
                 let statusColor = 'border-l-4 border-blue-500 bg-blue-50/20 text-blue-900 dark:text-blue-300';
@@ -702,11 +724,11 @@ export default function CalendarView() {
                   <div
                     key={b.id}
                     onClick={() => setActiveBookingIdForEdit(b.id)}
-                    className={`p-3 rounded-xl border hover:shadow-md cursor-pointer transition-all flex flex-col justify-between ${statusColor} ${
+                    className={`p-4.5 rounded-xl border hover:shadow-md cursor-pointer transition-all flex flex-col gap-2 ${statusColor} ${
                       matchedImportant ? 'ring-1 ring-amber-400/60 border-amber-400 bg-amber-50/10' : 'border-slate-200'
                     }`}
                   >
-                    <div className="flex justify-between items-start gap-2">
+                    <div className="flex justify-between items-start gap-2 border-b border-slate-200/50 dark:border-slate-800/40 pb-1.5">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {matchedImportant && <span className="text-amber-550 dark:text-amber-400 text-xs shrink-0 animate-bounce">⭐</span>}
                         <span className="font-bold text-xs truncate">{b.brandName}</span>
@@ -718,8 +740,23 @@ export default function CalendarView() {
                       </div>
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-950/40 shrink-0">{b.startTime} - {b.endTime} น.</span>
                     </div>
-                    <span className="text-[10px] text-slate-450 dark:text-slate-400 mt-1.5 truncate font-semibold">ห้อง: {b.roomName}</span>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{b.campaignName}</span>
+
+                    <div className="flex flex-col gap-1 text-[10px] leading-relaxed text-slate-600 dark:text-slate-350">
+                      <div className="font-semibold text-slate-800 dark:text-slate-100 text-xs truncate mb-0.5">{b.campaignName}</div>
+                      <div className="truncate"><span className="text-slate-400 font-semibold">ห้อง:</span> {b.roomName}</div>
+                      
+                      {/* Added requested fields */}
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        <div><span className="text-slate-400 font-semibold">ขนาด:</span> {matchedScale}</div>
+                        {matchedChannel && <div><span className="text-slate-400 font-semibold">ช่องทาง:</span> {matchedChannel}</div>}
+                      </div>
+                      {mcNamesStr && (
+                        <div className="truncate"><span className="text-slate-400 font-semibold">MC:</span> {mcNamesStr}</div>
+                      )}
+                      {staffNamesStr && (
+                        <div className="truncate"><span className="text-slate-400 font-semibold">ผู้ดูแล:</span> {staffNamesStr}</div>
+                      )}
+                    </div>
                   </div>
                 );
               })
