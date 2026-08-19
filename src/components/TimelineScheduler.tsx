@@ -486,7 +486,7 @@ export default function TimelineScheduler() {
             type="date" 
             value={selectedDate} 
             onChange={(e) => setSelectedDate(e.target.value)} 
-            className="text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-900 shadow-sm focus:ring-2 focus:ring-brand-500 w-[130px]"
+            className="text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg pl-3 pr-2 h-[34px] bg-white dark:bg-slate-900 shadow-sm focus:ring-2 focus:ring-brand-500 w-[145px]"
           />
 
           {/* Action buttons */}
