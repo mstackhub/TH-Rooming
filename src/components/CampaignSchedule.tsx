@@ -888,10 +888,10 @@ export default function CampaignSchedule() {
       </div>
 
       {/* 3. Section 2: Action Required Detail Quick Filters */}
-      <div className="bg-amber-50/15 dark:bg-amber-950/5 border border-amber-200/50 dark:border-amber-900/15 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
         <div className="shrink-0">
-          <h3 className="text-xs font-bold text-amber-800 dark:text-amber-455 uppercase tracking-wide flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 text-brand-500" />
             สิ่งที่ค้างดำเนินการ (Pending Action Items)
           </h3>
           <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-1">คลิกการ์ดด่วนเพื่อกรองรายชื่อที่มีปัญหาด้านเอกสารหรืองานกราฟิกที่ต้องรีบเคลียร์</p>
@@ -906,12 +906,12 @@ export default function CampaignSchedule() {
             }}
             className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'missing_brief'
-                ? 'bg-amber-100/50 dark:bg-amber-950/30 border-amber-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                ? 'bg-brand-50 dark:bg-brand-950/20 border-brand-400 font-bold'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350'
             }`}
           >
-            <div className="text-[9px] text-slate-455 dark:text-slate-400 uppercase tracking-wide font-extrabold">ขาดข้อมูลบรีฟ</div>
-            <div className="text-sm font-black text-amber-600 dark:text-amber-400 mt-0.5">{actionRequiredCounts.missingBrief} แคมเปญ</div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-extrabold">ขาดข้อมูลบรีฟ</div>
+            <div className="text-sm font-black text-brand-650 dark:text-brand-400 mt-0.5">{actionRequiredCounts.missingBrief} แคมเปญ</div>
           </div>
 
           {/* Box: Missing Artwork */}
@@ -922,12 +922,12 @@ export default function CampaignSchedule() {
             }}
             className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'missing_artwork'
-                ? 'bg-amber-100/50 dark:bg-amber-950/30 border-amber-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                ? 'bg-brand-50 dark:bg-brand-950/20 border-brand-400 font-bold'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350'
             }`}
           >
-            <div className="text-[9px] text-slate-455 dark:text-slate-400 uppercase tracking-wide font-extrabold">ขาด Artwork</div>
-            <div className="text-sm font-black text-amber-600 dark:text-amber-400 mt-0.5">{actionRequiredCounts.missingArtwork} แคมเปญ</div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-extrabold">ขาด Artwork</div>
+            <div className="text-sm font-black text-brand-650 dark:text-brand-400 mt-0.5">{actionRequiredCounts.missingArtwork} แคมเปญ</div>
           </div>
 
           {/* Box: Starting Soon */}
@@ -938,12 +938,12 @@ export default function CampaignSchedule() {
             }}
             className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'starting_soon'
-                ? 'bg-amber-100/50 dark:bg-amber-950/30 border-amber-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                ? 'bg-orange-50/80 dark:bg-orange-950/20 border-orange-400 font-bold'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350'
             }`}
           >
-            <div className="text-[9px] text-slate-455 dark:text-slate-400 uppercase tracking-wide font-extrabold">ไลฟ์ภายใน 24 ชม.</div>
-            <div className="text-sm font-black text-amber-600 dark:text-amber-400 mt-0.5">{actionRequiredCounts.startingSoon} คิวงาน</div>
+            <div className="text-[9px] text-orange-600 dark:text-orange-400 uppercase tracking-wide font-extrabold">ไลฟ์ภายใน 24 ชม.</div>
+            <div className="text-sm font-black text-orange-600 dark:text-orange-400 mt-0.5">{actionRequiredCounts.startingSoon} คิวงาน</div>
           </div>
         </div>
       </div>
