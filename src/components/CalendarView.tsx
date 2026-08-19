@@ -711,7 +711,10 @@ export default function CalendarView() {
                 let staffNamesStr = '';
                 if (b.briefLink && b.briefLink.includes('@')) {
                   const emails = b.briefLink.split(',').map(x => x.trim()).filter(Boolean);
-                  const names = emails.map(email => allUsersAdmin.find(u => u.email.toLowerCase() === email.toLowerCase())?.name).filter(Boolean);
+                  const names = emails.map(email => {
+                    const matchedUser = allUsersAdmin.find(u => u.email.toLowerCase() === email.toLowerCase());
+                    return matchedUser?.name || email.split('@')[0];
+                  }).filter(Boolean);
                   staffNamesStr = names.join(', ');
                 }
 
