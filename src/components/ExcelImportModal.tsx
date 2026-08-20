@@ -27,6 +27,7 @@ interface ParsedRow {
   remark: string;
   mcName?: string;
   mcId?: string | null;
+  isUpdateAction?: boolean;
   success: boolean;
   reason: string;
 }
@@ -203,6 +204,7 @@ export default function ExcelImportModal() {
       }
 
       // 2. Conflict database bookings (Allow exact key match for overwrites/updates)
+      let isUpdateAction = false;
       if (success) {
         const conflict = calendarBookings.find(b => {
           if (b.status === 'Cancelled') return false;
@@ -213,6 +215,7 @@ export default function ExcelImportModal() {
           
           // If it matches date, room, and exact start/end time, it is an update/overwrite - ALLOW IT
           if (bStart === startMins && bEnd === endMins) {
+            isUpdateAction = true;
             return false;
           }
           
@@ -253,6 +256,7 @@ export default function ExcelImportModal() {
         remark: remarkVal,
         mcName: mcVal,
         mcId: resolvedMcId || null,
+        isUpdateAction, // Store the flag
         success,
         reason
       });
@@ -472,11 +476,17 @@ export default function ExcelImportModal() {
                         </td>
                         <td className="p-2.5">
                           {row.success ? (
-                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-450 font-bold">
-                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> พร้อมจอง
-                            </span>
+                            row.isUpdateAction ? (
+                              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-450 font-bold bg-amber-500/10 px-2 py-1 rounded-lg">
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> อัปเดตข้อมูล (ทับคิวเดิม)
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-450 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> พร้อมจอง (คิวใหม่)
+                              </span>
+                            )
                           ) : (
-                            <span className="flex items-center gap-1 text-rose-500 dark:text-rose-450 font-bold">
+                            <span className="flex items-center gap-1 text-rose-500 dark:text-rose-450 font-bold bg-rose-500/10 px-2 py-1 rounded-lg">
                               <XCircle className="w-3.5 h-3.5 shrink-0" /> {row.reason}
                             </span>
                           )}
