@@ -594,13 +594,26 @@ export async function POST(request: Request) {
           const dbObj = mapBookingToDb(item);
           if (!dbObj) continue;
 
-          // Check if slot with exact date, room, and start/end time already exists
-          const existingSlot = await requestSupabase('GET', `bookings?room_name=eq.${encodeURIComponent(dbObj.room_name)}&date=eq.${dbObj.date}&start_time=eq.${dbObj.start_time}&end_time=eq.${dbObj.end_time}`);
+          // Check if slot with ID or exact date, room, and start/end time already exists
+          let existingSlot: any[] | null = null;
+          if (item.id) {
+            const byId = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(item.id)}`);
+            if (byId && byId.length > 0) {
+              existingSlot = byId;
+            }
+          }
+          if (!existingSlot || existingSlot.length === 0) {
+            existingSlot = await requestSupabase('GET', `bookings?room_name=eq.${encodeURIComponent(dbObj.room_name)}&date=eq.${dbObj.date}&start_time=eq.${dbObj.start_time}&end_time=eq.${dbObj.end_time}`);
+          }
           
           if (existingSlot && existingSlot.length > 0) {
             // Keep original owner if it's an update
             dbObj.owner_email = existingSlot[0].owner_email;
             dbObj.owner_name = existingSlot[0].owner_name;
+            // Preserve ls_artwork_layout metadata if existing had it and incoming is empty
+            if (existingSlot[0].ls_artwork_layout && !dbObj.ls_artwork_layout) {
+              dbObj.ls_artwork_layout = existingSlot[0].ls_artwork_layout;
+            }
             // UPDATE EXISTING SLOT
             await requestSupabase('PATCH', `bookings?id=eq.${existingSlot[0].id}`, dbObj);
           } else {

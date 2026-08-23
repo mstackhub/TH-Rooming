@@ -17,6 +17,7 @@ import {
 
 interface ParsedRow {
   index: number;
+  bookingId?: string;
   date: string;
   roomName: string;
   startTime: string;
@@ -127,6 +128,7 @@ export default function ExcelImportModal() {
     const headers = rawRows[0].map(h => h.trim().toLowerCase());
     
     // Column indices matching
+    const idxId = headers.findIndex(h => h.includes('id') || h.includes('ไอดี') || h.includes('รหัส'));
     const idxDate = headers.findIndex(h => h.includes('วัน') || h.includes('date'));
     const idxRoom = headers.findIndex(h => h.includes('ห้อง') || h.includes('room'));
     const idxStart = headers.findIndex(h => h.includes('เริ่ม') || h.includes('start'));
@@ -154,6 +156,7 @@ export default function ExcelImportModal() {
         continue;
       }
 
+      const idVal = idxId !== -1 && cells[idxId] ? cells[idxId].trim() : '';
       const dateVal = cells[idxDate].trim();
       const roomVal = cells[idxRoom].trim();
       const startVal = cells[idxStart].trim();
@@ -246,6 +249,7 @@ export default function ExcelImportModal() {
 
       rows.push({
         index: i,
+        bookingId: idVal || undefined,
         date: dateVal,
         roomName: roomVal,
         startTime: startVal,
@@ -325,6 +329,7 @@ export default function ExcelImportModal() {
     setLoading(true);
 
     const bookingsList = validList.map(r => ({
+      id: r.bookingId || undefined,
       roomName: r.roomName,
       date: r.date,
       startTime: r.startTime,
@@ -350,8 +355,8 @@ export default function ExcelImportModal() {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = "Date,Room,Start Time,End Time,Brand,Campaign,Brief Tag,Brief Link,Remark,MC Name\n";
-    const example = `${new Date().toISOString().split('T')[0]},Room 01,09:00,10:00,Bau,7.7 Mid Year Sale,สเปคสินค้า,https://canva.com,จองผ่านเทมเพลต Excel,แอน,มีน\n`;
+    const headers = "Booking ID,Date,Room,Start Time,End Time,Brand,Campaign,Brief Tag,Brief Link,Remark,MC Name\n";
+    const example = `TH-001,${new Date().toISOString().split('T')[0]},Room 01,09:00,10:00,Bau,7.7 Mid Year Sale,สเปคสินค้า,https://canva.com,จองผ่านเทมเพลต Excel,แอน,มีน\n`;
     
     // Attach BOM for Excel UTF-8 display compatibility
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), headers + example], { type: 'text/csv;charset=utf-8;' });

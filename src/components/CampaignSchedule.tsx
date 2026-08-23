@@ -197,6 +197,7 @@ export default function CampaignSchedule() {
     let artworks = [] as any[];
     let lastUpdated = b.createdAt || '';
     let lastUpdatedBy = b.ownerName || '';
+    let customId = '';
 
     if (b.lsArtworkLayout) {
       try {
@@ -213,6 +214,7 @@ export default function CampaignSchedule() {
           artworkLink = artworks[0]?.url || '';
           lastUpdated = parsed.lastUpdated || lastUpdated;
           lastUpdatedBy = parsed.lastUpdatedBy || lastUpdatedBy;
+          customId = parsed.customId || '';
         }
       } catch (e) {
         briefStatus = b.briefLink ? 'Submitted' : 'Not Added';
@@ -239,7 +241,8 @@ export default function CampaignSchedule() {
       artworkLink,
       artworks,
       lastUpdated,
-      lastUpdatedBy
+      lastUpdatedBy,
+      customId: customId || b.id || ''
     };
   };
 
@@ -787,13 +790,13 @@ export default function CampaignSchedule() {
     const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     let csvContent = "\uFEFF"; // UTF-8 BOM
-    csvContent += "Live Date,Day,Start Time,End Time,Room,Brand,Campaign Name,MC Name,Owner,Artwork Link,Booking Status,Last Updated\n";
+    csvContent += "Booking ID,Live Date,Day,Start Time,End Time,Room,Brand,Campaign Name,MC Name,Owner,Artwork Link,Booking Status,Last Updated\n";
 
     sortedBookings.forEach(b => {
       const meta = parseArtworkMetadata(b);
       
       const escape = (val: string) => {
-        const cleaned = val.replace(/"/g, '""');
+        const cleaned = (val || '').replace(/"/g, '""');
         return cleaned.includes(',') || cleaned.includes('\n') || cleaned.includes('"') ? `"${cleaned}"` : cleaned;
       };
 
@@ -814,7 +817,10 @@ export default function CampaignSchedule() {
         return names.join(', ');
       })();
 
+      const bookingId = meta.customId || b.id || '';
+
       const columns = [
+        bookingId,
         b.date,
         dayOfWeek,
         b.startTime,
