@@ -794,7 +794,7 @@ export default function Home() {
                             id="lockdown-system-checkbox"
                             checked={systemLocked}
                             onChange={(e) => toggleSystemLockdown(e.target.checked)}
-                            className="w-5 h-5 text-rose-600 rounded border-slate-350 dark:border-slate-800 cursor-pointer"
+                            className="w-5 h-5 text-rose-600 rounded border-slate-300 dark:border-slate-800 cursor-pointer"
                           />
                           <label htmlFor="lockdown-system-checkbox" className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
                             เปิดใช้งานการปิดปรับปรุงระบบชั่วคราว (มีหน้าจอถามซ้ำก่อนปิด)
@@ -812,7 +812,7 @@ export default function Home() {
                             id="scheduled-lock-enabled-check"
                             checked={scheduledLockEnabled}
                             onChange={(e) => setScheduledLockEnabled(e.target.checked)}
-                            className="w-4.5 h-4.5 text-brand-605 rounded border-slate-350 dark:border-slate-800 cursor-pointer"
+                            className="w-4.5 h-4.5 text-brand-605 rounded border-slate-300 dark:border-slate-800 cursor-pointer"
                           />
                           <label htmlFor="scheduled-lock-enabled-check" className="font-bold text-slate-700 dark:text-slate-350 select-none cursor-pointer">
                             เปิดใช้งานตัวกำหนดเวลาปิดระบบล่วงหน้า

@@ -300,14 +300,14 @@ export default function MyBookings() {
         </div>
 
         {/* Dynamic Date Filter row */}
-        <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-slate-150 dark:border-slate-800">
+        <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2 select-none cursor-pointer">
             <input
               type="checkbox"
               id="all-dates-mybookings-check"
               checked={allDates}
               onChange={(e) => setAllDates(e.target.checked)}
-              className="w-4 h-4 text-brand-600 rounded border-slate-350 dark:border-slate-800"
+              className="w-4 h-4 text-brand-600 rounded border-slate-300 dark:border-slate-800"
             />
             <label htmlFor="all-dates-mybookings-check" className="font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
               ดึงประวัติทุกวันที่ (All Dates History)

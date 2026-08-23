@@ -630,7 +630,7 @@ export default function ExcelImportModal() {
             className={`border-2 border-dashed rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2 cursor-pointer transition-all select-none ${
               dragActive 
                 ? 'border-brand-500 bg-brand-50/20 dark:bg-brand-950/10' 
-                : 'border-slate-200 dark:border-slate-850 hover:border-slate-350 dark:hover:border-slate-800 bg-slate-50/20'
+                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/20'
             }`}
           >
             <input

@@ -907,7 +907,7 @@ export default function CampaignSchedule() {
           className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 ${
             kpiFilter === 'all' && actionFilter === 'none'
               ? 'bg-slate-50 dark:bg-slate-800/40 border-brand-500 dark:border-brand-400 ring-2 ring-brand-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
           }`}
         >
           <span className="text-[10px] text-slate-450 dark:text-slate-400 font-extrabold uppercase tracking-wider">แคมเปญทั้งหมด (Total)</span>
@@ -926,7 +926,7 @@ export default function CampaignSchedule() {
           className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 ${
             kpiFilter === 'upcoming'
               ? 'bg-blue-50/40 dark:bg-blue-950/10 border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
           }`}
         >
           <span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold uppercase tracking-wider">เตรียมเริ่มไลฟ์ (Upcoming)</span>
@@ -945,7 +945,7 @@ export default function CampaignSchedule() {
           className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 ${
             kpiFilter === 'live'
               ? 'bg-rose-50/40 dark:bg-rose-950/10 border-rose-500 dark:border-rose-400 ring-2 ring-rose-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
           }`}
         >
           <span className="text-[10px] text-rose-600 dark:text-rose-400 font-extrabold uppercase tracking-wider">กำลังไลฟ์ตอนนี้ (Live Now)</span>
@@ -967,7 +967,7 @@ export default function CampaignSchedule() {
           className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 ${
             kpiFilter === 'completed'
               ? 'bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
           }`}
         >
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider">เสร็จสิ้นแล้ว (Completed)</span>
@@ -986,7 +986,7 @@ export default function CampaignSchedule() {
           className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 col-span-2 lg:col-span-1 ${
             kpiFilter === 'action_required'
               ? 'bg-amber-50/40 dark:bg-amber-950/10 border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
           }`}
         >
           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider">ต้องดำเนินการอีก (Action Required)</span>
@@ -1017,7 +1017,7 @@ export default function CampaignSchedule() {
             className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'missing_brief'
                 ? 'bg-brand-50 dark:bg-brand-950/20 border-brand-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200'
             }`}
           >
             <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-extrabold">ขาดข้อมูลบรีฟ</div>
@@ -1033,7 +1033,7 @@ export default function CampaignSchedule() {
             className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'missing_artwork'
                 ? 'bg-brand-50 dark:bg-brand-950/20 border-brand-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200'
             }`}
           >
             <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-extrabold">ขาด Artwork</div>
@@ -1049,7 +1049,7 @@ export default function CampaignSchedule() {
             className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'starting_soon'
                 ? 'bg-orange-50/80 dark:bg-orange-950/20 border-orange-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-350'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200'
             }`}
           >
             <div className="text-[9px] text-orange-600 dark:text-orange-400 uppercase tracking-wide font-extrabold">ไลฟ์ภายใน 24 ชม.</div>
@@ -1835,7 +1835,7 @@ export default function CampaignSchedule() {
                 id="all-dates-scheduler-check"
                 checked={allDates}
                 onChange={(e) => setAllDates(e.target.checked)}
-                className="w-4 h-4 text-brand-600 rounded border-slate-350 dark:border-slate-800"
+                className="w-4 h-4 text-brand-600 rounded border-slate-200 dark:border-slate-800"
               />
               <label htmlFor="all-dates-scheduler-check" className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
                 ดึงประวัติทุกวันที่ (All Dates History)

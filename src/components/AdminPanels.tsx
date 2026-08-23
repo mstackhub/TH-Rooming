@@ -931,10 +931,10 @@ export default function AdminPanels() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
                           <th className="px-4 py-3.5">ชื่อสตูดิโอ</th>
                           <th className="px-4 py-3.5">คำอธิบายรายละเอียด</th>
                           <th className="px-4 py-3.5">สถานะ</th>
@@ -1113,10 +1113,10 @@ export default function AdminPanels() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
                           <th className="px-4 py-3.5 w-1/3">ชื่อแบรนด์ลูกค้า</th>
                           <th className="px-4 py-3.5 w-1/3">ผู้ดูแลแบรนด์</th>
                           <th className="px-4 py-3.5">สถานะคิวจอง</th>
@@ -1314,10 +1314,10 @@ export default function AdminPanels() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
                           <th className="px-4 py-3.5">บัญชีผู้ใช้ (Email)</th>
                           <th className="px-4 py-3.5">ชื่อ-นามสกุล</th>
                           <th className="px-4 py-3.5">ระดับสิทธิ์</th>
@@ -1486,7 +1486,7 @@ export default function AdminPanels() {
                                   type="checkbox"
                                   checked={on}
                                   readOnly
-                                  className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-600 pointer-events-none"
+                                  className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-700 text-brand-600 pointer-events-none"
                                 />
                                 <span className="truncate">{tab.label}</span>
                               </button>
@@ -1520,7 +1520,7 @@ export default function AdminPanels() {
                                 type="checkbox"
                                 checked={['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].every(id => roleAllowedTabs.includes(id))}
                                 readOnly
-                                className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-600 pointer-events-none"
+                                className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-700 text-brand-600 pointer-events-none"
                               />
                               เลือกทั้งหมด
                             </button>
@@ -1553,7 +1553,7 @@ export default function AdminPanels() {
                                     type="checkbox"
                                     checked={on}
                                     readOnly
-                                    className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-600 pointer-events-none"
+                                    className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-700 text-brand-600 pointer-events-none"
                                   />
                                   <span className="truncate">{tab.label}</span>
                                 </button>
@@ -1573,7 +1573,7 @@ export default function AdminPanels() {
                             { icon: '👥', label: 'ผู้ใช้งาน', base: 'users' },
                             { icon: '🔑', label: 'ระดับสิทธิ์', base: 'roles' },
                           ].map(({ icon, label, base }) => (
-                            <div key={base} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50/60 dark:bg-slate-850/40 border border-slate-150 dark:border-slate-800">
+                            <div key={base} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50/60 dark:bg-slate-850/40 border border-slate-200 dark:border-slate-800">
                               <span className="text-[11px] shrink-0 w-20 font-bold text-slate-600 dark:text-slate-300 truncate">{icon} {label}</span>
                               <div className="flex gap-1.5 flex-1">
                                 {(['create','edit','delete'] as const).map(action => {
@@ -1630,10 +1630,10 @@ export default function AdminPanels() {
                     <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">สิทธิ์ทั้งหมดในฐานข้อมูล</h4>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
                           <th className="px-4 py-3.5">ระดับสิทธิ์</th>
                           <th className="px-4 py-3.5">สิทธิ์อนุญาตการใช้งาน</th>
                           <th className="px-4 py-3.5">การมองเห็นแถบ</th>
@@ -1760,10 +1760,10 @@ export default function AdminPanels() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl max-h-[500px]">
+              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl max-h-[500px]">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none sticky top-0 z-10">
+                    <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none sticky top-0 z-10">
                       <th className="px-4 py-3.5">วัน-เวลา</th>
                       <th className="px-4 py-3.5">ผู้ดำเนินการ</th>
                       <th className="px-4 py-3.5">กิจกรรม</th>
@@ -1988,10 +1988,10 @@ export default function AdminPanels() {
                   </div>
 
                   {/* MC List Table */}
-                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm">
+                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
                           <th className="px-4 py-3.5">ชื่อ MC</th>
                           <th className="px-4 py-3.5">ระดับ Tier</th>
                           <th className="px-4 py-3.5">จำนวนคิวไลฟ์สด</th>
@@ -2294,11 +2294,11 @@ export default function AdminPanels() {
               </div>
 
               {/* Table of Requests */}
-              <div className="border border-slate-150 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-slate-150 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-[10px] uppercase font-bold text-slate-450 dark:text-slate-400 tracking-wider select-none">
+                      <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-[10px] uppercase font-bold text-slate-450 dark:text-slate-400 tracking-wider select-none">
                         <th className="py-3.5 px-4">ID คิวจอง (Booking ID)</th>
                         <th className="py-3.5 px-4">วันที่ & ห้องไลฟ์</th>
                         <th className="py-3.5 px-4">ผู้ส่งคำร้อง</th>
@@ -2595,7 +2595,7 @@ export default function AdminPanels() {
                                   setRevSelectedMcIds(revSelectedMcIds.filter(id => id !== m.id));
                                 }
                               }}
-                              className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-600"
+                              className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-700 text-brand-600"
                             />
                             <span className="truncate">{m.name}</span>
                           </label>
@@ -2823,7 +2823,7 @@ export default function AdminPanels() {
                 เนื่องจาก MC <strong className="text-slate-900 dark:text-white font-bold">"{blockedMcName}"</strong> มีคิวไลฟ์สดที่ยังไม่ได้ยกเลิกหรือกำลังจะเกิดขึ้นในระบบ จำนวน <strong className="text-rose-650 font-bold">{blockedBookings.length} คิว</strong>:
               </p>
 
-              <div className="max-h-60 overflow-y-auto border border-slate-150 dark:border-slate-800 rounded-2xl divide-y divide-slate-150 dark:divide-slate-800 text-[11px]">
+              <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-2xl divide-y divide-slate-150 dark:divide-slate-800 text-[11px]">
                 {blockedBookings.map((b) => (
                   <div key={b.id} className="p-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 flex items-center justify-between gap-3">
                     <div className="flex flex-col gap-0.5">

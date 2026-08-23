@@ -13,6 +13,14 @@
   --color-brand-700: #1e40af;
 }
 
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: #e2e8f0;
+  }
+  html.dark *, html.dark ::after, html.dark ::before, html.dark ::backdrop, html.dark ::file-selector-button {
+    border-color: #1e293b;
+  }
+}
 
 /*
  * Live Studio Booking Management System - Stylesheet

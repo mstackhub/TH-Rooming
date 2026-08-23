@@ -719,7 +719,7 @@ export default function BookingModal() {
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   disabled={!hasEditPerm}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {rooms.filter(r => r.status === 'Active' || r.name === roomName).map(r => (
                     <option key={r.id} value={r.name}>{r.name}{r.status === 'Inactive' ? ' (ปิดใช้งาน)' : ''}</option>
@@ -735,7 +735,7 @@ export default function BookingModal() {
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   disabled={!hasEditPerm}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                   required
                 />
               </div>
@@ -749,7 +749,7 @@ export default function BookingModal() {
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   disabled={!hasEditPerm}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {hourOptions.map(slot => {
                     const slotMins = parseTimeToMinutes(slot);
@@ -778,7 +778,7 @@ export default function BookingModal() {
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   disabled={!hasEditPerm}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {hourOptions.map(slot => {
                     const slotMins = parseTimeToMinutes(slot);
@@ -809,7 +809,7 @@ export default function BookingModal() {
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
                   disabled={!hasEditPerm}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {brands.filter(b => b.status === 'Active' || b.name === brandName).map(b => (
                     <option key={b.id} value={b.name}>{b.name}{b.status === 'Inactive' ? ' (ปิดใช้งาน)' : ''}</option>
@@ -824,7 +824,7 @@ export default function BookingModal() {
                   value={scale}
                   onChange={(e) => setScale(e.target.value as any)}
                   disabled={!hasEditPerm}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   <option value="Medium Scale">Medium Scale (Default)</option>
                   <option value="Full Scale">Full Scale</option>
@@ -872,7 +872,7 @@ export default function BookingModal() {
                     }
                   }}
                   disabled={!hasEditPerm}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {(settings?.liveChannels || 'Facebook,TikTok,Shopee,Lazada')
                     .split(',')
@@ -928,7 +928,7 @@ export default function BookingModal() {
                         className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
                           isSelected
                             ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-350'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-200'
                         }`}
                       >
                         <span>{mc.name}</span>
@@ -966,7 +966,7 @@ export default function BookingModal() {
                         className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
                           isSelected
                             ? 'bg-indigo-500 border-indigo-500 text-white shadow-sm'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-350'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-200'
                         }`}
                       >
                         <span>{u.name || u.email.split('@')[0]}</span>
@@ -986,7 +986,7 @@ export default function BookingModal() {
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
                 disabled={!hasEditPerm}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
               />
             </div>
 
@@ -999,7 +999,7 @@ export default function BookingModal() {
                 value={briefText}
                 onChange={(e) => setBriefText(e.target.value)}
                 disabled={!hasEditPerm}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
               />
             </div>
 
@@ -1031,7 +1031,7 @@ export default function BookingModal() {
                   value={artworkLink}
                   onChange={(e) => setArtworkLink(e.target.value)}
                   disabled={!hasEditPerm}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 />
               </div>
 
@@ -1052,7 +1052,7 @@ export default function BookingModal() {
                 value={remark}
                 onChange={(e) => setRemark(e.target.value)}
                 disabled={!hasEditPerm}
-                className="w-full text-xs rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 min-h-[70px]"
+                className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 min-h-[70px]"
               />
             </div>
 
