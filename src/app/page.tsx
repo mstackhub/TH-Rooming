@@ -555,10 +555,27 @@ export default function Home() {
         {/* Top Header bar */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-10 select-none">
           <div className="flex items-center gap-2">
-            <h1 
-              className="text-sm font-extrabold text-slate-800 dark:text-slate-200 capitalize"
-            >
-              {currentTab.replace('-', ' ')} view
+            <h1 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
+              {(() => {
+                const tabTitles: Record<string, string> = {
+                  'scheduler': 'ตารางงานรายวัน',
+                  'calendar': 'ปฏิทินห้องไลฟ์',
+                  'my-bookings': 'ประวัติการจองของฉัน',
+                  'campaign-schedule': 'แคมเปญทั้งหมด',
+                  'change-requests': 'จัดการคำขอแก้ไขคิว',
+                  'analytics': 'รายงานและสถิติการใช้งาน',
+                  'analytics-staff': 'รายงานประสิทธิภาพ Staff',
+                  'analytics-mc': 'รายงานประสิทธิภาพ MC',
+                  'rooms': 'ตั้งค่า • ห้องสตูดิโอ',
+                  'brands': 'ตั้งค่า • แบรนด์ลูกค้า',
+                  'mc-live': 'ตั้งค่า • การจัดการ MC ไลฟ์สด',
+                  'users': 'ตั้งค่า • ผู้ใช้งานระบบ',
+                  'roles-mgmt': 'ตั้งค่า • ระดับสิทธิ์การจอง',
+                  'audit-log': 'ตั้งค่า • ประวัติกิจกรรม',
+                  'settings': 'ตั้งค่า • ระบบการแจ้งเตือน'
+                };
+                return tabTitles[currentTab] || `${currentTab.replace('-', ' ')} view`;
+              })()}
             </h1>
           </div>
 
