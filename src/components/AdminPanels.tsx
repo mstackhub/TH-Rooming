@@ -2377,8 +2377,11 @@ export default function AdminPanels() {
                                     <span className="font-bold text-[12px] text-slate-900 dark:text-white leading-tight">
                                       {formatThaiDate(matchedB.date)}
                                     </span>
+                                    <span className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                                      {matchedB.roomName}
+                                    </span>
                                     <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                                      {matchedB.roomName} ({matchedB.startTime} - {matchedB.endTime} น.)
+                                      เวลา: {matchedB.startTime} - {matchedB.endTime} น.
                                     </span>
                                     <span className="text-[11px] text-brand-600 dark:text-brand-400 font-bold">
                                       แบรนด์: {matchedB.brandName}
