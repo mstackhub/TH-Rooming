@@ -493,7 +493,8 @@ export default function BookingModal() {
     return 999;
   }, [matchedBooking?.date]);
 
-  const isLocked14Days = isEditMode && daysUntilBooking < 14;
+  const lockThresholdDays = settings?.changeRequestLockDays !== undefined ? Number(settings.changeRequestLockDays) : 14;
+  const isLocked14Days = isEditMode && daysUntilBooking < lockThresholdDays;
   const requiresChangeRequest = isLocked14Days && !isAdmin;
 
   const pendingChangeReq = useMemo(() => {
@@ -506,7 +507,7 @@ export default function BookingModal() {
     return changeRequests.find(r => r && r.bookingId === matchedBooking.id && r.status === 'Approved') || null;
   }, [matchedBooking, changeRequests]);
 
-  // Direct save without change request: allowed when >= 14 days OR user is Admin
+  // Direct save without change request: allowed when >= lockThresholdDays OR user is Admin
   const canDirectSave = hasEditPerm && (!isLocked14Days || isAdmin);
   const canDirectCancel = hasCancelPerm && (!isLocked14Days || isAdmin);
 
@@ -684,14 +685,14 @@ export default function BookingModal() {
             </div>
           )}
 
-          {/* 14-Day Lock Rule Warning Banner */}
+          {/* Lock Rule Warning Banner */}
           {requiresChangeRequest && (
             <div className="bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/50 p-3.5 rounded-2xl flex items-start gap-2.5 text-indigo-950 dark:text-indigo-300 shadow-xs">
               <Lock className="w-4.5 h-4.5 text-indigo-500 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <strong className="font-extrabold block">🔒 กฎการแก้ไขคิวล่วงหน้า (14-Day Lock Rule)</strong>
+                <strong className="font-extrabold block">🔒 กฎการแก้ไขคิวล่วงหน้า ({lockThresholdDays}-Day Lock Rule)</strong>
                 <span className="text-[10px] text-slate-600 dark:text-slate-300 block mt-0.5 leading-relaxed">
-                  คิวนี้จะเริ่มไลฟ์ในอีก <strong className="text-indigo-600 dark:text-indigo-400">{daysUntilBooking} วัน</strong> (น้อยกว่า 14 วัน) ระบบล็อคการแก้ไขและยกเลิกโดยตรง หากต้องการเปลี่ยนแปลงกรุณากดปุ่ม <strong>"ส่งคำร้องขอแก้ไข"</strong> หรือ <strong>"ส่งคำร้องขอยกเลิก"</strong> ด้านล่าง
+                  คิวนี้จะเริ่มไลฟ์ในอีก <strong className="text-indigo-600 dark:text-indigo-400">{daysUntilBooking} วัน</strong> (น้อยกว่า {lockThresholdDays} วัน) ระบบล็อคการแก้ไขและยกเลิกโดยตรง หากต้องการเปลี่ยนแปลงกรุณากดปุ่ม <strong>"ส่งคำร้องขอแก้ไข"</strong> หรือ <strong>"ส่งคำร้องขอยกเลิก"</strong> ด้านล่าง
                 </span>
               </div>
             </div>
@@ -1145,7 +1146,7 @@ export default function BookingModal() {
 
             <form onSubmit={handleSubmitChangeRequest} className="space-y-4 text-xs">
               <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl text-[11px] text-amber-900 dark:text-amber-300">
-                เนื่องจากคิวนี้มีกำหนดการไลฟ์ในอีก <strong>{daysUntilBooking} วัน (ต่ำกว่า 14 วัน)</strong> คำร้องนี้จะถูกส่งไปยัง <strong>"เมนูจัดการคำขอแก้ไข"</strong> เพื่อให้ผู้รับผิดชอบพิจารณาและอัปเดตระบบ
+                เนื่องจากคิวนี้มีกำหนดการไลฟ์ในอีก <strong>{daysUntilBooking} วัน (ต่ำกว่า {lockThresholdDays} วัน)</strong> คำร้องนี้จะถูกส่งไปยัง <strong>"เมนูจัดการคำขอแก้ไข"</strong> เพื่อให้ผู้รับผิดชอบพิจารณาและอัปเดตระบบ
               </div>
 
               <div className="flex flex-col gap-1.5">

@@ -422,6 +422,20 @@ export async function POST(request: Request) {
           }
         } catch (e) {}
 
+        const dbSettings = await requestSupabase('GET', 'settings');
+        const settingsDict: any = {};
+        if (Array.isArray(dbSettings)) {
+          dbSettings.forEach((s: any) => settingsDict[s.key] = s.value);
+        }
+        const mappedSettings = {
+          lineNotificationsEnabled: settingsDict['line_notifications_enabled'] === 'true',
+          lineChannelAccessToken: settingsDict['line_channel_access_token'] || '',
+          lineDestinationId: settingsDict['line_destination_id'] || '',
+          frontendUrl: settingsDict['frontend_url'] || '',
+          liveChannels: settingsDict['live_channels'] || 'Facebook,TikTok,Shopee,Lazada',
+          changeRequestLockDays: settingsDict['change_request_lock_days'] !== undefined ? parseInt(settingsDict['change_request_lock_days'], 10) : 14
+        };
+
         return NextResponse.json({
           user: mappedUser,
           rooms,
@@ -433,7 +447,8 @@ export async function POST(request: Request) {
           roles: mappedRolesAdmin,
           mcTiers: mappedMcTiers,
           mcList: mappedMcList,
-          changeRequests
+          changeRequests,
+          settings: mappedSettings
         }, { headers: corsHeaders });
       }
 
@@ -1034,13 +1049,16 @@ export async function POST(request: Request) {
       case 'getSystemSettings': {
         const settings = await requestSupabase('GET', 'settings');
         const dict: any = {};
-        settings.forEach((s: any) => dict[s.key] = s.value);
+        if (Array.isArray(settings)) {
+          settings.forEach((s: any) => dict[s.key] = s.value);
+        }
         return NextResponse.json({
           lineNotificationsEnabled: dict['line_notifications_enabled'] === 'true',
           lineChannelAccessToken: dict['line_channel_access_token'] || '',
           lineDestinationId: dict['line_destination_id'] || '',
           frontendUrl: dict['frontend_url'] || '',
-          liveChannels: dict['live_channels'] || 'Facebook,TikTok,Shopee,Lazada'
+          liveChannels: dict['live_channels'] || 'Facebook,TikTok,Shopee,Lazada',
+          changeRequestLockDays: dict['change_request_lock_days'] !== undefined ? parseInt(dict['change_request_lock_days'], 10) : 14
         }, { headers: corsHeaders });
       }
 
@@ -1109,11 +1127,12 @@ export async function POST(request: Request) {
           { key: 'line_channel_access_token', value: dict.lineChannelAccessToken || '' },
           { key: 'line_destination_id', value: dict.lineDestinationId || '' },
           { key: 'frontend_url', value: dict.frontendUrl || '' },
-          { key: 'live_channels', value: dict.liveChannels || '' }
+          { key: 'live_channels', value: dict.liveChannels || '' },
+          { key: 'change_request_lock_days', value: String(dict.changeRequestLockDays !== undefined ? dict.changeRequestLockDays : 14) }
         ];
 
         await requestSupabase('POST', 'settings', payloads, { 'Prefer': 'resolution=merge-duplicates' });
-        await logActivity(user, "SAVE_SYSTEM_SETTINGS", "System", "Saved system settings configuration", clientIp, userAgent);
+        await logActivity(user, "SAVE_SYSTEM_SETTINGS", "System", `Saved system settings configuration (Lock days: ${dict.changeRequestLockDays ?? 14})`, clientIp, userAgent);
         
         return NextResponse.json({ success: true }, { headers: corsHeaders });
       }

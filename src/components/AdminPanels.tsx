@@ -147,6 +147,7 @@ export default function AdminPanels() {
   const [settingsLineDestId, setSettingsLineDestId] = useState(settings?.lineDestinationId || '');
   const [settingsUrl, setSettingsUrl] = useState(settings?.frontendUrl || '');
   const [settingsLiveChannels, setSettingsLiveChannels] = useState(settings?.liveChannels || '');
+  const [settingsChangeRequestLockDays, setSettingsChangeRequestLockDays] = useState<number>(settings?.changeRequestLockDays !== undefined ? settings.changeRequestLockDays : 14);
 
   // Form states - MC LIVE MANAGEMENT
   const [mcSubTab, setMcSubTab] = useState<'list' | 'tiers'>('list');
@@ -226,6 +227,7 @@ export default function AdminPanels() {
       setSettingsLineDestId(settings.lineDestinationId);
       setSettingsUrl(settings.frontendUrl);
       setSettingsLiveChannels(settings.liveChannels || '');
+      setSettingsChangeRequestLockDays(settings.changeRequestLockDays !== undefined ? settings.changeRequestLockDays : 14);
     }
   }, [settings]);
 
@@ -738,7 +740,8 @@ export default function AdminPanels() {
         lineChannelAccessToken: settingsLineToken,
         lineDestinationId: settingsLineDestId,
         frontendUrl: settingsUrl,
-        liveChannels: settingsLiveChannels
+        liveChannels: settingsLiveChannels,
+        changeRequestLockDays: settingsChangeRequestLockDays
       }
     };
 
@@ -1880,6 +1883,27 @@ export default function AdminPanels() {
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   />
                   <span className="text-[10px] text-slate-400 font-medium mt-1 block">ระบุรายการช่องทางการไลฟ์โดยคั่นด้วยเครื่องหมายจุลภาค เพื่อให้ผู้ใช้สามารถเลือกได้ขณะทำรายการจองห้องไลฟ์</span>
+                </div>
+
+                <div className="p-4 bg-slate-50/60 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-2xl space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    🔒 กำหนดจำนวนวันล็อกการแก้ไขคิวจอง (Change Request Lock Days Threshold)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={0}
+                      max={365}
+                      placeholder="14"
+                      value={settingsChangeRequestLockDays}
+                      onChange={(e) => setSettingsChangeRequestLockDays(parseInt(e.target.value, 10) || 0)}
+                      className="w-28 px-3.5 py-2 text-xs font-extrabold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-brand-600 dark:text-brand-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
+                    />
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">วันก่อนเริ่มไลฟ์สด (ค่าเริ่มต้น: 14 วัน)</span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium block leading-relaxed">
+                    หากคิวจองมีระยะเวลาคงเหลือน้อยกว่าจำนวนวันนี้ ผู้ใช้งานทั่วไปจะไม่สามารถแก้ไข/ยกเลิกโดยตรงได้ และระบบจะให้ส่งเป็นคำร้องขอแก้ไขแทนเพื่อให้ผู้ดูแลอนุมัติ
+                  </span>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">

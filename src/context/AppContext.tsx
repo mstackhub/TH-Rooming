@@ -107,6 +107,7 @@ export interface SystemSettings {
   lineDestinationId: string;
   frontendUrl: string;
   liveChannels: string; // Comma-separated list of live streaming channels
+  changeRequestLockDays?: number;
 }
 
 export interface Filters {
@@ -360,6 +361,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.mcTiers) setMcTiers(data.mcTiers);
         if (data.mcList) setMcList(data.mcList);
         if (data.changeRequests) setChangeRequests(data.changeRequests);
+        if (data.settings) setSettings(data.settings);
         
         // Local My Bookings filtering matching getMyBookings
         if (data.user && data.allBookings) {
@@ -467,6 +469,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (data.mcTiers) setMcTiers(data.mcTiers);
             if (data.mcList) setMcList(data.mcList);
             if (data.changeRequests) setChangeRequests(data.changeRequests);
+            if (data.settings) setSettings(data.settings);
           }
         } finally {
           setIsSessionRestoring(false);
