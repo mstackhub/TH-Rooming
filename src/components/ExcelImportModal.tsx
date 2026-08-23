@@ -428,8 +428,11 @@ export default function ExcelImportModal() {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = "Booking ID,Date,Room,Start Time,End Time,Brand,Campaign,Brief Tag,Brief Link,Remark,MC Name\n";
-    const example = `TH-001,${new Date().toISOString().split('T')[0]},Room 01,09:00,10:00,Bau,7.7 Mid Year Sale,สเปคสินค้า,https://canva.com,จองผ่านเทมเพลต Excel,แอน,มีน\n`;
+    const today = new Date();
+    const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'short' });
+    const headers = "Booking ID,Live Date,Day,Start Time,End Time,Room,Brand,Campaign Name,MC Name,Owner,Artwork Link,Booking Status,Last Updated\n";
+    const example = `20260823ARTTR01001,${formattedDate},${dayOfWeek},09:00,10:00,(Special) Onsite LIVE Streaming 1,Aristotle,Live Streaming,แอน,Master Admin,,Confirmed,\n`;
     
     // Attach BOM for Excel UTF-8 display compatibility
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), headers + example], { type: 'text/csv;charset=utf-8;' });

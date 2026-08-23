@@ -62,6 +62,10 @@ function mapBookingToFrontend(b: any) {
   };
 }
 
+function isUuid(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(str || ''));
+}
+
 function mapBookingToDb(b: any) {
   if (!b) return null;
   const dbObj: any = {
@@ -81,7 +85,7 @@ function mapBookingToDb(b: any) {
     mc_id: b.mcId || null
   };
   
-  if (b.id) {
+  if (b.id && isUuid(b.id)) {
     dbObj.id = b.id;
   }
   return dbObj;
@@ -597,12 +601,14 @@ export async function POST(request: Request) {
           // Check if slot with ID (UUID or Custom ID) or exact date, room, and start/end time already exists
           let existingSlot: any[] | null = null;
           if (item.id) {
-            try {
-              const byId = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(item.id)}`);
-              if (byId && byId.length > 0) {
-                existingSlot = byId;
-              }
-            } catch (e) {}
+            if (isUuid(String(item.id))) {
+              try {
+                const byId = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(item.id)}`);
+                if (byId && byId.length > 0) {
+                  existingSlot = byId;
+                }
+              } catch (e) {}
+            }
 
             // If not found by primary key ID, search bookings on that date by customId
             if (!existingSlot || existingSlot.length === 0) {
