@@ -391,6 +391,7 @@ export default function Home() {
       case 'rooms':
       case 'brands':
       case 'mc-live':
+      case 'change-requests':
       case 'users':
       case 'roles-mgmt':
       case 'audit-log':

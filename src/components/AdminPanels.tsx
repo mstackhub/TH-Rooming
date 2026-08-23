@@ -807,10 +807,23 @@ export default function AdminPanels() {
       {/* Header */}
       <div>
         <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-          <Shield className="w-5 h-5 text-brand-500" />
-          ระบบผู้ดูแลระบบ (Admin Management Dashboard)
+          {currentTab === 'change-requests' ? (
+            <>
+              <FileEdit className="w-5 h-5 text-indigo-500" />
+              จัดการคำขอแก้ไขและยกเลิกคิวไลฟ์ (Booking Change Requests)
+            </>
+          ) : (
+            <>
+              <Shield className="w-5 h-5 text-brand-500" />
+              ระบบผู้ดูแลระบบ (Admin Management Dashboard)
+            </>
+          )}
         </h2>
-        <p className="text-xs text-slate-400 mt-1">ตั้งค่าสตูดิโอ แบรนด์ผู้ใช้ สิทธิ์เข้าถึง ตรวจสอบประวัติกิจกรรม และเชื่อมการแจ้งเตือน</p>
+        <p className="text-xs text-slate-400 mt-1">
+          {currentTab === 'change-requests'
+            ? 'ตรวจสอบ พิจารณาอนุมัติ และอัปเดตข้อมูลคิวไลฟ์ตามคำร้องขอของผู้จอง'
+            : 'ตั้งค่าสตูดิโอ แบรนด์ผู้ใช้ สิทธิ์เข้าถึง ตรวจสอบประวัติกิจกรรม และเชื่อมการแจ้งเตือน'}
+        </p>
       </div>
 
       {/* Settings workspace area (Full Width) */}

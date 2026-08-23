@@ -10,7 +10,8 @@ import {
   Settings, 
   LogOut, 
   User as UserIcon,
-  ChevronDown
+  ChevronDown,
+  FileEdit
 } from 'lucide-react';
 
 export default function Navigation() {
@@ -22,7 +23,7 @@ export default function Navigation() {
 
   // Auto-expand dropdowns when active tab is one of their sub-tabs
   useEffect(() => {
-    if (['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].includes(currentTab)) {
+    if (['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab)) {
       setIsSettingsExpanded(true);
     }
     if (['analytics', 'analytics-staff', 'analytics-mc'].includes(currentTab)) {
@@ -39,6 +40,7 @@ export default function Navigation() {
     { id: 'calendar', name: 'ปฏิทินห้องไลฟ์ (Calendar)', icon: Calendar },
     { id: 'my-bookings', name: 'ประวัติการจองของฉัน (My Bookings)', icon: UserIcon },
     { id: 'campaign-schedule', name: 'แคมเปญทั้งหมด (Campaigns)', icon: BookOpen },
+    { id: 'change-requests', name: 'จัดการคำขอแก้ไขคิว (Requests)', icon: FileEdit, badge: pendingRequestsCount },
     { id: 'analytics', name: 'รายงาน (Dashboard)', icon: LineChart },
     { id: 'settings', name: 'ตั้งค่า (Settings)', icon: Settings, adminOnly: true }
   ];
@@ -46,7 +48,7 @@ export default function Navigation() {
   const visibleItems = allNavItems.filter(item => {
     if (item.id === 'settings') {
       return allowedTabs.some(tab => 
-        ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].includes(tab)
+        ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(tab)
       );
     }
     // Dashboard also visible if they have permission to see 'analytics'
@@ -114,6 +116,13 @@ export default function Navigation() {
                   isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'
                 }`} />
                 <span className="flex-1">{item.name}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className={`px-2 py-0.5 text-[10px] font-black rounded-full animate-pulse ${
+                    isActive ? 'bg-white text-brand-600' : 'bg-rose-500 text-white'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
                 {(isSettingsItem || isAnalyticsItem) && (
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
                     isSettingsItem ? (isSettingsExpanded ? 'rotate-180' : '') : (isAnalyticsExpanded ? 'rotate-180' : '')
@@ -154,7 +163,6 @@ export default function Navigation() {
                     { id: 'rooms', name: 'ห้องสตูดิโอ' },
                     { id: 'brands', name: 'แบรนด์ลูกค้า' },
                     { id: 'mc-live', name: 'การจัดการ MC ไลฟ์สด' },
-                    { id: 'change-requests', name: 'จัดการคำขอแก้ไขคิว', badge: pendingRequestsCount },
                     { id: 'users', name: 'ผู้ใช้งานระบบ' },
                     { id: 'roles-mgmt', name: 'ระดับสิทธิ์การจอง' },
                     { id: 'audit-log', name: 'ประวัติกิจกรรม' },
@@ -172,11 +180,6 @@ export default function Navigation() {
                         }`}
                       >
                         <span>{sub.name}</span>
-                        {sub.badge !== undefined && sub.badge > 0 && (
-                          <span className="px-1.5 py-0.5 text-[10px] bg-rose-500 text-white font-bold rounded-full animate-pulse">
-                            {sub.badge}
-                          </span>
-                        )}
                       </button>
                     );
                   })}
