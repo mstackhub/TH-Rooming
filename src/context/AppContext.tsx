@@ -454,6 +454,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (data.roles) setRoles(data.roles);
             if (data.mcTiers) setMcTiers(data.mcTiers);
             if (data.mcList) setMcList(data.mcList);
+            if (data.changeRequests) setChangeRequests(data.changeRequests);
             if (data.allBookings) {
               setMyBookings(data.allBookings.filter((b: Booking) => b.ownerEmail.toLowerCase() === data.user.email.toLowerCase()));
             }

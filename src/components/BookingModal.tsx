@@ -39,6 +39,7 @@ export default function BookingModal() {
     rooms,
     brands,
     calendarBookings,
+    bookings,
     currentUser,
     apiCall,
     refreshActiveTabData,
@@ -114,10 +115,11 @@ export default function BookingModal() {
   // Match edit booking or populate creation params
   const matchedBooking = useMemo(() => {
     if (isEditMode && activeBookingIdForEdit) {
-      return calendarBookings.find(b => b.id === activeBookingIdForEdit) || null;
+      return (calendarBookings || []).find(b => b.id === activeBookingIdForEdit) || 
+             (bookings || []).find(b => b.id === activeBookingIdForEdit) || null;
     }
     return null;
-  }, [isEditMode, activeBookingIdForEdit, calendarBookings]);
+  }, [isEditMode, activeBookingIdForEdit, calendarBookings, bookings]);
 
   // Populate data
   useEffect(() => {
@@ -465,24 +467,30 @@ export default function BookingModal() {
 
   const daysUntilBooking = useMemo(() => {
     if (!matchedBooking?.date) return 999;
-    const target = new Date(matchedBooking.date + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diff = target.getTime() - today.getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    try {
+      const parts = matchedBooking.date.split('-');
+      if (parts.length === 3) {
+        const target = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diff = target.getTime() - today.getTime();
+        return Math.ceil(diff / (1000 * 60 * 60 * 24));
+      }
+    } catch (e) {}
+    return 999;
   }, [matchedBooking?.date]);
 
   const isLocked14Days = isEditMode && daysUntilBooking < 14;
   const requiresChangeRequest = isLocked14Days && !isAdmin;
 
   const pendingChangeReq = useMemo(() => {
-    if (!matchedBooking) return null;
-    return (changeRequests || []).find(r => r.bookingId === matchedBooking.id && r.status === 'Pending') || null;
+    if (!matchedBooking || !Array.isArray(changeRequests)) return null;
+    return changeRequests.find(r => r && r.bookingId === matchedBooking.id && r.status === 'Pending') || null;
   }, [matchedBooking, changeRequests]);
 
   const lastHandledReq = useMemo(() => {
-    if (!matchedBooking) return null;
-    return (changeRequests || []).find(r => r.bookingId === matchedBooking.id && r.status === 'Approved') || null;
+    if (!matchedBooking || !Array.isArray(changeRequests)) return null;
+    return changeRequests.find(r => r && r.bookingId === matchedBooking.id && r.status === 'Approved') || null;
   }, [matchedBooking, changeRequests]);
 
   const canSave = isEditMode 

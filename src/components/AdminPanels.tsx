@@ -35,6 +35,8 @@ export default function AdminPanels() {
     allRoomsAdmin,
     allBrandsAdmin,
     allUsersAdmin,
+    rooms,
+    brands,
     roles,
     auditLogs,
     settings,
@@ -2499,7 +2501,7 @@ export default function AdminPanels() {
                         onChange={(e) => setRevRoom(e.target.value)}
                         className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
                       >
-                        {allRoomsAdmin.map(r => (
+                        {(allRoomsAdmin && allRoomsAdmin.length > 0 ? allRoomsAdmin : (rooms || [])).map(r => (
                           <option key={r.id} value={r.name}>{r.name}</option>
                         ))}
                       </select>
@@ -2537,7 +2539,7 @@ export default function AdminPanels() {
                         onChange={(e) => setRevBrand(e.target.value)}
                         className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
                       >
-                        {allBrandsAdmin.map(b => (
+                        {(allBrandsAdmin && allBrandsAdmin.length > 0 ? allBrandsAdmin : (brands || [])).map(b => (
                           <option key={b.id} value={b.name}>{b.name}</option>
                         ))}
                       </select>
@@ -2556,7 +2558,7 @@ export default function AdminPanels() {
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase">MC ประจำไลฟ์ (เลือกหลายท่านได้)</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto p-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900">
-                      {mcList.map(m => {
+                      {(mcList || []).map(m => {
                         const checked = revSelectedMcIds.includes(m.id);
                         return (
                           <label key={m.id} className="flex items-center gap-1.5 text-[11px] font-medium cursor-pointer">
