@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { 
   Calendar, 
+  CalendarClock,
   Clock, 
   BookOpen, 
   LineChart, 
@@ -36,7 +37,7 @@ export default function Navigation() {
   const allowedTabs = currentUser.permissions?.allowedTabs.split(',') || [];
 
   const allNavItems = [
-    { id: 'scheduler', name: 'ตารางงานรายวัน (Scheduler)', icon: Clock },
+    { id: 'scheduler', name: 'ตารางงานรายวัน (Scheduler)', icon: CalendarClock },
     { id: 'calendar', name: 'ปฏิทินห้องไลฟ์ (Calendar)', icon: Calendar },
     { id: 'my-bookings', name: 'ประวัติการจองของฉัน (My Bookings)', icon: UserIcon },
     { id: 'campaign-schedule', name: 'แคมเปญทั้งหมด (Campaigns)', icon: BookOpen },
