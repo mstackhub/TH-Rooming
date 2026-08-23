@@ -30,6 +30,17 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+function safeDateLocaleString(val: any): string {
+  if (!val) return '-';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleString('th-TH');
+  } catch (e) {
+    return String(val);
+  }
+}
+
 export default function BookingModal() {
   const {
     activeBookingIdForEdit,
@@ -232,7 +243,7 @@ export default function BookingModal() {
         setCustomLiveChannel('');
       }
     }
-  }, [isOpen, activeBookingIdForEdit, activeBookingCreateData]);
+  }, [isOpen, activeBookingIdForEdit, activeBookingCreateData, matchedBooking]);
 
   if (!isOpen) return null;
 
@@ -613,7 +624,7 @@ export default function BookingModal() {
               <div className="flex-1">
                 <strong className="font-extrabold block">⏳ คิวนี้มีคำร้องขอที่อยู่ระหว่างรอการพิจารณา</strong>
                 <span className="text-[10px] opacity-90 block mt-0.5">
-                  ประเภท: {pendingChangeReq.requestType === 'cancel' ? 'ขอยกเลิกคิว' : 'ขอแก้ไขข้อมูล'} | ส่งเมื่อ: {new Date(pendingChangeReq.createdAt).toLocaleString('th-TH')}
+                  ประเภท: {pendingChangeReq.requestType === 'cancel' ? 'ขอยกเลิกคิว' : 'ขอแก้ไขข้อมูล'} | ส่งเมื่อ: {safeDateLocaleString(pendingChangeReq.createdAt)}
                 </span>
                 <span className="text-[10px] opacity-80 block mt-0.5 bg-white/60 dark:bg-slate-900/40 p-2 rounded-xl border border-amber-200/60 dark:border-amber-900/30">
                   {pendingChangeReq.requestDetails}
@@ -629,7 +640,7 @@ export default function BookingModal() {
               <div className="flex-1 text-[10px]">
                 <strong className="font-extrabold block">✅ คิวนี้ได้รับการแก้ไขตามคำร้องแล้ว</strong>
                 <span>
-                  เมื่อ: {lastHandledReq.handledAt ? new Date(lastHandledReq.handledAt).toLocaleString('th-TH') : '-'} โดย: {lastHandledReq.handlerName || 'ผู้ดูแลระบบ'}
+                  เมื่อ: {safeDateLocaleString(lastHandledReq.handledAt)} โดย: {lastHandledReq.handlerName || 'ผู้ดูแลระบบ'}
                 </span>
                 {lastHandledReq.handlerNote && (
                   <span className="block mt-0.5 italic text-emerald-700 dark:text-emerald-400">
@@ -869,12 +880,12 @@ export default function BookingModal() {
                 เลือก MC ไลฟ์สด (MC Live) <span className="text-slate-400 font-bold">(เลือกได้สูงสุด 4 คน)</span>
               </label>
               <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-950/30 flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto">
-                {mcList.length === 0 ? (
+                {(mcList || []).length === 0 ? (
                   <span className="text-slate-400 font-semibold text-[10px]">ไม่มีข้อมูลผู้ดำเนินรายการ (MC) ในระบบ</span>
                 ) : (
-                  mcList.filter(mc => mc.status === 'Active' || selectedMcIds.includes(mc.id)).map(mc => {
+                  (mcList || []).filter(mc => mc && (mc.status === 'Active' || selectedMcIds.includes(mc.id))).map(mc => {
                     const isSelected = selectedMcIds.includes(mc.id);
-                    const tier = mcTiers.find(t => t.id === mc.tierId);
+                    const tier = (mcTiers || []).find(t => t && t.id === mc.tierId);
                     return (
                       <button
                         type="button"
@@ -994,7 +1005,7 @@ export default function BookingModal() {
               {/* Last updated timestamp */}
               {isEditMode && lastUpdated && (
                 <div className="text-[10px] text-slate-450 dark:text-slate-500 font-semibold italic flex items-center gap-1 select-none">
-                  <span>แก้ไขล่าสุดเมื่อ: {new Date(lastUpdated).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</span>
+                  <span>แก้ไขล่าสุดเมื่อ: {safeDateLocaleString(lastUpdated)}</span>
                   {lastUpdatedBy && <span>โดย {lastUpdatedBy}</span>}
                 </div>
               )}
