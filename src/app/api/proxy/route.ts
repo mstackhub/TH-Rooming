@@ -598,50 +598,74 @@ export async function POST(request: Request) {
           const dbObj = mapBookingToDb(item);
           if (!dbObj) continue;
 
-          // Check if slot with ID (UUID or Custom ID) or exact date, room, and start/end time already exists
+          // Fetch all bookings on this date for accurate in-memory matching
+          const onDate = await requestSupabase('GET', `bookings?date=eq.${dbObj.date}`);
           let existingSlot: any[] | null = null;
-          if (item.id) {
-            if (isUuid(String(item.id))) {
-              try {
-                const byId = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(item.id)}`);
-                if (byId && byId.length > 0) {
-                  existingSlot = byId;
-                }
-              } catch (e) {}
+
+          if (Array.isArray(onDate) && onDate.length > 0) {
+            // Priority 1: Match by Primary Key UUID (if item.id is UUID)
+            if (item.id && isUuid(String(item.id))) {
+              const byUuid = onDate.filter((b: any) => String(b.id).toLowerCase() === String(item.id).toLowerCase());
+              if (byUuid.length > 0) existingSlot = byUuid;
             }
 
-            // If not found by primary key ID, search bookings on that date by customId
-            if (!existingSlot || existingSlot.length === 0) {
-              const onDate = await requestSupabase('GET', `bookings?date=eq.${dbObj.date}`);
-              if (Array.isArray(onDate)) {
-                const matched = onDate.filter((b: any) => {
-                  let bCustomId = '';
-                  try {
-                    if (b.ls_artwork_layout) {
-                      const meta = JSON.parse(b.ls_artwork_layout);
-                      bCustomId = meta.customId || '';
-                    }
-                  } catch(e){}
-                  return bCustomId.toLowerCase() === String(item.id).toLowerCase() || String(b.id).toLowerCase() === String(item.id).toLowerCase();
-                });
-                if (matched.length > 0) {
-                  existingSlot = matched;
-                }
-              }
+            // Priority 2: Match by Custom ID (either in ls_artwork_layout meta or matching item.id)
+            if (!existingSlot && item.id) {
+              const targetId = String(item.id).trim().toLowerCase();
+              const byCustomId = onDate.filter((b: any) => {
+                let metaCustomId = '';
+                try {
+                  if (b.ls_artwork_layout) {
+                    const meta = JSON.parse(b.ls_artwork_layout);
+                    metaCustomId = (meta.customId || '').trim().toLowerCase();
+                  }
+                } catch(e){}
+                return metaCustomId === targetId;
+              });
+              if (byCustomId.length > 0) existingSlot = byCustomId;
             }
-          }
-          if (!existingSlot || existingSlot.length === 0) {
-            existingSlot = await requestSupabase('GET', `bookings?room_name=eq.${encodeURIComponent(dbObj.room_name)}&date=eq.${dbObj.date}&start_time=eq.${dbObj.start_time}&end_time=eq.${dbObj.end_time}`);
+
+            // Priority 3: Match by Room + Start Time + End Time (normalized HH:MM)
+            if (!existingSlot) {
+              const normItemStart = (dbObj.start_time || '').substring(0, 5);
+              const normItemEnd = (dbObj.end_time || '').substring(0, 5);
+              const normItemRoom = (dbObj.room_name || '').trim().toLowerCase();
+
+              const byRoomTime = onDate.filter((b: any) => {
+                if (b.status === 'Cancelled') return false;
+                const bRoom = (b.room_name || '').trim().toLowerCase();
+                const bStart = (b.start_time || '').substring(0, 5);
+                const bEnd = (b.end_time || '').substring(0, 5);
+                return bRoom === normItemRoom && bStart === normItemStart && bEnd === normItemEnd;
+              });
+              if (byRoomTime.length > 0) existingSlot = byRoomTime;
+            }
           }
           
           if (existingSlot && existingSlot.length > 0) {
             // Keep original owner if it's an update
             dbObj.owner_email = existingSlot[0].owner_email;
             dbObj.owner_name = existingSlot[0].owner_name;
-            // Preserve ls_artwork_layout metadata if existing had it and incoming is empty
-            if (existingSlot[0].ls_artwork_layout && !dbObj.ls_artwork_layout) {
-              dbObj.ls_artwork_layout = existingSlot[0].ls_artwork_layout;
+
+            // Preserve and ensure customId in ls_artwork_layout
+            let parsedMeta: any = {};
+            if (existingSlot[0].ls_artwork_layout) {
+              try {
+                parsedMeta = JSON.parse(existingSlot[0].ls_artwork_layout);
+              } catch(e){}
             }
+            if (item.id && !isUuid(String(item.id))) {
+              parsedMeta.customId = String(item.id);
+            }
+            dbObj.ls_artwork_layout = JSON.stringify(parsedMeta);
+
+            // Clean up any existing duplicate active slots for this exact slot
+            if (existingSlot.length > 1) {
+              for (let d = 1; d < existingSlot.length; d++) {
+                await requestSupabase('PATCH', `bookings?id=eq.${existingSlot[d].id}`, { status: 'Cancelled' });
+              }
+            }
+
             // UPDATE EXISTING SLOT
             await requestSupabase('PATCH', `bookings?id=eq.${existingSlot[0].id}`, dbObj);
           } else {
