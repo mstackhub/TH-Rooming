@@ -477,13 +477,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []); // Run ONCE on mount!
 
-  // Polling data every 30 seconds for background real-time sync (replaces GAS trigger pool)
+  // Polling data every 10 seconds & on tab focus for instant real-time sync
   useEffect(() => {
     if (!token) return;
     const interval = setInterval(() => {
       refreshActiveTabData();
-    }, 30000);
-    return () => clearInterval(interval);
+    }, 10000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshActiveTabData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [token, refreshActiveTabData]);
 
   // Watch for selectedDate changes to update bookings list in Scheduler view

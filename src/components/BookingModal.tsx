@@ -62,7 +62,8 @@ export default function BookingModal() {
     mcTiers,
     allUsersAdmin,
     settings,
-    changeRequests
+    changeRequests,
+    setChangeRequests
   } = useApp();
 
   const [loading, setLoading] = useState(false);
@@ -557,6 +558,9 @@ export default function BookingModal() {
         showToast(err, 'error');
       } else {
         showToast('ส่งคำร้องเรียบร้อยแล้ว ผู้รับผิดชอบจะดำเนินการตรวจสอบ', 'success');
+        if (res && res.changeRequest) {
+          setChangeRequests(prev => [res.changeRequest, ...(prev || []).filter(x => x.id !== res.changeRequest.id)]);
+        }
         setIsRequestDialogOpen(false);
         setRequestDialogDetails('');
         handleClose();

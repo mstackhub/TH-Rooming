@@ -1246,9 +1246,20 @@ export async function POST(request: Request) {
           await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { ls_artwork_layout: JSON.stringify(meta) });
         } catch (e) {}
 
-        await logActivity(user, "CREATE_CHANGE_REQUEST", bCustomId || bId, `Submitted ${reqType} request for booking ${bCustomId || bId}: ${details}`, clientIp, userAgent);
-
-        return NextResponse.json({ success: true }, { headers: corsHeaders });
+        return NextResponse.json({ 
+          success: true,
+          changeRequest: resReq && resReq[0] ? {
+            id: resReq[0].id,
+            bookingId: resReq[0].booking_id,
+            bookingCustomId: resReq[0].booking_custom_id,
+            requesterEmail: resReq[0].requester_email,
+            requesterName: resReq[0].requester_name,
+            requestType: resReq[0].request_type,
+            requestDetails: resReq[0].request_details,
+            status: resReq[0].status,
+            createdAt: resReq[0].created_at
+          } : undefined
+        }, { headers: corsHeaders });
       }
 
       case 'getChangeRequests': {
