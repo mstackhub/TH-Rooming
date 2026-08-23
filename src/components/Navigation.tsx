@@ -54,10 +54,10 @@ export default function Navigation() {
   const allowedTabs = currentUser.permissions?.allowedTabs.split(',') || [];
 
   const allNavItems = [
-    { id: 'scheduler', name: 'ตารางงานรายวัน', icon: CalendarClock },
-    { id: 'calendar', name: 'ปฏิทินห้องไลฟ์', icon: Calendar },
-    { id: 'my-bookings', name: 'การจองของฉัน', icon: UserIcon },
     { id: 'campaign-schedule', name: 'แคมเปญทั้งหมด', icon: BookOpen },
+    { id: 'calendar', name: 'ปฏิทินห้องไลฟ์', icon: Calendar },
+    { id: 'scheduler', name: 'ตารางงานรายวัน', icon: CalendarClock },
+    { id: 'my-bookings', name: 'การจองของฉัน', icon: UserIcon },
     { id: 'change-requests', name: 'จัดการคำขอแก้ไขคิว', icon: FileEdit, badge: pendingRequestsCount },
     { id: 'analytics', name: 'รายงานและสถิติ', icon: LineChart },
     { id: 'settings', name: 'ตั้งค่าระบบ', icon: Settings, adminOnly: true }
