@@ -2318,19 +2318,19 @@ export default function AdminPanels() {
               </div>
 
               {/* Table of Requests */}
-              <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+              <div className="border border-slate-200/80 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-[14px] min-w-[1100px]">
+                  <table className="w-full text-left border-collapse text-[12px] min-w-[1000px]">
                     <thead>
-                      <tr className="border-b border-slate-200/90 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/80 text-[13px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none whitespace-nowrap">
-                        <th className="py-4 px-5">ID คิวจอง</th>
-                        <th className="py-4 px-5">วันที่ & ห้องไลฟ์</th>
-                        <th className="py-4 px-5">ผู้ส่งคำร้อง</th>
-                        <th className="py-4 px-5">ประเภทคำขอ</th>
-                        <th className="py-4 px-5">รายละเอียดที่ขอแก้ไข</th>
-                        <th className="py-4 px-5">สถานะ</th>
-                        <th className="py-4 px-5">ผู้ดำเนินการ & วันที่</th>
-                        <th className="py-4 px-5 text-center">จัดการ</th>
+                      <tr className="border-b border-slate-200/90 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/80 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none whitespace-nowrap">
+                        <th className="py-3 px-4">ID คิวจอง</th>
+                        <th className="py-3 px-4">วันที่ & ห้องไลฟ์</th>
+                        <th className="py-3 px-4">ผู้ส่งคำร้อง</th>
+                        <th className="py-3 px-4">ประเภทคำขอ</th>
+                        <th className="py-3 px-4">รายละเอียดที่ขอแก้ไข</th>
+                        <th className="py-3 px-4">สถานะ</th>
+                        <th className="py-3 px-4">ผู้ดำเนินการ & วันที่</th>
+                        <th className="py-3 px-4 text-center">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
@@ -2350,7 +2350,7 @@ export default function AdminPanels() {
                         if (list.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={8} className="py-16 text-center text-slate-400 dark:text-slate-500 font-bold text-[16px]">
+                              <td colSpan={8} className="py-12 text-center text-slate-400 dark:text-slate-500 font-bold text-[12px]">
                                 ไม่พบรายการคำขอแก้ไขคิวไลฟ์
                               </td>
                             </tr>
@@ -2366,43 +2366,43 @@ export default function AdminPanels() {
                           return (
                             <tr key={req.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-850/50 transition-colors">
                               {/* Booking ID */}
-                              <td className="py-4 px-5 font-mono font-black text-[16px] text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                              <td className="py-3 px-4 font-mono font-bold text-[12px] text-amber-600 dark:text-amber-400 whitespace-nowrap">
                                 {req.bookingCustomId || (matchedB ? generateBookingCustomId(matchedB, calendarBookings) : req.bookingId.substring(0, 8))}
                               </td>
 
                               {/* Date & Room */}
-                              <td className="py-4 px-5 min-w-[200px]">
+                              <td className="py-3 px-4 min-w-[180px]">
                                 {matchedB ? (
-                                  <div className="flex flex-col gap-1">
-                                    <span className="font-extrabold text-[16px] text-slate-900 dark:text-white leading-snug">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold text-[12px] text-slate-900 dark:text-white leading-tight">
                                       {formatThaiDate(matchedB.date)}
                                     </span>
-                                    <span className="text-[13px] text-slate-500 dark:text-slate-400 font-medium">
+                                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
                                       {matchedB.roomName} ({matchedB.startTime} - {matchedB.endTime} น.)
                                     </span>
-                                    <span className="text-[13px] text-brand-600 dark:text-brand-400 font-bold">
+                                    <span className="text-[11px] text-brand-600 dark:text-brand-400 font-bold">
                                       แบรนด์: {matchedB.brandName}
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 text-[13px]">คิวจองถูกลบหรือยกเลิกแล้ว</span>
+                                  <span className="text-slate-400 text-[11px]">คิวจองถูกลบหรือยกเลิกแล้ว</span>
                                 )}
                               </td>
 
                               {/* Requester */}
-                              <td className="py-4 px-5 min-w-[160px] whitespace-nowrap">
+                              <td className="py-3 px-4 min-w-[140px] whitespace-nowrap">
                                 <div className="flex flex-col gap-0.5">
-                                  <span className="font-bold text-[16px] text-slate-900 dark:text-slate-100">{req.requesterName}</span>
-                                  <span className="text-[13px] text-slate-400">{req.requesterEmail}</span>
-                                  <span className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                  <span className="font-bold text-[12px] text-slate-900 dark:text-slate-100">{req.requesterName}</span>
+                                  <span className="text-[11px] text-slate-400">{req.requesterEmail}</span>
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
                                     {safeDateLocaleString(req.createdAt)}
                                   </span>
                                 </div>
                               </td>
 
                               {/* Type */}
-                              <td className="py-4 px-5 whitespace-nowrap">
-                                <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-bold ${
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                                   req.requestType === 'cancel'
                                     ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/80'
                                     : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200/80'
@@ -2412,70 +2412,70 @@ export default function AdminPanels() {
                               </td>
 
                               {/* Details */}
-                              <td className="py-4 px-5 min-w-[220px] max-w-sm">
-                                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-slate-800 text-[14px] text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-3">
+                              <td className="py-3 px-4 min-w-[200px] max-w-xs">
+                                <div className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-slate-800 text-[12px] text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-3">
                                   {req.requestDetails || '-'}
                                 </div>
                               </td>
 
                               {/* Status */}
-                              <td className="py-4 px-5 whitespace-nowrap">
+                              <td className="py-3 px-4 whitespace-nowrap">
                                 {isPending && (
-                                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-extrabold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
                                     รอพิจารณา
                                   </span>
                                 )}
                                 {isApproved && (
-                                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-extrabold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                                     อนุมัติแล้ว
                                   </span>
                                 )}
                                 {isRejected && (
-                                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-extrabold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
-                                    <XCircle className="w-4 h-4 text-rose-500" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                                    <XCircle className="w-3.5 h-3.5 text-rose-500" />
                                     ปฏิเสธ
                                   </span>
                                 )}
                               </td>
 
                               {/* Handled By & Date */}
-                              <td className="py-4 px-5 min-w-[160px] whitespace-nowrap">
+                              <td className="py-3 px-4 min-w-[140px] whitespace-nowrap">
                                 {req.handledAt ? (
-                                  <div className="flex flex-col gap-0.5 text-[14px]">
+                                  <div className="flex flex-col gap-0.5 text-[12px]">
                                     <span className="font-bold text-slate-800 dark:text-slate-200">
                                       {req.handlerName || req.handlerEmail || 'ผู้ดูแล'}
                                     </span>
-                                    <span className="text-[13px] text-slate-400">
+                                    <span className="text-[11px] text-slate-400">
                                       {safeDateLocaleString(req.handledAt)}
                                     </span>
                                     {req.handlerNote && (
-                                      <span className="text-[13px] text-slate-500 italic mt-0.5">
+                                      <span className="text-[11px] text-slate-500 italic mt-0.5">
                                         หมายเหตุ: {req.handlerNote}
                                       </span>
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 text-[13px]">- ยังไม่ดำเนินการ -</span>
+                                  <span className="text-slate-400 text-[11px]">- ยังไม่ดำเนินการ -</span>
                                 )}
                               </td>
 
                               {/* Actions */}
-                              <td className="py-4 px-5 text-center whitespace-nowrap">
+                              <td className="py-3 px-4 text-center whitespace-nowrap">
                                 <button
                                   onClick={() => handleOpenReview(req)}
                                   title={isPending ? 'พิจารณาคำขอแก้ไข' : 'ดูรายละเอียดคำขอ'}
-                                  className={`w-9 h-9 rounded-xl font-bold transition-all cursor-pointer flex items-center justify-center mx-auto hover:scale-105 active:scale-95 ${
+                                  className={`w-8 h-8 rounded-lg font-bold transition-all cursor-pointer flex items-center justify-center mx-auto hover:scale-105 active:scale-95 ${
                                     isPending
-                                      ? 'bg-brand-500 hover:bg-brand-600 text-white shadow-sm'
+                                      ? 'bg-brand-500 hover:bg-brand-600 text-white shadow-xs'
                                       : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
                                   }`}
                                 >
                                   {isPending ? (
-                                    <FileEdit className="w-4 h-4" />
+                                    <FileEdit className="w-3.5 h-3.5" />
                                   ) : (
-                                    <Eye className="w-4 h-4" />
+                                    <Eye className="w-3.5 h-3.5" />
                                   )}
                                 </button>
                               </td>
