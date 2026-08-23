@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useApp, Booking } from '@/context/AppContext';
 import { parseTimeToMinutes, generateBookingCustomId } from '@/utils/time';
+import * as XLSX from 'xlsx';
 import { 
   X, 
   UploadCloud, 
@@ -336,22 +337,44 @@ export default function ExcelImportModal() {
 
   const handleFile = (file: File) => {
     if (!file) return;
-    if (!file.name.endsWith('.csv')) {
-      showToast("กรุณาเลือกเฉพาะไฟล์สกุล .csv เท่านั้น", "warning");
+    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+    const isCsv = file.name.endsWith('.csv');
+    if (!isXlsx && !isCsv) {
+      showToast("กรุณาเลือกไฟล์ .xlsx (Excel) หรือ .csv เท่านั้น", "warning");
       return;
     }
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      try {
-        const raw = parseCSV(text);
-        validateCSVBookings(raw);
-      } catch (err: any) {
-        showToast("ไม่สามารถเปิดอ่านไฟล์ CSV ได้: " + err.message, "error");
-      }
-    };
-    reader.readAsText(file, 'UTF-8');
+
+    if (isXlsx) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonRows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+          // Convert all cells to string format
+          const stringRows = jsonRows.map(row => (Array.isArray(row) ? row.map(cell => String(cell ?? '').trim()) : []));
+          validateCSVBookings(stringRows);
+        } catch (err: any) {
+          showToast("ไม่สามารถเปิดอ่านไฟล์ Excel ได้: " + err.message, "error");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        try {
+          const raw = parseCSV(text);
+          validateCSVBookings(raw);
+        } catch (err: any) {
+          showToast("ไม่สามารถเปิดอ่านไฟล์ CSV ได้: " + err.message, "error");
+        }
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
   };
 
   // Drag and drop event helpers
@@ -431,18 +454,123 @@ export default function ExcelImportModal() {
     const today = new Date();
     const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'short' });
-    const headers = "Booking ID,Live Date,Day,Start Time,End Time,Room,Brand,Campaign Name,MC Name,Owner,Artwork Link,Booking Status,Last Updated\n";
-    const example = `20260823ARTTR01001,${formattedDate},${dayOfWeek},09:00,10:00,(Special) Onsite LIVE Streaming 1,Aristotle,Live Streaming,แอน,Master Admin,,Confirmed,\n`;
-    
-    // Attach BOM for Excel UTF-8 display compatibility
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), headers + example], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "th_booking_template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    // === Sheet 1: ตารางคิวจอง (Booking Schedule) ===
+    const sheet1Data = [
+      [
+        'Booking ID',
+        'Live Date',
+        'Day',
+        'Start Time',
+        'End Time',
+        'Room',
+        'Brand',
+        'Campaign Name',
+        'MC Name',
+        'Owner',
+        'Artwork Link',
+        'Booking Status',
+        'Last Updated'
+      ],
+      [
+        '', // Booking ID left empty for new booking
+        formattedDate,
+        dayOfWeek,
+        '09:00',
+        '12:00',
+        rooms[0]?.name || '(Special) Onsite LIVE Streaming 1',
+        brands[0]?.name || 'Aristotle',
+        'Live Streaming Promo',
+        mcList[0]?.name || 'อั้มอิ๊ง',
+        'Master Admin',
+        'https://drive.google.com/sample',
+        'Confirmed',
+        ''
+      ],
+      [
+        '', // Booking ID left empty for new booking
+        formattedDate,
+        dayOfWeek,
+        '13:00',
+        '16:00',
+        rooms[1]?.name || rooms[0]?.name || 'Room 02',
+        brands[1]?.name || brands[0]?.name || 'Foremost',
+        'Mid Month Live Event',
+        mcList.slice(0, 2).map(m => m.name).join(', ') || 'แอน, มีน',
+        'Master Admin',
+        '',
+        'Confirmed',
+        ''
+      ]
+    ];
+
+    const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
+    ws1['!cols'] = [
+      { wch: 22 }, // Booking ID
+      { wch: 14 }, // Live Date
+      { wch: 8 },  // Day
+      { wch: 12 }, // Start Time
+      { wch: 12 }, // End Time
+      { wch: 32 }, // Room
+      { wch: 22 }, // Brand
+      { wch: 26 }, // Campaign Name
+      { wch: 20 }, // MC Name
+      { wch: 16 }, // Owner
+      { wch: 30 }, // Artwork Link
+      { wch: 14 }, // Booking Status
+      { wch: 16 }  // Last Updated
+    ];
+
+    // === Sheet 2: คู่มือและข้อมูลอ้างอิง (Guide & Reference) ===
+    const maxRefRows = Math.max(brands.length, rooms.length, mcList.length, 1);
+    const sheet2Data: any[][] = [
+      ['=== คู่มือและคำอธิบายการกรอกคอลัมน์ ===', '', '', ''],
+      ['ชื่อคอลัมน์', 'ความจำเป็น', 'รูปแบบที่ถูกต้อง (Format)', 'คำอธิบายเพิ่มเติม'],
+      ['Booking ID', 'ทางเลือก (Optional)', 'YYYYMMDDBrandSocialRoom (เช่น 20260823ARTTR01001)', '• สร้างคิวใหม่: ให้ "เว้นว่างไว้" ระบบจะสร้างรหัสให้อัตโนมัติ\n• อัปเดตข้อมูลเดิม: ให้ใส่ Booking ID เดิมจากที่ Export ออกมา'],
+      ['Live Date', 'จำเป็น (Required)', 'YYYY-MM-DD (เช่น 2026-08-25)', 'วันที่จัดไลฟ์สด (ห้ามเว้นว่าง)'],
+      ['Day', 'อัตโนมัติ', 'Mon, Tue, Wed, ...', 'ชื่อวันในสัปดาห์ (เว้นว่างได้)'],
+      ['Start Time', 'จำเป็น (Required)', 'HH:MM (เช่น 09:00, 13:30)', 'เวลาเริ่มต้นไลฟ์ 24 ชม.'],
+      ['End Time', 'จำเป็น (Required)', 'HH:MM (เช่น 12:00, 16:30)', 'เวลาสิ้นสุดไลฟ์ 24 ชม.'],
+      ['Room', 'จำเป็น (Required)', 'ดูรายชื่อห้องในตารางด้านล่าง', 'ชื่อห้องสตูดิโอ (ต้องสะกดให้ตรงกับในระบบ)'],
+      ['Brand', 'จำเป็น (Required)', 'ดูรายชื่อแบรนด์ในตารางด้านล่าง', 'ชื่อแบรนด์ลูกค้า (ต้องสะกดให้ตรงกับในระบบ)'],
+      ['Campaign Name', 'ทางเลือก (Optional)', 'ข้อความ (เช่น 9.9 Mega Sale)', 'ชื่อแคมเปญไลฟ์ (หากเว้นว่าง ระบบจะใส่ Live Streaming)'],
+      ['MC Name', 'ทางเลือก (Optional)', 'ดูรายชื่อ MC ในตารางด้านล่าง', 'ชื่อ MC (หากมีมากกว่า 1 คน ให้คั่นด้วยเครื่องหมายจุลภาค ,)'],
+      ['Owner', 'ทางเลือก (Optional)', 'ชื่อผู้รับผิดชอบ', 'ชื่อผู้จอง (เว้นว่างได้)'],
+      ['Artwork Link', 'ทางเลือก (Optional)', 'URL ลิงก์', 'ลิงก์เอกสาร บรีฟ หรือ Canva/Drive'],
+      ['Booking Status', 'ทางเลือก (Optional)', 'Confirmed / Pending', 'สถานะการจอง (ค่าเริ่มต้นคือ Confirmed)'],
+      [''],
+      ['=== ข้อมูลอ้างอิงในระบบ (สามารถ Copy ชื่อไปวางในตารางได้เลย) ===', '', '', '', '', ''],
+      ['ลำดับ', 'รายชื่อแบรนด์ลูกค้า (Brands)', 'ลำดับ', 'รายชื่อห้องสตูดิโอ (Rooms)', 'ลำดับ', 'รายชื่อ MC ทั้งหมด (MCs)']
+    ];
+
+    for (let r = 0; r < maxRefRows; r++) {
+      sheet2Data.push([
+        brands[r] ? r + 1 : '',
+        brands[r]?.name || '',
+        rooms[r] ? r + 1 : '',
+        rooms[r]?.name || '',
+        mcList[r] ? r + 1 : '',
+        mcList[r]?.name || ''
+      ]);
+    }
+
+    const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
+    ws2['!cols'] = [
+      { wch: 8 },  // No
+      { wch: 28 }, // Brand Name
+      { wch: 8 },  // No
+      { wch: 34 }, // Room Name
+      { wch: 8 },  // No
+      { wch: 24 }  // MC Name
+    ];
+
+    // Build Workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'ตารางคิวจอง');
+    XLSX.utils.book_append_sheet(wb, ws2, 'คู่มือและข้อมูลอ้างอิง');
+
+    // Download .xlsx file
+    XLSX.writeFile(wb, 'th_booking_template.xlsx');
   };
 
   if (!isImportModalOpen) return null;
@@ -464,7 +592,7 @@ export default function ExcelImportModal() {
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 flex items-center justify-between shrink-0 select-none">
           <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
             <FileSpreadsheet className="w-4.5 h-4.5 text-indigo-500" />
-            นำเข้าตารางคิวงานจอง (Bulk CSV Import)
+            นำเข้าตารางคิวงานจอง (Excel & CSV Import)
           </h3>
           <button 
             onClick={handleClose}
@@ -479,16 +607,16 @@ export default function ExcelImportModal() {
           {/* Instructions banner */}
           <div className="bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100 dark:border-indigo-900/40 p-4 rounded-xl flex items-start justify-between gap-3 shadow-sm select-none">
             <div className="space-y-1">
-              <span className="font-extrabold text-indigo-700 dark:text-indigo-400 block">ระบบตรวจเช็ค ID อัตโนมัติ (Create & Update):</span>
+              <span className="font-extrabold text-indigo-700 dark:text-indigo-400 block">เทมเพลต Excel พร้อมคู่มือ 2 Sheets ในตัว:</span>
               <p className="text-[10px] text-slate-450 dark:text-slate-400 leading-normal">
-                ระบบจะตรวจสอบ <strong>Booking ID</strong> เป็นหลัก หากพบว่ามีไอดีอยู่ในระบบแล้วจะทำการ <strong>อัปเดตข้อมูลทับคิวเดิม</strong> หากไม่มีจะทำการ <strong>สร้างคิวจองใหม่</strong> ให้อัตโนมัติ
+                กดดาวน์โหลดเทมเพลตเพื่อดูตารางคิวจอง (Sheet 1) และ <strong>คู่มือ + รายชื่อแบรนด์/ห้อง/MC อ้างอิง (Sheet 2)</strong> สามารถ Copy รายชื่อมาใส่ได้ทันที
               </p>
             </div>
             <button
               onClick={handleDownloadTemplate}
               className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-bold flex items-center gap-1.5 shrink-0 cursor-pointer text-[10px] shadow-sm shadow-indigo-500/10"
             >
-              <Download className="w-3.5 h-3.5" /> เทมเพลต CSV
+              <Download className="w-3.5 h-3.5" /> เทมเพลต Excel (.xlsx)
             </button>
           </div>
 
@@ -508,15 +636,15 @@ export default function ExcelImportModal() {
             <input
               type="file"
               ref={fileInputRef}
-              accept=".csv"
+              accept=".xlsx, .xls, .csv"
               onChange={handleFileChange}
               className="hidden"
             />
             <UploadCloud className="w-8 h-8 text-slate-400 dark:text-slate-650" />
             <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">
-              {fileName ? `ไฟล์ที่เลือก: ${fileName}` : 'ลากไฟล์ CSV มาวางที่นี่ หรือคลิกเพื่ออัพโหลดไฟล์'}
+              {fileName ? `ไฟล์ที่เลือก: ${fileName}` : 'ลากไฟล์ Excel (.xlsx) หรือ CSV มาวางที่นี่ หรือคลิกเพื่ออัพโหลด'}
             </span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">รองรับไฟล์ที่ Export ออกจากระบบ หรือไฟล์ตามเทมเพลต</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">รองรับทั้งไฟล์ Excel (.xlsx) และไฟล์ .csv (มี 2 Sheet พร้อมคู่มือในตัว)</span>
           </div>
 
           {/* Previews Container */}
