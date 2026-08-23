@@ -56,7 +56,7 @@ export default function Navigation() {
   const allNavItems = [
     { id: 'scheduler', name: 'ตารางงานรายวัน', icon: CalendarClock },
     { id: 'calendar', name: 'ปฏิทินห้องไลฟ์', icon: Calendar },
-    { id: 'my-bookings', name: 'ประวัติการจองของฉัน', icon: UserIcon },
+    { id: 'my-bookings', name: 'การจองของฉัน', icon: UserIcon },
     { id: 'campaign-schedule', name: 'แคมเปญทั้งหมด', icon: BookOpen },
     { id: 'change-requests', name: 'จัดการคำขอแก้ไขคิว', icon: FileEdit, badge: pendingRequestsCount },
     { id: 'analytics', name: 'รายงานและสถิติ', icon: LineChart },

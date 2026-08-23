@@ -151,7 +151,7 @@ export default function MyBookings() {
       <div>
         <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
           <Compass className="w-5 h-5 text-brand-500" />
-          ประวัติการจองของฉัน
+          การจองของฉัน
         </h2>
         <p className="text-xs text-slate-400 mt-1">คัดกรองเฉพาะตารางการจองห้องที่คุณเป็นเจ้าของรายการจองเพื่อจัดการได้โดยตรง</p>
       </div>

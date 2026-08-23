@@ -560,7 +560,7 @@ export default function Home() {
                 const tabTitles: Record<string, string> = {
                   'scheduler': 'ตารางงานรายวัน',
                   'calendar': 'ปฏิทินห้องไลฟ์',
-                  'my-bookings': 'ประวัติการจองของฉัน',
+                  'my-bookings': 'การจองของฉัน',
                   'campaign-schedule': 'แคมเปญทั้งหมด',
                   'change-requests': 'จัดการคำขอแก้ไขคิว',
                   'analytics': 'รายงานและสถิติการใช้งาน',
