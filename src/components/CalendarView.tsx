@@ -7,7 +7,7 @@ import { formatThaiDate, parseTimeToMinutes, getAutoStatus } from '@/utils/time'
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Sparkles,
+  Calendar,
   CalendarDays,
   ListFilter,
   CheckCircle,
@@ -248,7 +248,7 @@ export default function CalendarView() {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-500" />
+            <Calendar className="w-5 h-5 text-brand-500" />
             ปฏิทินห้องไลฟ์สด ({viewMode === 'month' ? 'รายเดือน' : viewMode === 'week' ? 'รายสัปดาห์' : 'รายวัน'})
           </h2>
           <p className="text-xs text-slate-400 mt-1">ตรวจสอบตารางแคมเปญ คิวงานว่าง และดูการสรุปงานตามมุมมองที่สะดวก</p>
