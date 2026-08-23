@@ -400,6 +400,28 @@ export async function POST(request: Request) {
           isAdmin: r.is_admin
         }));
 
+        let changeRequests: any[] = [];
+        try {
+          const dbRequests = await requestSupabase('GET', 'booking_change_requests?order=created_at.desc');
+          if (Array.isArray(dbRequests)) {
+            changeRequests = dbRequests.map((r: any) => ({
+              id: r.id,
+              bookingId: r.booking_id,
+              bookingCustomId: r.booking_custom_id,
+              requesterEmail: r.requester_email,
+              requesterName: r.requester_name,
+              requestType: r.request_type || 'edit',
+              requestDetails: r.request_details,
+              status: r.status || 'Pending',
+              handlerEmail: r.handler_email,
+              handlerName: r.handler_name,
+              handlerNote: r.handler_note,
+              handledAt: r.handled_at,
+              createdAt: r.created_at
+            }));
+          }
+        } catch (e) {}
+
         return NextResponse.json({
           user: mappedUser,
           rooms,
@@ -410,7 +432,8 @@ export async function POST(request: Request) {
           allUsersAdmin: mappedUsersAdmin,
           roles: mappedRolesAdmin,
           mcTiers: mappedMcTiers,
-          mcList: mappedMcList
+          mcList: mappedMcList,
+          changeRequests
         }, { headers: corsHeaders });
       }
 
@@ -1183,6 +1206,144 @@ export async function POST(request: Request) {
           await requestSupabase('DELETE', `mc_list?id=eq.${encodeURIComponent(p.id)}`);
           await logActivity(user, "DELETE_MC", p.name, `Deleted MC: ${p.name} (ID: ${p.id})`, clientIp, userAgent);
         }
+        return NextResponse.json({ success: true }, { headers: corsHeaders });
+      }
+
+      case 'createChangeRequest': {
+        const p = params;
+        const bId = p.bookingId;
+        const bCustomId = p.bookingCustomId || '';
+        const reqType = p.requestType || 'edit'; // 'edit' or 'cancel'
+        const details = p.requestDetails || '';
+
+        // Verify booking exists
+        const existing = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(bId)}`);
+        if (!existing || existing.length === 0) {
+          return NextResponse.json({ success: false, message: 'ไม่พบคิวจองที่ระบุในระบบ' }, { headers: corsHeaders });
+        }
+
+        // Insert change request
+        const reqRecord = {
+          booking_id: bId,
+          booking_custom_id: bCustomId,
+          requester_email: user.email,
+          requester_name: user.name,
+          request_type: reqType,
+          request_details: typeof details === 'object' ? JSON.stringify(details) : String(details),
+          status: 'Pending'
+        };
+
+        const resReq = await requestSupabase('POST', 'booking_change_requests', reqRecord, { 'Prefer': 'return=representation' });
+
+        // Update booking metadata to reflect pending change request
+        try {
+          let meta: any = {};
+          if (existing[0].ls_artwork_layout) {
+            meta = JSON.parse(existing[0].ls_artwork_layout);
+          }
+          meta.hasPendingChangeRequest = true;
+          meta.lastChangeRequestId = resReq && resReq[0] ? resReq[0].id : undefined;
+          await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { ls_artwork_layout: JSON.stringify(meta) });
+        } catch (e) {}
+
+        await logActivity(user, "CREATE_CHANGE_REQUEST", bCustomId || bId, `Submitted ${reqType} request for booking ${bCustomId || bId}: ${details}`, clientIp, userAgent);
+
+        return NextResponse.json({ success: true }, { headers: corsHeaders });
+      }
+
+      case 'getChangeRequests': {
+        const dbRequests = await requestSupabase('GET', 'booking_change_requests?order=created_at.desc');
+        const mapped = (dbRequests || []).map((r: any) => ({
+          id: r.id,
+          bookingId: r.booking_id,
+          bookingCustomId: r.booking_custom_id,
+          requesterEmail: r.requester_email,
+          requesterName: r.requester_name,
+          requestType: r.request_type || 'edit',
+          requestDetails: r.request_details,
+          status: r.status || 'Pending',
+          handlerEmail: r.handler_email,
+          handlerName: r.handler_name,
+          handlerNote: r.handler_note,
+          handledAt: r.handled_at,
+          createdAt: r.created_at
+        }));
+        return NextResponse.json({ changeRequests: mapped }, { headers: corsHeaders });
+      }
+
+      case 'resolveChangeRequest': {
+        const allowedTabs = (rolePerms.allowed_tabs || '').split(',');
+        if (!isAdmin && !allowedTabs.includes('change-requests') && !rolePerms.can_edit_booking) {
+          return NextResponse.json({ success: false, message: 'ท่านไม่มีสิทธิ์ในการอนุมัติหรือจัดการคำขอแก้ไข' }, { status: 403, headers: corsHeaders });
+        }
+        const p = params;
+        const reqId = p.requestId;
+        const decision = p.decision; // 'APPROVE' | 'REJECT'
+        const handlerNote = p.handlerNote || '';
+        const updatedBookingData = p.updatedBookingData; // If edit was performed
+
+        const reqList = await requestSupabase('GET', `booking_change_requests?id=eq.${encodeURIComponent(reqId)}`);
+        if (!reqList || reqList.length === 0) {
+          return NextResponse.json({ success: false, message: 'ไม่พบข้อมูลคำร้องนี้' }, { headers: corsHeaders });
+        }
+        const changeReq = reqList[0];
+        const bId = changeReq.booking_id;
+        const nowIso = new Date().toISOString();
+
+        if (decision === 'APPROVE') {
+          if (changeReq.request_type === 'cancel') {
+            await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { status: 'Cancelled' });
+          } else if (updatedBookingData) {
+            const dbPayload = mapBookingToDb(updatedBookingData);
+            if (dbPayload) {
+              // Ensure metadata records approval history
+              let meta: any = {};
+              if (dbPayload.ls_artwork_layout) {
+                try { meta = JSON.parse(dbPayload.ls_artwork_layout); } catch (e) {}
+              }
+              meta.hasPendingChangeRequest = false;
+              meta.lastHandledAt = nowIso;
+              meta.lastHandlerName = user.name;
+              meta.lastHandlerNote = handlerNote;
+              dbPayload.ls_artwork_layout = JSON.stringify(meta);
+              await requestSupabase('PATCH', `bookings?id=eq.${bId}`, dbPayload);
+            }
+          }
+
+          // Update request record
+          await requestSupabase('PATCH', `booking_change_requests?id=eq.${encodeURIComponent(reqId)}`, {
+            status: 'Approved',
+            handler_email: user.email,
+            handler_name: user.name,
+            handler_note: handlerNote,
+            handled_at: nowIso
+          });
+
+          await logActivity(user, "APPROVE_CHANGE_REQUEST", changeReq.booking_custom_id || bId, `Approved change request ID: ${reqId}`, clientIp, userAgent);
+        } else {
+          // REJECT
+          // Clear pending flag on booking
+          const existingB = await requestSupabase('GET', `bookings?id=eq.${bId}`);
+          if (existingB && existingB.length > 0) {
+            let meta: any = {};
+            if (existingB[0].ls_artwork_layout) {
+              try { meta = JSON.parse(existingB[0].ls_artwork_layout); } catch (e) {}
+            }
+            meta.hasPendingChangeRequest = false;
+            await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { ls_artwork_layout: JSON.stringify(meta) });
+          }
+
+          await requestSupabase('PATCH', `booking_change_requests?id=eq.${encodeURIComponent(reqId)}`, {
+            status: 'Rejected',
+            handler_email: user.email,
+            handler_name: user.name,
+            handler_note: handlerNote,
+            handled_at: nowIso
+          });
+
+          await logActivity(user, "REJECT_CHANGE_REQUEST", changeReq.booking_custom_id || bId, `Rejected change request ID: ${reqId}. Reason: ${handlerNote}`, clientIp, userAgent);
+        }
+
         return NextResponse.json({ success: true }, { headers: corsHeaders });
       }
 

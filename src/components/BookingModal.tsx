@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp, Booking } from '@/context/AppContext';
-import { parseTimeToMinutes, minutesToTimeStr, generateBookingCustomId } from '@/utils/time';
+import { parseTimeToMinutes, minutesToTimeStr, generateBookingCustomId, formatThaiDate } from '@/utils/time';
 import { 
   X, 
   Clock, 
@@ -23,7 +23,11 @@ import {
   Table as TableIcon, 
   Link2,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Send,
+  FileEdit,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function BookingModal() {
@@ -45,12 +49,19 @@ export default function BookingModal() {
     mcList,
     mcTiers,
     allUsersAdmin,
-    settings
+    settings,
+    changeRequests
   } = useApp();
 
   const [loading, setLoading] = useState(false);
   const [isShake, setIsShake] = useState(false);
   const [conflictMsg, setConflictMsg] = useState('');
+
+  // 14-day lock & Change Request dialog states
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [requestDialogType, setRequestDialogType] = useState<'edit' | 'cancel'>('edit');
+  const [requestDialogDetails, setRequestDialogDetails] = useState('');
+  const [requestDialogSubmitting, setRequestDialogSubmitting] = useState(false);
 
   // Form Fields
   const [roomName, setRoomName] = useState('');
@@ -452,11 +463,61 @@ export default function BookingModal() {
   const isAdmin = currentUser?.permissions?.isAdmin || currentUser?.role === 'Master Admin';
   const isOwner = isEditMode && matchedBooking && matchedBooking.ownerEmail?.toLowerCase() === currentUser?.email?.toLowerCase();
 
+  const daysUntilBooking = useMemo(() => {
+    if (!matchedBooking?.date) return 999;
+    const target = new Date(matchedBooking.date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = target.getTime() - today.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }, [matchedBooking?.date]);
+
+  const isLocked14Days = isEditMode && daysUntilBooking < 14;
+  const requiresChangeRequest = isLocked14Days && !isAdmin;
+
+  const pendingChangeReq = useMemo(() => {
+    if (!matchedBooking) return null;
+    return (changeRequests || []).find(r => r.bookingId === matchedBooking.id && r.status === 'Pending') || null;
+  }, [matchedBooking, changeRequests]);
+
+  const lastHandledReq = useMemo(() => {
+    if (!matchedBooking) return null;
+    return (changeRequests || []).find(r => r.bookingId === matchedBooking.id && r.status === 'Approved') || null;
+  }, [matchedBooking, changeRequests]);
+
   const canSave = isEditMode 
-    ? (currentUser?.permissions?.canEditBooking && (isAdmin || isOwner)) 
+    ? (currentUser?.permissions?.canEditBooking && (isAdmin || (isOwner && !requiresChangeRequest))) 
     : currentUser?.permissions?.canCreateBooking;
     
-  const canCancel = isEditMode && currentUser?.permissions?.canCancelBooking && (isAdmin || isOwner);
+  const canCancel = isEditMode && currentUser?.permissions?.canCancelBooking && (isAdmin || (isOwner && !requiresChangeRequest));
+
+  const handleSubmitChangeRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matchedBooking) return;
+    if (!requestDialogDetails.trim()) {
+      showToast('กรุณาระบุรายละเอียดและเหตุผลที่ต้องการขอเปลี่ยนแปลง', 'warning');
+      return;
+    }
+    setRequestDialogSubmitting(true);
+    const customId = generateBookingCustomId(matchedBooking, calendarBookings);
+    
+    await apiCall('createChangeRequest', {
+      bookingId: matchedBooking.id,
+      bookingCustomId: customId,
+      requestType: requestDialogType,
+      requestDetails: requestDialogDetails.trim()
+    }, (err, res) => {
+      setRequestDialogSubmitting(false);
+      if (err) {
+        showToast(err, 'error');
+      } else {
+        showToast('ส่งคำร้องเรียบร้อยแล้ว ผู้รับผิดชอบจะดำเนินการตรวจสอบ', 'success');
+        setIsRequestDialogOpen(false);
+        setRequestDialogDetails('');
+        refreshActiveTabData();
+      }
+    });
+  };
 
   // Toggle MC Selection (Max 4)
   const handleToggleMc = (mcIdVal: string) => {
@@ -537,6 +598,53 @@ export default function BookingModal() {
         {/* Modal Body */}
         <div className="flex-1 p-6 overflow-y-auto space-y-5 text-xs text-slate-800 dark:text-slate-200">
           
+          {/* Pending Change Request Alert */}
+          {pendingChangeReq && (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 p-3.5 rounded-2xl flex items-start gap-2.5 text-amber-900 dark:text-amber-300">
+              <Clock className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
+              <div className="flex-1">
+                <strong className="font-extrabold block">⏳ คิวนี้มีคำร้องขอที่อยู่ระหว่างรอการพิจารณา</strong>
+                <span className="text-[10px] opacity-90 block mt-0.5">
+                  ประเภท: {pendingChangeReq.requestType === 'cancel' ? 'ขอยกเลิกคิว' : 'ขอแก้ไขข้อมูล'} | ส่งเมื่อ: {new Date(pendingChangeReq.createdAt).toLocaleString('th-TH')}
+                </span>
+                <span className="text-[10px] opacity-80 block mt-0.5 bg-white/60 dark:bg-slate-900/40 p-2 rounded-xl border border-amber-200/60 dark:border-amber-900/30">
+                  {pendingChangeReq.requestDetails}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Last Approved Change Request History */}
+          {!pendingChangeReq && lastHandledReq && (
+            <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 p-3 rounded-2xl flex items-start gap-2 text-emerald-900 dark:text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <div className="flex-1 text-[10px]">
+                <strong className="font-extrabold block">✅ คิวนี้ได้รับการแก้ไขตามคำร้องแล้ว</strong>
+                <span>
+                  เมื่อ: {lastHandledReq.handledAt ? new Date(lastHandledReq.handledAt).toLocaleString('th-TH') : '-'} โดย: {lastHandledReq.handlerName || 'ผู้ดูแลระบบ'}
+                </span>
+                {lastHandledReq.handlerNote && (
+                  <span className="block mt-0.5 italic text-emerald-700 dark:text-emerald-400">
+                    หมายเหตุ: {lastHandledReq.handlerNote}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 14-Day Lock Rule Warning Banner */}
+          {requiresChangeRequest && (
+            <div className="bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/50 p-3.5 rounded-2xl flex items-start gap-2.5 text-indigo-950 dark:text-indigo-300 shadow-xs">
+              <Lock className="w-4.5 h-4.5 text-indigo-500 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <strong className="font-extrabold block">🔒 กฎการแก้ไขคิวล่วงหน้า (14-Day Lock Rule)</strong>
+                <span className="text-[10px] text-slate-600 dark:text-slate-300 block mt-0.5 leading-relaxed">
+                  คิวนี้จะเริ่มไลฟ์ในอีก <strong className="text-indigo-600 dark:text-indigo-400">{daysUntilBooking} วัน</strong> (น้อยกว่า 14 วัน) ระบบล็อคการแก้ไขและยกเลิกโดยตรง หากต้องการเปลี่ยนแปลงกรุณากดปุ่ม <strong>"ส่งคำร้องขอแก้ไข"</strong> หรือ <strong>"ส่งคำร้องขอยกเลิก"</strong> ด้านล่าง
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Booking conflicts display */}
           {conflictMsg && (
             <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 p-3.5 rounded-xl flex items-start gap-2.5 text-rose-900 dark:text-rose-350">
@@ -898,15 +1006,44 @@ export default function BookingModal() {
 
             {/* Modal Actions controls */}
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5 select-none text-xs">
-              {/* Primary Save Button (Full Width) */}
-              {canSave && (
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <Save className="w-4 h-4" /> {loading ? 'กำลังบันทึก...' : 'บันทึกรายการจอง'}
-                </button>
+              
+              {/* If 14-Day Lock applies and user is not admin -> Show Change Request Buttons */}
+              {requiresChangeRequest ? (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRequestDialogType('edit');
+                      setRequestDialogDetails('');
+                      setIsRequestDialogOpen(true);
+                    }}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Send className="w-4 h-4" /> ส่งคำร้องขอแก้ไขคิวไลฟ์ (Request Edit)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRequestDialogType('cancel');
+                      setRequestDialogDetails('');
+                      setIsRequestDialogOpen(true);
+                    }}
+                    className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> ส่งคำร้องขอยกเลิกคิว (Request Cancel)
+                  </button>
+                </div>
+              ) : (
+                /* Primary Save Button (Full Width) */
+                canSave && (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Save className="w-4 h-4" /> {loading ? 'กำลังบันทึก...' : 'บันทึกรายการจอง'}
+                  </button>
+                )
               )}
 
               {/* Utility Row (Two Columns) */}
@@ -932,7 +1069,7 @@ export default function BookingModal() {
               </div>
 
               {/* Danger Zone: Cancel Booking (Full Width) */}
-              {canCancel && (
+              {!requiresChangeRequest && canCancel && (
                 <button
                   type="button"
                   onClick={handleCancelBooking}
@@ -946,6 +1083,69 @@ export default function BookingModal() {
           </form>
         </div>
       </div>
+
+      {/* REQUEST SUBMISSION DIALOG */}
+      {isRequestDialogOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setIsRequestDialogOpen(false)} />
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                {requestDialogType === 'edit' ? <FileEdit className="w-4 h-4 text-indigo-500" /> : <Trash2 className="w-4 h-4 text-rose-500" />}
+                {requestDialogType === 'edit' ? 'ส่งคำร้องขอแก้ไขข้อมูลคิวไลฟ์' : 'ส่งคำร้องขอยกเลิกคิวไลฟ์'}
+              </h3>
+              <button onClick={() => setIsRequestDialogOpen(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitChangeRequest} className="space-y-4 text-xs">
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl text-[11px] text-amber-900 dark:text-amber-300">
+                เนื่องจากคิวนี้มีกำหนดการไลฟ์ในอีก <strong>{daysUntilBooking} วัน (ต่ำกว่า 14 วัน)</strong> คำร้องนี้จะถูกส่งไปยัง <strong>"เมนูจัดการคำขอแก้ไข"</strong> เพื่อให้ผู้รับผิดชอบพิจารณาและอัปเดตระบบ
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  {requestDialogType === 'edit' ? 'ระบุสิ่งที่ต้องการขอแก้ไข และเหตุผลความจำเป็น *' : 'ระบุเหตุผลการขอยกเลิกคิว *'}
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder={requestDialogType === 'edit' 
+                    ? "เช่น ขอเปลี่ยนเวลาเป็น 14:00 - 16:00 น. เนื่องจากสินค้าตัวอย่างมาส่งล่าช้า หรือขอเปลี่ยน MC เป็นคุณ..."
+                    : "เช่น แบรนด์แจ้งเลื่อนแคมเปญกะทันหัน หรือมีปัญหาด้านสต็อกสินค้า"
+                  }
+                  value={requestDialogDetails}
+                  onChange={(e) => setRequestDialogDetails(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium focus:outline-none focus:border-brand-500"
+                  required
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRequestDialogOpen(false)}
+                  className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={requestDialogSubmitting}
+                  className={`px-5 py-2 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer ${
+                    requestDialogType === 'edit' 
+                      ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/25' 
+                      : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
+                  }`}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {requestDialogSubmitting ? 'กำลังส่งคำร้อง...' : 'ยืนยันการส่งคำร้อง'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,22 @@ export interface Booking {
   mcId?: string | null;
 }
 
+export interface BookingChangeRequest {
+  id: string;
+  bookingId: string;
+  bookingCustomId?: string;
+  requesterEmail: string;
+  requesterName: string;
+  requestType: 'edit' | 'cancel';
+  requestDetails: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  handlerEmail?: string;
+  handlerName?: string;
+  handlerNote?: string;
+  handledAt?: string;
+  createdAt: string;
+}
+
 export interface McTier {
   id: string;
   name: string;
@@ -124,6 +140,7 @@ interface AppContextType {
   settings: SystemSettings | null;
   mcTiers: McTier[];
   mcList: McList[];
+  changeRequests: BookingChangeRequest[];
   
   // State methods
   setCurrentTab: (tab: string) => void;
@@ -135,6 +152,7 @@ interface AppContextType {
   setSettings: React.Dispatch<React.SetStateAction<SystemSettings | null>>;
   setMcTiers: React.Dispatch<React.SetStateAction<McTier[]>>;
   setMcList: React.Dispatch<React.SetStateAction<McList[]>>;
+  setChangeRequests: React.Dispatch<React.SetStateAction<BookingChangeRequest[]>>;
   
   // Modal states
   activeBookingIdForEdit: string | null;
@@ -199,6 +217,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [mcTiers, setMcTiers] = useState<McTier[]>([]);
   const [mcList, setMcList] = useState<McList[]>([]);
+  const [changeRequests, setChangeRequests] = useState<BookingChangeRequest[]>([]);
 
   // Initialize Dates
   useEffect(() => {
@@ -338,6 +357,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.roles) setRoles(data.roles);
         if (data.mcTiers) setMcTiers(data.mcTiers);
         if (data.mcList) setMcList(data.mcList);
+        if (data.changeRequests) setChangeRequests(data.changeRequests);
         
         // Local My Bookings filtering matching getMyBookings
         if (data.user && data.allBookings) {
@@ -353,9 +373,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const allowed = (currentUser.permissions.allowedTabs || '').split(',');
       if (allowed.length > 0) {
         // If currentTab is setting/admin subtabs and we have settings access
-        const isSettingsSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab);
+        const isSettingsSub = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].includes(currentTab);
         const hasSettingsAccess = allowed.some(tab => 
-          ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(tab)
+          ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].includes(tab)
         );
         
         if (isSettingsSub && hasSettingsAccess) {
@@ -499,6 +519,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       settings,
       mcTiers,
       mcList,
+      changeRequests,
       
       setCurrentTab,
       setFilters,
@@ -509,6 +530,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSettings,
       setMcTiers,
       setMcList,
+      setChangeRequests,
       
       activeBookingIdForEdit,
       setActiveBookingIdForEdit,

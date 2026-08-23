@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useApp, Room, Brand, User, Role, AuditLog } from '@/context/AppContext';
-import { formatThaiDate, getAutoStatus } from '@/utils/time';
+import { useApp, Room, Brand, User, Role, AuditLog, BookingChangeRequest, Booking } from '@/context/AppContext';
+import { formatThaiDate, getAutoStatus, generateBookingCustomId, parseTimeToMinutes } from '@/utils/time';
 import { 
   Plus, 
   Edit2, 
@@ -18,10 +18,17 @@ import {
   X,
   Bell,
   RefreshCw,
-  Clock
+  Clock,
+  FileEdit,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Calendar,
+  Eye,
+  Save
 } from 'lucide-react';
 
-type SubTab = 'rooms' | 'brands' | 'users' | 'roles' | 'logs' | 'settings' | 'mc-live';
+type SubTab = 'rooms' | 'brands' | 'users' | 'roles' | 'logs' | 'settings' | 'mc-live' | 'change-requests';
 
 export default function AdminPanels() {
   const {
@@ -42,6 +49,7 @@ export default function AdminPanels() {
     setCurrentTab,
     mcList,
     mcTiers,
+    changeRequests,
     setSelectedDate,
     setHighlightedBookingId
   } = useApp();
@@ -64,6 +72,7 @@ export default function AdminPanels() {
     if (currentTab === 'rooms') return 'rooms';
     if (currentTab === 'brands') return 'brands';
     if (currentTab === 'mc-live') return 'mc-live';
+    if (currentTab === 'change-requests') return 'change-requests';
     if (currentTab === 'users') return 'users';
     if (currentTab === 'roles-mgmt') return 'roles';
     if (currentTab === 'audit-log') return 'logs';
@@ -73,6 +82,7 @@ export default function AdminPanels() {
     if (allowedTabs.includes('rooms')) return 'rooms';
     if (allowedTabs.includes('brands')) return 'brands';
     if (allowedTabs.includes('mc-live')) return 'mc-live';
+    if (allowedTabs.includes('change-requests')) return 'change-requests';
     if (allowedTabs.includes('users')) return 'users';
     if (allowedTabs.includes('roles-mgmt')) return 'roles';
     if (allowedTabs.includes('audit-log')) return 'logs';
@@ -230,6 +240,87 @@ export default function AdminPanels() {
       });
     }
   }, [activeSubTab, apiCall, setAuditLogs]);
+
+  // Change Requests Review & Approval States
+  const [reqFilterStatus, setReqFilterStatus] = useState<'ALL' | 'Pending' | 'Approved' | 'Rejected'>('ALL');
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedReq, setSelectedReq] = useState<BookingChangeRequest | null>(null);
+  const [reviewMatchedBooking, setReviewMatchedBooking] = useState<Booking | null>(null);
+  const [reviewHandlerNote, setReviewHandlerNote] = useState('');
+  
+  // Review form fields for updating the booking
+  const [revDate, setRevDate] = useState('');
+  const [revStartTime, setRevStartTime] = useState('');
+  const [revEndTime, setRevEndTime] = useState('');
+  const [revRoom, setRevRoom] = useState('');
+  const [revBrand, setRevBrand] = useState('');
+  const [revCampaign, setRevCampaign] = useState('');
+  const [revSelectedMcIds, setRevSelectedMcIds] = useState<string[]>([]);
+  const [revBriefText, setRevBriefText] = useState('');
+  const [revBriefLink, setRevBriefLink] = useState('');
+  const [revRemark, setRevRemark] = useState('');
+  const [revSubmitting, setRevSubmitting] = useState(false);
+
+  const handleOpenReview = (req: BookingChangeRequest) => {
+    setSelectedReq(req);
+    setReviewHandlerNote(req.handlerNote || '');
+    
+    // Find matched booking from calendarBookings
+    const matched = calendarBookings.find(b => b.id === req.bookingId) || null;
+    setReviewMatchedBooking(matched);
+    
+    if (matched) {
+      setRevDate(matched.date);
+      setRevStartTime(matched.startTime);
+      setRevEndTime(matched.endTime);
+      setRevRoom(matched.roomName);
+      setRevBrand(matched.brandName);
+      setRevCampaign(matched.campaignName);
+      setRevSelectedMcIds(matched.mcId ? matched.mcId.split(',').map(x => x.trim()).filter(Boolean) : []);
+      setRevBriefText(matched.briefText || '');
+      setRevBriefLink(matched.briefLink || '');
+      setRevRemark(matched.remark || '');
+    }
+    setIsReviewModalOpen(true);
+  };
+
+  const handleResolveRequest = async (decision: 'APPROVE' | 'REJECT') => {
+    if (!selectedReq) return;
+    setRevSubmitting(true);
+    
+    let updatedBookingData: any = null;
+    if (decision === 'APPROVE' && selectedReq.requestType === 'edit' && reviewMatchedBooking) {
+      updatedBookingData = {
+        ...reviewMatchedBooking,
+        date: revDate,
+        startTime: revStartTime,
+        endTime: revEndTime,
+        roomName: revRoom,
+        brandName: revBrand,
+        campaignName: revCampaign,
+        briefText: revBriefText,
+        briefLink: revBriefLink,
+        remark: revRemark,
+        mcId: revSelectedMcIds.join(',')
+      };
+    }
+
+    await apiCall('resolveChangeRequest', {
+      requestId: selectedReq.id,
+      decision,
+      handlerNote: reviewHandlerNote,
+      updatedBookingData
+    }, (err, res) => {
+      setRevSubmitting(false);
+      if (err) {
+        showToast(err, 'error');
+      } else {
+        showToast(decision === 'APPROVE' ? 'อนุมัติและอัปเดตข้อมูลคิวจองเรียบร้อยแล้ว' : 'ปฏิเสธคำขอเรียบร้อยแล้ว', 'success');
+        setIsReviewModalOpen(false);
+        refreshActiveTabData();
+      }
+    });
+  };
 
   // CRUD Handles - ROOMS
   const handleSaveRoom = async (e: React.FormEvent) => {
@@ -684,6 +775,8 @@ export default function AdminPanels() {
   const tabsList = [
     { id: 'rooms', name: 'ห้องสตูดิโอ', icon: Database },
     { id: 'brands', name: 'แบรนด์ลูกค้า', icon: Building },
+    { id: 'mc-live', name: 'จัดการ MC ไลฟ์สด', icon: UserPlus },
+    { id: 'change-requests', name: 'คำขอแก้ไขคิวไลฟ์', icon: FileEdit },
     { id: 'users', name: 'ผู้ใช้งานระบบ', icon: UserPlus },
     { id: 'roles', name: 'ระดับสิทธิ์การจอง', icon: Layers },
     { id: 'logs', name: 'ประวัติกิจกรรม (Audit)', icon: Clock },
@@ -1380,7 +1473,7 @@ export default function AdminPanels() {
                             <button
                               type="button"
                               onClick={() => {
-                                const settingsSubtabs = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'];
+                                const settingsSubtabs = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'];
                                 const allChecked = settingsSubtabs.every(id => roleAllowedTabs.includes(id));
                                 if (allChecked) {
                                   // remove all settings subtabs
@@ -1397,7 +1490,7 @@ export default function AdminPanels() {
                             >
                               <input
                                 type="checkbox"
-                                checked={['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].every(id => roleAllowedTabs.includes(id))}
+                                checked={['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].every(id => roleAllowedTabs.includes(id))}
                                 readOnly
                                 className="w-3 h-3 rounded border-slate-350 dark:border-slate-700 text-brand-650 pointer-events-none"
                               />
@@ -1410,6 +1503,7 @@ export default function AdminPanels() {
                               { id: 'rooms',            label: '🚪 ห้องสตูดิโอ' },
                               { id: 'brands',           label: '🏢 แบรนด์ลูกค้า' },
                               { id: 'mc-live',          label: '🎙️ การจัดการ MC ไลฟ์สด' },
+                              { id: 'change-requests',  label: '📋 คำขอแก้ไขคิวไลฟ์' },
                               { id: 'users',            label: '👥 ผู้ใช้งานระบบ' },
                               { id: 'roles-mgmt',       label: '🔑 ระดับสิทธิ์การจอง' },
                               { id: 'audit-log',        label: '📝 ประวัติกิจกรรม' },
@@ -2055,7 +2149,510 @@ export default function AdminPanels() {
             </div>
           )}
 
+          {/* CHANGE REQUESTS SUBTAB */}
+          {activeSubTab === 'change-requests' && (
+            <div className="flex flex-col gap-6 w-full animate-in fade-in duration-200">
+              {/* Top KPI Badges */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div 
+                  onClick={() => setReqFilterStatus('ALL')}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    reqFilterStatus === 'ALL'
+                      ? 'bg-brand-50/80 dark:bg-brand-950/30 border-brand-300 dark:border-brand-800'
+                      : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider block">คำขอทั้งหมด</span>
+                  <span className="text-xl font-black text-slate-800 dark:text-white">{(changeRequests || []).length}</span>
+                </div>
+                <div 
+                  onClick={() => setReqFilterStatus('Pending')}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    reqFilterStatus === 'Pending'
+                      ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800'
+                      : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" /> รอพิจารณา
+                  </span>
+                  <span className="text-xl font-black text-amber-600 dark:text-amber-400">
+                    {(changeRequests || []).filter(r => r.status === 'Pending').length}
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setReqFilterStatus('Approved')}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    reqFilterStatus === 'Approved'
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">อนุมัติแล้ว</span>
+                  <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                    {(changeRequests || []).filter(r => r.status === 'Approved').length}
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setReqFilterStatus('Rejected')}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    reqFilterStatus === 'Rejected'
+                      ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
+                      : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block">ปฏิเสธคำขอ</span>
+                  <span className="text-xl font-black text-rose-600 dark:text-rose-400">
+                    {(changeRequests || []).filter(r => r.status === 'Rejected').length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Filters & Actions bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Search */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="ค้นหา ID คิว, ผู้ส่ง, รายละเอียด..."
+                      value={adminSearchQuery}
+                      onChange={(e) => setAdminSearchQuery(e.target.value)}
+                      className="w-64 pl-9 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:border-brand-500"
+                    />
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+
+                  {/* Filter Status Pills */}
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl">
+                    {[
+                      { id: 'ALL', label: 'ทั้งหมด' },
+                      { id: 'Pending', label: 'รอพิจารณา' },
+                      { id: 'Approved', label: 'อนุมัติแล้ว' },
+                      { id: 'Rejected', label: 'ปฏิเสธ' }
+                    ].map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setReqFilterStatus(f.id as any)}
+                        className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                          reqFilterStatus === f.id
+                            ? 'bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-xs'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-450 dark:text-slate-400 font-semibold">
+                  แสดง {
+                    (changeRequests || []).filter(r => {
+                      if (reqFilterStatus !== 'ALL' && r.status !== reqFilterStatus) return false;
+                      if (adminSearchQuery.trim()) {
+                        const q = adminSearchQuery.toLowerCase();
+                        return (r.bookingCustomId || '').toLowerCase().includes(q) ||
+                               (r.requesterEmail || '').toLowerCase().includes(q) ||
+                               (r.requesterName || '').toLowerCase().includes(q) ||
+                               (r.requestDetails || '').toLowerCase().includes(q);
+                      }
+                      return true;
+                    }).length
+                  } รายการ
+                </div>
+              </div>
+
+              {/* Table of Requests */}
+              <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-150 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/50 text-[10px] uppercase font-bold text-slate-450 dark:text-slate-400 tracking-wider select-none">
+                        <th className="py-3 px-4">ID คิวจอง (Booking ID)</th>
+                        <th className="py-3 px-4">วันที่ & ห้องไลฟ์</th>
+                        <th className="py-3 px-4">ผู้ส่งคำร้อง</th>
+                        <th className="py-3 px-4">ประเภทคำขอ</th>
+                        <th className="py-3 px-4">รายละเอียดที่ขอแก้ไข</th>
+                        <th className="py-3 px-4">สถานะ</th>
+                        <th className="py-3 px-4">ผู้ดำเนินการ & วันที่แก้ไข</th>
+                        <th className="py-3 px-4 text-center">จัดการ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
+                      {(() => {
+                        const list = (changeRequests || []).filter(r => {
+                          if (reqFilterStatus !== 'ALL' && r.status !== reqFilterStatus) return false;
+                          if (adminSearchQuery.trim()) {
+                            const q = adminSearchQuery.toLowerCase();
+                            return (r.bookingCustomId || '').toLowerCase().includes(q) ||
+                                   (r.requesterEmail || '').toLowerCase().includes(q) ||
+                                   (r.requesterName || '').toLowerCase().includes(q) ||
+                                   (r.requestDetails || '').toLowerCase().includes(q);
+                          }
+                          return true;
+                        });
+
+                        if (list.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={8} className="py-12 text-center text-slate-400 dark:text-slate-500 font-semibold">
+                                ไม่พบรายการคำขอแก้ไขคิวไลฟ์
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return list.map(req => {
+                          const matchedB = calendarBookings.find(b => b.id === req.bookingId);
+                          const isPending = req.status === 'Pending';
+                          const isApproved = req.status === 'Approved';
+                          const isRejected = req.status === 'Rejected';
+
+                          return (
+                            <tr key={req.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-850/40 transition-all">
+                              {/* Booking ID */}
+                              <td className="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
+                                {req.bookingCustomId || (matchedB ? generateBookingCustomId(matchedB, calendarBookings) : req.bookingId.substring(0, 8))}
+                              </td>
+
+                              {/* Date & Room */}
+                              <td className="py-3.5 px-4">
+                                {matchedB ? (
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                                      {formatThaiDate(matchedB.date)}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">
+                                      {matchedB.roomName} ({matchedB.startTime} - {matchedB.endTime} น.)
+                                    </span>
+                                    <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold">
+                                      แบรนด์: {matchedB.brandName}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 text-[10px]">คิวจองถูกลบหรือยกเลิกแล้ว</span>
+                                )}
+                              </td>
+
+                              {/* Requester */}
+                              <td className="py-3.5 px-4">
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="font-bold text-slate-800 dark:text-slate-200">{req.requesterName}</span>
+                                  <span className="text-[10px] text-slate-400">{req.requesterEmail}</span>
+                                  <span className="text-[9px] text-slate-450 dark:text-slate-500">
+                                    {req.createdAt ? new Date(req.createdAt).toLocaleString('th-TH') : '-'}
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Type */}
+                              <td className="py-3.5 px-4">
+                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                                  req.requestType === 'cancel'
+                                    ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400'
+                                    : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400'
+                                }`}>
+                                  {req.requestType === 'cancel' ? '🗑️ ขอยกเลิกคิว' : '✏️ ขอแก้ไขข้อมูล'}
+                                </span>
+                              </td>
+
+                              {/* Details */}
+                              <td className="py-3.5 px-4 max-w-xs">
+                                <div className="p-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 line-clamp-3">
+                                  {req.requestDetails || '-'}
+                                </div>
+                              </td>
+
+                              {/* Status */}
+                              <td className="py-3.5 px-4">
+                                {isPending && (
+                                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center gap-1 w-max">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                                    รอพิจารณา
+                                  </span>
+                                )}
+                                {isApproved && (
+                                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 w-max">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                    อนุมัติแล้ว
+                                  </span>
+                                )}
+                                {isRejected && (
+                                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center gap-1 w-max">
+                                    <XCircle className="w-3 h-3 text-rose-500" />
+                                    ปฏิเสธ
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Handled By & Date */}
+                              <td className="py-3.5 px-4 text-[11px]">
+                                {req.handledAt ? (
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                                      {req.handlerName || req.handlerEmail || 'ผู้ดูแล'}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">
+                                      {new Date(req.handledAt).toLocaleString('th-TH')}
+                                    </span>
+                                    {req.handlerNote && (
+                                      <span className="text-[10px] text-slate-500 italic">
+                                        หมายเหตุ: {req.handlerNote}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 text-[10px]">- ยังไม่ดำเนินการ -</span>
+                                )}
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3.5 px-4 text-center">
+                                <button
+                                  onClick={() => handleOpenReview(req)}
+                                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1 mx-auto ${
+                                    isPending
+                                      ? 'bg-brand-500 hover:bg-brand-600 text-white shadow-xs'
+                                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                  }`}
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                  {isPending ? 'พิจารณา & แก้ไข' : 'ดูรายละเอียด'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
       </div>
+
+      {/* REVIEW & APPROVAL MODAL */}
+      {isReviewModalOpen && selectedReq && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" onClick={() => setIsReviewModalOpen(false)} />
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4 shrink-0">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <FileEdit className="w-4 h-4 text-brand-500" />
+                  พิจารณาคำขอแก้ไขคิวไลฟ์
+                </h3>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">
+                  คิวจอง ID: {selectedReq.bookingCustomId || selectedReq.bookingId}
+                </span>
+              </div>
+              <button onClick={() => setIsReviewModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto space-y-4 text-xs pr-1">
+              {/* Request Info Card */}
+              <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-900 dark:text-indigo-300">
+                    ผู้ส่งคำร้อง: {selectedReq.requesterName} ({selectedReq.requesterEmail})
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {selectedReq.createdAt ? new Date(selectedReq.createdAt).toLocaleString('th-TH') : ''}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">รายละเอียด / สิ่งที่ขอแก้ไข:</span>
+                  <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200 bg-white/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+                    {selectedReq.requestDetails || 'ไม่ได้ระบุ'}
+                  </p>
+                </div>
+              </div>
+
+              {/* If Edit Mode -> Editable Booking Fields */}
+              {selectedReq.requestType === 'edit' && reviewMatchedBooking && (
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                  <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs block">
+                    ✏️ ปรับปรุงข้อมูลคิวจองจริง (จะถูกบันทึกทันทีเมื่อกดอนุมัติ):
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">วันที่ไลฟ์</label>
+                      <input
+                        type="date"
+                        value={revDate}
+                        onChange={(e) => setRevDate(e.target.value)}
+                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">ห้องสตูดิโอ</label>
+                      <select
+                        value={revRoom}
+                        onChange={(e) => setRevRoom(e.target.value)}
+                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                      >
+                        {allRoomsAdmin.map(r => (
+                          <option key={r.id} value={r.name}>{r.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">เวลาเริ่ม</label>
+                      <input
+                        type="text"
+                        value={revStartTime}
+                        onChange={(e) => setRevStartTime(e.target.value)}
+                        placeholder="09:00"
+                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold font-mono"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">เวลาจบ</label>
+                      <input
+                        type="text"
+                        value={revEndTime}
+                        onChange={(e) => setRevEndTime(e.target.value)}
+                        placeholder="11:00"
+                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">แบรนด์สินค้า</label>
+                      <select
+                        value={revBrand}
+                        onChange={(e) => setRevBrand(e.target.value)}
+                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                      >
+                        {allBrandsAdmin.map(b => (
+                          <option key={b.id} value={b.name}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">ชื่อแคมเปญ</label>
+                      <input
+                        type="text"
+                        value={revCampaign}
+                        onChange={(e) => setRevCampaign(e.target.value)}
+                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">MC ประจำไลฟ์ (เลือกหลายท่านได้)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto p-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900">
+                      {mcList.map(m => {
+                        const checked = revSelectedMcIds.includes(m.id);
+                        return (
+                          <label key={m.id} className="flex items-center gap-1.5 text-[11px] font-medium cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setRevSelectedMcIds([...revSelectedMcIds, m.id]);
+                                } else {
+                                  setRevSelectedMcIds(revSelectedMcIds.filter(id => id !== m.id));
+                                }
+                              }}
+                              className="rounded border-slate-300"
+                            />
+                            <span className="truncate">{m.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">บรีฟงาน (Brief / Script)</label>
+                    <textarea
+                      value={revBriefText}
+                      onChange={(e) => setRevBriefText(e.target.value)}
+                      rows={2}
+                      className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* If Cancel Mode -> Alert */}
+              {selectedReq.requestType === 'cancel' && (
+                <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+                  <div>
+                    <span className="font-extrabold text-rose-900 dark:text-rose-300 block">คำขอนี้ต้องการยกเลิกคิวจอง</span>
+                    <span className="text-[10px] text-rose-700 dark:text-rose-400 block">
+                      เมื่อกดอนุมัติ ระบบจะเปลี่ยนสถานะคิวจองเป็น "Cancelled" และคืนช่วงเวลาให้สตูดิโอว่าง
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Handler Note */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  หมายเหตุจากผู้รับคำร้อง / ข้อความตอบกลับผู้ส่ง:
+                </label>
+                <input
+                  type="text"
+                  placeholder="เช่น อัปเดตเวลาให้เรียบร้อยแล้ว หรือ ติดปัญหาเวลาชนกับแบรนด์อื่น"
+                  value={reviewHandlerNote}
+                  onChange={(e) => setReviewHandlerNote(e.target.value)}
+                  className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsReviewModalOpen(false)}
+                className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+              >
+                ปิด
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={revSubmitting}
+                  onClick={() => handleResolveRequest('REJECT')}
+                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 dark:text-rose-400 rounded-xl text-xs font-bold transition-all border border-rose-200 dark:border-rose-800 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> ปฏิเสธคำขอ
+                </button>
+
+                <button
+                  type="button"
+                  disabled={revSubmitting}
+                  onClick={() => handleResolveRequest('APPROVE')}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {revSubmitting ? 'กำลังบันทึก...' : 'อัปเดตข้อมูล & อนุมัติคำขอ'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MC Add/Edit Modal */}
       {isMcModalOpen && (

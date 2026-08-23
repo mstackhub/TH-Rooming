@@ -14,13 +14,15 @@ import {
 } from 'lucide-react';
 
 export default function Navigation() {
-  const { currentTab, setCurrentTab, currentUser, logout } = useApp();
+  const { currentTab, setCurrentTab, currentUser, logout, changeRequests } = useApp();
   const [isAnalyticsExpanded, setIsAnalyticsExpanded] = useState(false);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
 
+  const pendingRequestsCount = (changeRequests || []).filter(r => r.status === 'Pending').length;
+
   // Auto-expand dropdowns when active tab is one of their sub-tabs
   useEffect(() => {
-    if (['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(currentTab)) {
+    if (['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].includes(currentTab)) {
       setIsSettingsExpanded(true);
     }
     if (['analytics', 'analytics-staff', 'analytics-mc'].includes(currentTab)) {
@@ -44,7 +46,7 @@ export default function Navigation() {
   const visibleItems = allNavItems.filter(item => {
     if (item.id === 'settings') {
       return allowedTabs.some(tab => 
-        ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live'].includes(tab)
+        ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].includes(tab)
       );
     }
     // Dashboard also visible if they have permission to see 'analytics'
@@ -152,6 +154,7 @@ export default function Navigation() {
                     { id: 'rooms', name: 'ห้องสตูดิโอ' },
                     { id: 'brands', name: 'แบรนด์ลูกค้า' },
                     { id: 'mc-live', name: 'การจัดการ MC ไลฟ์สด' },
+                    { id: 'change-requests', name: 'จัดการคำขอแก้ไขคิว', badge: pendingRequestsCount },
                     { id: 'users', name: 'ผู้ใช้งานระบบ' },
                     { id: 'roles-mgmt', name: 'ระดับสิทธิ์การจอง' },
                     { id: 'audit-log', name: 'ประวัติกิจกรรม' },
@@ -162,13 +165,18 @@ export default function Navigation() {
                       <button
                         key={sub.id}
                         onClick={() => setCurrentTab(sub.id)}
-                        className={`text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                        className={`text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center justify-between ${
                           isSubActive
                             ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/20 dark:text-brand-400 font-bold'
                             : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:text-slate-800 dark:hover:text-slate-200'
                         }`}
                       >
-                        {sub.name}
+                        <span>{sub.name}</span>
+                        {sub.badge !== undefined && sub.badge > 0 && (
+                          <span className="px-1.5 py-0.5 text-[10px] bg-rose-500 text-white font-bold rounded-full animate-pulse">
+                            {sub.badge}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
