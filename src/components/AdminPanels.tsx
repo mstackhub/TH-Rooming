@@ -931,7 +931,7 @@ export default function AdminPanels() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
@@ -1113,7 +1113,7 @@ export default function AdminPanels() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
@@ -1314,7 +1314,7 @@ export default function AdminPanels() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
@@ -1630,7 +1630,7 @@ export default function AdminPanels() {
                     <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">สิทธิ์ทั้งหมดในฐานข้อมูล</h4>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
@@ -1760,7 +1760,7 @@ export default function AdminPanels() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl max-h-[500px]">
+              <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-xl max-h-[500px] overflow-hidden">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none sticky top-0 z-10">
@@ -1988,7 +1988,7 @@ export default function AdminPanels() {
                   </div>
 
                   {/* MC List Table */}
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm">
+                  <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
