@@ -121,6 +121,7 @@ interface AppContextType {
   currentUser: User | null;
   token: string | null;
   isSessionRestoring: boolean;
+  isMounted: boolean;
   bookings: Booking[];
   calendarBookings: Booking[];
   myBookings: Booking[];
@@ -179,28 +180,11 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [isMounted, setIsMounted] = useState<boolean>(false);
   const [currentTab, setCurrentTab] = useState<string>('scheduler');
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('th_booking_user');
-        if (saved) return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return null;
-  });
-  const [token, setToken] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('th_booking_token') || null;
-    }
-    return null;
-  });
-  const [isSessionRestoring, setIsSessionRestoring] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return !localStorage.getItem('th_booking_token') && !localStorage.getItem('th_booking_user');
-    }
-    return false;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isSessionRestoring, setIsSessionRestoring] = useState<boolean>(true);
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [calendarBookings, setCalendarBookings] = useState<Booking[]>([]);
@@ -452,7 +436,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Auto restore login session on startup
   useEffect(() => {
+    setIsMounted(true);
     const savedToken = typeof window !== 'undefined' ? localStorage.getItem('th_booking_token') : null;
+    const savedUser = typeof window !== 'undefined' ? localStorage.getItem('th_booking_user') : null;
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (e) {}
+    }
     if (savedToken) {
       setToken(savedToken);
       // Validate session and pre-fetch data in background
@@ -508,6 +499,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentUser,
       token,
       isSessionRestoring,
+      isMounted,
       bookings,
       calendarBookings,
       myBookings,

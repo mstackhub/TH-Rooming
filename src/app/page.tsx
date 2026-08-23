@@ -19,7 +19,8 @@ export default function Home() {
     currentTab, 
     login, 
     showToast,
-    isSessionRestoring
+    isSessionRestoring,
+    isMounted
   } = useApp();
 
   const [email, setEmail] = useState('');
@@ -451,7 +452,19 @@ export default function Home() {
     );
   }
 
-  // ── 2. RENDER LOGIN SCREEN (IF ANONYMOUS) ──────────────────────────────────
+  // ── 2. RENDER LOADING SPLASH WHILE HYDRATING ON CLIENT ──────────────────────
+  if (!isMounted) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300">
+        <div className="flex flex-col items-center gap-3 animate-pulse">
+          <div className="w-10 h-10 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-bold text-slate-400">กำลังโหลดระบบ TH Rooming...</span>
+        </div>
+      </main>
+    );
+  }
+
+  // ── 3. RENDER LOGIN SCREEN (IF ANONYMOUS) ──────────────────────────────────
   if (!currentUser) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300 relative overflow-hidden">
