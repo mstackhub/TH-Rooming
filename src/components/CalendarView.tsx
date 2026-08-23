@@ -244,39 +244,41 @@ export default function CalendarView() {
   return (
     <div className="flex-1 p-6 overflow-y-auto space-y-6 animate-in fade-in duration-200 text-slate-800 dark:text-slate-200">
       
-      {/* 1. Header Navigation */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-brand-500" />
-            ปฏิทินห้องไลฟ์สด ({viewMode === 'month' ? 'รายเดือน' : viewMode === 'week' ? 'รายสัปดาห์' : 'รายวัน'})
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">ตรวจสอบตารางแคมเปญ คิวงานว่าง และดูการสรุปงานตามมุมมองที่สะดวก</p>
-        </div>
+      {/* 1. Header Title */}
+      <div>
+        <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-brand-500" />
+          ปฏิทินห้องไลฟ์สด
+        </h2>
+        <p className="text-xs text-slate-400 mt-1">ตรวจสอบตารางแคมเปญ คิวงานว่าง และดูการสรุปงานตามมุมมองที่สะดวก</p>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 select-none">
+      {/* 2. Unified Calendar Navigation & Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs select-none">
+        {/* Left: View Mode Toggle + Navigation + Date Label */}
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Month / Week / Day toggler */}
-          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-sm">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/70 p-1 rounded-xl">
             <button 
               onClick={() => setViewMode('month')} 
-              className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'month' ? 'bg-brand-500 text-white' : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-350'
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'month' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               รายเดือน
             </button>
             <button 
               onClick={() => setViewMode('week')} 
-              className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'week' ? 'bg-brand-500 text-white' : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-350'
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'week' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               รายสัปดาห์
             </button>
             <button 
               onClick={() => setViewMode('day')} 
-              className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'day' ? 'bg-brand-500 text-white' : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-350'
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'day' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               รายวัน
@@ -284,43 +286,45 @@ export default function CalendarView() {
           </div>
 
           {/* Left/Right step navigation */}
-          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-sm">
-            <button onClick={handlePrev} className="p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded text-slate-500 cursor-pointer">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/70 p-1 rounded-xl">
+            <button onClick={handlePrev} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-300 cursor-pointer transition-all">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={handleToday} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
+            <button onClick={handleToday} className="px-3 py-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer transition-all">
               วันนี้
             </button>
-            <button onClick={handleNext} className="p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded text-slate-500 cursor-pointer">
+            <button onClick={handleNext} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-300 cursor-pointer transition-all">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <strong className="text-sm font-extrabold text-slate-800 dark:text-slate-200 ml-2 min-w-[150px] text-center">
+          {/* Date Label */}
+          <strong className="text-sm font-extrabold text-slate-900 dark:text-white px-2">
             {headerDateLabel}
           </strong>
-
-          {canWrite && (
-            <div className="flex items-center gap-1.5 ml-2">
-              <button 
-                onClick={() => setIsImportModalOpen(true)}
-                className="px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <FileSpreadsheet className="w-4 h-4" /> นำเข้าคิวจอง Excel
-              </button>
-              <button 
-                onClick={() => setActiveBookingCreateData({ date: calendarSelectedDate, roomName: '', startTime: '13:00', endTime: '14:00' })}
-                className="px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-semibold shadow-md shadow-brand-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Plus className="w-4 h-4" /> จองห้องไลฟ์
-              </button>
-            </div>
-          )}
         </div>
+
+        {/* Right: Action Buttons */}
+        {canWrite && (
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <FileSpreadsheet className="w-4 h-4" /> นำเข้าคิวจอง Excel
+            </button>
+            <button 
+              onClick={() => setActiveBookingCreateData({ date: calendarSelectedDate, roomName: '', startTime: '13:00', endTime: '14:00' })}
+              className="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> จองห้องไลฟ์
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 2. Filters bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm text-xs select-none">
+      {/* 3. Filters bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm text-xs select-none">
         <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-semibold mr-1">
           <ListFilter className="w-3.5 h-3.5 text-brand-500" />
           <span>ตัวกรองปฏิทิน:</span>
