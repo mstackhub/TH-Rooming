@@ -180,9 +180,27 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentTab, setCurrentTab] = useState<string>('scheduler');
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isSessionRestoring, setIsSessionRestoring] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('th_booking_user');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return null;
+  });
+  const [token, setToken] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('th_booking_token') || null;
+    }
+    return null;
+  });
+  const [isSessionRestoring, setIsSessionRestoring] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return !localStorage.getItem('th_booking_token') && !localStorage.getItem('th_booking_user');
+    }
+    return false;
+  });
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [calendarBookings, setCalendarBookings] = useState<Booking[]>([]);
@@ -402,6 +420,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       setCurrentUser(data.user);
       localStorage.setItem('th_booking_token', data.token);
+      localStorage.setItem('th_booking_user', JSON.stringify(data.user));
       showToast(`ยินดีต้อนรับคุณ ${data.user.name} เข้าสู่ระบบ`, "success");
       
       // Switch to first allowed tab on login
@@ -427,26 +446,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
     setToken(null);
     localStorage.removeItem('th_booking_token');
+    localStorage.removeItem('th_booking_user');
     showToast("ออกจากระบบเรียบร้อยแล้ว", "info");
   };
 
   // Auto restore login session on startup
   useEffect(() => {
-    const savedToken = localStorage.getItem('th_booking_token');
+    const savedToken = typeof window !== 'undefined' ? localStorage.getItem('th_booking_token') : null;
     if (savedToken) {
       setToken(savedToken);
-      // Validate session and pre-fetch
+      // Validate session and pre-fetch data in background
       apiCall('getInitData', { token: savedToken }, (err, data) => {
         try {
           if (!err && data && data.user) {
             setCurrentUser(data.user);
+            localStorage.setItem('th_booking_user', JSON.stringify(data.user));
             if (data.rooms) setRooms(data.rooms);
             if (data.brands) setBrands(data.brands);
             if (data.allBookings) {
               setCalendarBookings(data.allBookings);
-              // Default selectedDate filtering
               const today = new Date().toISOString().split('T')[0];
               setBookings(data.allBookings.filter((b: Booking) => b.date === today && b.status !== 'Cancelled'));
+              setMyBookings(data.allBookings.filter((b: Booking) => b.ownerEmail.toLowerCase() === data.user.email.toLowerCase()));
             }
             if (data.allRoomsAdmin) setAllRoomsAdmin(data.allRoomsAdmin);
             if (data.allBrandsAdmin) setAllBrandsAdmin(data.allBrandsAdmin);
@@ -455,21 +476,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (data.mcTiers) setMcTiers(data.mcTiers);
             if (data.mcList) setMcList(data.mcList);
             if (data.changeRequests) setChangeRequests(data.changeRequests);
-            if (data.allBookings) {
-              setMyBookings(data.allBookings.filter((b: Booking) => b.ownerEmail.toLowerCase() === data.user.email.toLowerCase()));
-            }
-
-            // Switch to first allowed tab on restore
-            if (data.user.permissions) {
-              const allowed = (data.user.permissions.allowedTabs || '').split(',');
-              if (allowed.length > 0 && !allowed.includes(currentTab)) {
-                setCurrentTab(allowed[0]);
-              }
-            }
-          } else {
-            // Token is invalid/expired
-            localStorage.removeItem('th_booking_token');
-            setToken(null);
           }
         } finally {
           setIsSessionRestoring(false);
@@ -478,7 +484,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } else {
       setIsSessionRestoring(false);
     }
-  }, [token, apiCall]);
+  }, []); // Run ONCE on mount!
 
   // Polling data every 30 seconds for background real-time sync (replaces GAS trigger pool)
   useEffect(() => {

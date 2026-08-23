@@ -474,7 +474,10 @@ export default function BookingModal() {
   };
 
   const isAdmin = currentUser?.permissions?.isAdmin || currentUser?.role === 'Master Admin';
-  const isOwner = isEditMode && matchedBooking && matchedBooking.ownerEmail?.toLowerCase() === currentUser?.email?.toLowerCase();
+  const hasEditPerm = isEditMode 
+    ? (!!currentUser?.permissions?.canEditBooking || isAdmin)
+    : (!!currentUser?.permissions?.canCreateBooking || isAdmin);
+  const hasCancelPerm = isEditMode && (!!currentUser?.permissions?.canCancelBooking || isAdmin);
 
   const daysUntilBooking = useMemo(() => {
     if (!matchedBooking?.date) return 999;
@@ -504,11 +507,36 @@ export default function BookingModal() {
     return changeRequests.find(r => r && r.bookingId === matchedBooking.id && r.status === 'Approved') || null;
   }, [matchedBooking, changeRequests]);
 
-  const canSave = isEditMode 
-    ? (currentUser?.permissions?.canEditBooking && (isAdmin || (isOwner && !requiresChangeRequest))) 
-    : currentUser?.permissions?.canCreateBooking;
-    
-  const canCancel = isEditMode && currentUser?.permissions?.canCancelBooking && (isAdmin || (isOwner && !requiresChangeRequest));
+  // Direct save without change request: allowed when >= 14 days OR user is Admin
+  const canDirectSave = hasEditPerm && (!isLocked14Days || isAdmin);
+  const canDirectCancel = hasCancelPerm && (!isLocked14Days || isAdmin);
+
+  const handleOpenEditRequest = () => {
+    setRequestDialogType('edit');
+    const changes: string[] = [];
+    if (matchedBooking) {
+      if (roomName && roomName !== matchedBooking.roomName) changes.push(`ห้อง: ${matchedBooking.roomName} -> ${roomName}`);
+      if (date && date !== matchedBooking.date) changes.push(`วันที่: ${matchedBooking.date} -> ${date}`);
+      if ((startTime && startTime !== matchedBooking.startTime) || (endTime && endTime !== matchedBooking.endTime)) {
+        changes.push(`เวลา: ${matchedBooking.startTime}-${matchedBooking.endTime} -> ${startTime}-${endTime}`);
+      }
+      if (brandName && brandName !== matchedBooking.brandName) changes.push(`แบรนด์: ${matchedBooking.brandName} -> ${brandName}`);
+      if (campaignName && campaignName !== matchedBooking.campaignName) changes.push(`แคมเปญ: ${matchedBooking.campaignName} -> ${campaignName}`);
+      if (briefText && briefText !== matchedBooking.briefText) changes.push(`บรีฟ: ${matchedBooking.briefText || '-'} -> ${briefText}`);
+      if (remark && remark !== matchedBooking.remark) changes.push(`หมายเหตุ: ${matchedBooking.remark || '-'} -> ${remark}`);
+    }
+    const defaultText = changes.length > 0 
+      ? `รายการที่ต้องการขอแก้ไข:\n${changes.map(c => '• ' + c).join('\n')}\n\nเหตุผลความจำเป็น: `
+      : '';
+    setRequestDialogDetails(defaultText);
+    setIsRequestDialogOpen(true);
+  };
+
+  const handleOpenCancelRequest = () => {
+    setRequestDialogType('cancel');
+    setRequestDialogDetails('');
+    setIsRequestDialogOpen(true);
+  };
 
   const handleSubmitChangeRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -540,7 +568,7 @@ export default function BookingModal() {
 
   // Toggle MC Selection (Max 4)
   const handleToggleMc = (mcIdVal: string) => {
-    if (!canSave) return;
+    if (!hasEditPerm) return;
     setSelectedMcIds(prev => {
       if (prev.includes(mcIdVal)) {
         return prev.filter(id => id !== mcIdVal);
@@ -555,7 +583,7 @@ export default function BookingModal() {
 
   // Toggle Staff Selection (Max 4)
   const handleToggleStaff = (email: string) => {
-    if (!canSave) return;
+    if (!hasEditPerm) return;
     setSelectedStaffEmails(prev => {
       if (prev.includes(email)) {
         return prev.filter(e => e !== email);
@@ -685,7 +713,7 @@ export default function BookingModal() {
                 <select
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
-                  disabled={!canSave}
+                  disabled={!hasEditPerm}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {rooms.filter(r => r.status === 'Active' || r.name === roomName).map(r => (
@@ -701,7 +729,7 @@ export default function BookingModal() {
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  disabled={!canSave}
+                  disabled={!hasEditPerm}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                   required
                 />
@@ -715,7 +743,7 @@ export default function BookingModal() {
                 <select
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  disabled={!canSave}
+                  disabled={!hasEditPerm}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {hourOptions.map(slot => {
@@ -744,7 +772,7 @@ export default function BookingModal() {
                 <select
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  disabled={!canSave}
+                  disabled={!hasEditPerm}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {hourOptions.map(slot => {
@@ -775,7 +803,7 @@ export default function BookingModal() {
                 <select
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
-                  disabled={!canSave}
+                  disabled={!hasEditPerm}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {brands.filter(b => b.status === 'Active' || b.name === brandName).map(b => (
@@ -790,7 +818,7 @@ export default function BookingModal() {
                 <select
                   value={scale}
                   onChange={(e) => setScale(e.target.value as any)}
-                  disabled={!canSave}
+                  disabled={!hasEditPerm}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   <option value="Medium Scale">Medium Scale (Default)</option>
@@ -812,8 +840,8 @@ export default function BookingModal() {
               </div>
               <button
                 type="button"
-                onClick={() => canSave && setIsImportant(!isImportant)}
-                disabled={!canSave}
+                onClick={() => hasEditPerm && setIsImportant(!isImportant)}
+                disabled={!hasEditPerm}
                 className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                   isImportant ? 'bg-amber-500' : 'bg-slate-205 dark:bg-slate-800'
                 }`}
@@ -838,7 +866,7 @@ export default function BookingModal() {
                       setCustomLiveChannel('');
                     }
                   }}
-                  disabled={!canSave}
+                  disabled={!hasEditPerm}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 >
                   {(settings?.liveChannels || 'Facebook,TikTok,Shopee,Lazada')
@@ -863,7 +891,7 @@ export default function BookingModal() {
                   placeholder="เช่น YouTube, Zoom, LINE"
                   value={customLiveChannel}
                   onChange={(e) => setCustomLiveChannel(e.target.value)}
-                  disabled={!canSave || liveChannel !== 'Other'}
+                  disabled={!hasEditPerm || liveChannel !== 'Other'}
                   className={`w-full text-xs font-semibold rounded-xl border p-2.5 bg-white dark:bg-slate-900 ${
                     liveChannel === 'Other' 
                       ? 'border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400' 
@@ -891,7 +919,7 @@ export default function BookingModal() {
                         type="button"
                         key={mc.id}
                         onClick={() => handleToggleMc(mc.id)}
-                        disabled={!canSave}
+                        disabled={!hasEditPerm}
                         className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
                           isSelected
                             ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
@@ -929,7 +957,7 @@ export default function BookingModal() {
                         type="button"
                         key={u.email}
                         onClick={() => handleToggleStaff(u.email)}
-                        disabled={!canSave}
+                        disabled={!hasEditPerm}
                         className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
                           isSelected
                             ? 'bg-indigo-500 border-indigo-500 text-white shadow-sm'
@@ -952,7 +980,7 @@ export default function BookingModal() {
                 placeholder="เช่น 7.7 Mid Year Sale, Live เปิดตัวสินค้า"
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
-                disabled={!canSave}
+                disabled={!hasEditPerm}
                 className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
               />
             </div>
@@ -965,7 +993,7 @@ export default function BookingModal() {
                 placeholder="เช่น สเปคสินค้า, รายละเอียดไลฟ์"
                 value={briefText}
                 onChange={(e) => setBriefText(e.target.value)}
-                disabled={!canSave}
+                disabled={!hasEditPerm}
                 className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
               />
             </div>
@@ -997,7 +1025,7 @@ export default function BookingModal() {
                   placeholder="เช่น ลิงค์ Google Drive โฟลเดอร์งาน หรือลิงค์ Canva"
                   value={artworkLink}
                   onChange={(e) => setArtworkLink(e.target.value)}
-                  disabled={!canSave}
+                  disabled={!hasEditPerm}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
                 />
               </div>
@@ -1018,7 +1046,7 @@ export default function BookingModal() {
                 placeholder="เช่น ต้องการกล้องสเปคพิเศษ หรือขอแอดมินสนับสนุนเพิ่มเติม"
                 value={remark}
                 onChange={(e) => setRemark(e.target.value)}
-                disabled={!canSave}
+                disabled={!hasEditPerm}
                 className="w-full text-xs rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 min-h-[70px]"
               />
             </div>
@@ -1031,30 +1059,22 @@ export default function BookingModal() {
                 <div className="space-y-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setRequestDialogType('edit');
-                      setRequestDialogDetails('');
-                      setIsRequestDialogOpen(true);
-                    }}
+                    onClick={handleOpenEditRequest}
                     className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Send className="w-4 h-4" /> ส่งคำร้องขอแก้ไขคิวไลฟ์ (Request Edit)
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setRequestDialogType('cancel');
-                      setRequestDialogDetails('');
-                      setIsRequestDialogOpen(true);
-                    }}
+                    onClick={handleOpenCancelRequest}
                     className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> ส่งคำร้องขอยกเลิกคิว (Request Cancel)
                   </button>
                 </div>
               ) : (
-                /* Primary Save Button (Full Width) */
-                canSave && (
+                /* Primary Direct Save Button (Full Width) */
+                canDirectSave && (
                   <button
                     type="submit"
                     disabled={loading}
@@ -1087,8 +1107,8 @@ export default function BookingModal() {
                 )}
               </div>
 
-              {/* Danger Zone: Cancel Booking (Full Width) */}
-              {!requiresChangeRequest && canCancel && (
+              {/* Danger Zone: Direct Cancel Booking (Full Width) */}
+              {!requiresChangeRequest && canDirectCancel && (
                 <button
                   type="button"
                   onClick={handleCancelBooking}

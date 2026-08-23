@@ -30,6 +30,17 @@ import {
 
 type SubTab = 'rooms' | 'brands' | 'users' | 'roles' | 'logs' | 'settings' | 'mc-live' | 'change-requests';
 
+function safeDateLocaleString(val: any): string {
+  if (!val) return '-';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleString('th-TH');
+  } catch (e) {
+    return String(val);
+  }
+}
+
 export default function AdminPanels() {
   const {
     allRoomsAdmin,
@@ -2356,7 +2367,7 @@ export default function AdminPanels() {
                                   <span className="font-bold text-slate-800 dark:text-slate-200">{req.requesterName}</span>
                                   <span className="text-[10px] text-slate-400">{req.requesterEmail}</span>
                                   <span className="text-[9px] text-slate-450 dark:text-slate-500">
-                                    {req.createdAt ? new Date(req.createdAt).toLocaleString('th-TH') : '-'}
+                                    {safeDateLocaleString(req.createdAt)}
                                   </span>
                                 </div>
                               </td>
@@ -2409,7 +2420,7 @@ export default function AdminPanels() {
                                       {req.handlerName || req.handlerEmail || 'ผู้ดูแล'}
                                     </span>
                                     <span className="text-[10px] text-slate-400">
-                                      {new Date(req.handledAt).toLocaleString('th-TH')}
+                                      {safeDateLocaleString(req.handledAt)}
                                     </span>
                                     {req.handlerNote && (
                                       <span className="text-[10px] text-slate-500 italic">
@@ -2479,7 +2490,7 @@ export default function AdminPanels() {
                     ผู้ส่งคำร้อง: {selectedReq.requesterName} ({selectedReq.requesterEmail})
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    {selectedReq.createdAt ? new Date(selectedReq.createdAt).toLocaleString('th-TH') : ''}
+                    {safeDateLocaleString(selectedReq.createdAt)}
                   </span>
                 </div>
                 <div>
