@@ -559,6 +559,7 @@ export default function BookingModal() {
         showToast('ส่งคำร้องเรียบร้อยแล้ว ผู้รับผิดชอบจะดำเนินการตรวจสอบ', 'success');
         setIsRequestDialogOpen(false);
         setRequestDialogDetails('');
+        handleClose();
         refreshActiveTabData();
       }
     });
