@@ -182,7 +182,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState<boolean>(false);
-  const [currentTab, setCurrentTab] = useState<string>('scheduler');
+  const [currentTab, setCurrentTab] = useState<string>('campaign-schedule');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isSessionRestoring, setIsSessionRestoring] = useState<boolean>(true);
@@ -409,10 +409,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('th_booking_user', JSON.stringify(data.user));
       showToast(`ยินดีต้อนรับคุณ ${data.user.name} เข้าสู่ระบบ`, "success");
       
-      // Switch to first allowed tab on login
+      // Switch to default allowed tab on login
       if (data.user.permissions) {
         const allowed = (data.user.permissions.allowedTabs || '').split(',');
-        if (allowed.length > 0 && !allowed.includes(currentTab)) {
+        if (allowed.includes('campaign-schedule')) {
+          setCurrentTab('campaign-schedule');
+        } else if (allowed.length > 0) {
           setCurrentTab(allowed[0]);
         }
       }
