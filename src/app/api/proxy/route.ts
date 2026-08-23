@@ -620,6 +620,72 @@ export async function POST(request: Request) {
             // INSERT NEW SLOT
             dbObj.owner_email = item.ownerEmail || user.email;
             dbObj.owner_name = item.ownerName || user.name;
+
+            // Generate Custom ID for imported slot
+            const formattedDate = (dbObj.date || '').replace(/[^0-9]/g, '').substring(0, 8);
+            let brandAbbr = 'XX';
+            if (dbObj.brand_name) {
+              const rawBrand = dbObj.brand_name.trim().toUpperCase();
+              if (rawBrand.startsWith('FOREMOST')) brandAbbr = 'FM';
+              else if (rawBrand.startsWith('FINELINE')) brandAbbr = 'FL';
+              else if (rawBrand.startsWith('EVERSENSE') || rawBrand.startsWith('EVERSENCE')) brandAbbr = 'ES';
+              else if (rawBrand.startsWith('DNEE') || rawBrand.startsWith('D-NEE')) brandAbbr = 'DN';
+              else if (rawBrand.startsWith('ARISTOTLE')) brandAbbr = 'AR';
+              else if (rawBrand.startsWith('BENICE')) brandAbbr = 'BE';
+              else if (rawBrand.startsWith('BIOSAFETY')) brandAbbr = 'BS';
+              else if (rawBrand.startsWith('CLUB21')) brandAbbr = 'C21';
+              else if (rawBrand.startsWith('BIG C')) brandAbbr = 'BC';
+              else if (rawBrand.startsWith('TROS')) brandAbbr = 'TR';
+              else if (rawBrand.startsWith('BABIMILD')) brandAbbr = 'BM';
+              else if (rawBrand.startsWith('ROYAL CANIN')) brandAbbr = 'RC';
+              else if (rawBrand.startsWith('BETAGROPET')) brandAbbr = 'BP';
+              else if (rawBrand.startsWith('OCEANGLASS')) brandAbbr = 'OG';
+              else if (rawBrand.startsWith('KEMISSARA')) brandAbbr = 'KM';
+              else if (rawBrand.startsWith('BOSTANTEN')) brandAbbr = 'BT';
+              else if (rawBrand.startsWith('GLORY')) brandAbbr = 'GL';
+              else if (rawBrand.startsWith('TANDT') || rawBrand.startsWith('T&T')) brandAbbr = 'TT';
+              else {
+                const words = rawBrand.replace(/[^A-Z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+                if (words.length >= 2) {
+                  brandAbbr = (words[0][0] + words[1][0]).substring(0, 2);
+                } else if (words.length === 1) {
+                  const singleWord = words[0];
+                  if (singleWord.length >= 2) {
+                    brandAbbr = singleWord.substring(0, 2);
+                  } else {
+                    brandAbbr = singleWord + 'X';
+                  }
+                }
+              }
+            }
+            let roomNum = 'R00';
+            if (dbObj.room_name) {
+              const digits = dbObj.room_name.replace(/[^0-9]/g, '');
+              if (digits) {
+                roomNum = 'R' + digits.padStart(2, '0');
+              } else {
+                const cleanedRoom = dbObj.room_name.replace(/[^A-Z0-9]/g, '').toUpperCase();
+                if (cleanedRoom.length >= 2) {
+                  roomNum = 'R' + cleanedRoom.substring(0, 2);
+                } else {
+                  roomNum = 'R' + (cleanedRoom || 'X').padEnd(2, 'X');
+                }
+              }
+            }
+            const platformAbbr = 'TT';
+            const prefixPattern = `${formattedDate}${brandAbbr}${platformAbbr}${roomNum}`;
+
+            try {
+              let parsedMeta: any = {};
+              if (dbObj.ls_artwork_layout) {
+                parsedMeta = JSON.parse(dbObj.ls_artwork_layout);
+              }
+              if (!parsedMeta.customId) {
+                parsedMeta.customId = `${prefixPattern}001`;
+                dbObj.ls_artwork_layout = JSON.stringify(parsedMeta);
+              }
+            } catch(e){}
+
             await requestSupabase('POST', 'bookings', dbObj);
           }
         }

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp, Booking, AuditLog } from '@/context/AppContext';
-import { formatThaiDate, parseTimeToMinutes, getAutoStatus } from '@/utils/time';
+import { formatThaiDate, parseTimeToMinutes, getAutoStatus, generateBookingCustomId } from '@/utils/time';
 import { CustomSelect } from './CustomSelect';
 import { 
   Search, 
@@ -235,6 +235,8 @@ export default function CampaignSchedule() {
       artworkStatus = 'Submitted';
     }
 
+    const displayCustomId = generateBookingCustomId(b, calendarBookings);
+
     return {
       briefStatus,
       artworkStatus,
@@ -242,7 +244,7 @@ export default function CampaignSchedule() {
       artworks,
       lastUpdated,
       lastUpdatedBy,
-      customId: customId || b.id || ''
+      customId: displayCustomId
     };
   };
 
@@ -1920,6 +1922,9 @@ export default function CampaignSchedule() {
                         </span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-semibold animate-in fade-in" title={b.campaignName}>
                           {b.campaignName || <span className="text-slate-400 dark:text-slate-650 italic font-normal">ยังไม่ระบุชื่อแคมเปญ</span>}
+                        </span>
+                        <span className="text-[9px] font-mono text-amber-600 dark:text-amber-400 font-bold tracking-tight select-all">
+                          ID: {meta.customId}
                         </span>
                         {/* MC Names */}
                         {(() => {

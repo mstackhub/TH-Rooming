@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp, Booking } from '@/context/AppContext';
-import { parseTimeToMinutes, minutesToTimeStr } from '@/utils/time';
+import { parseTimeToMinutes, minutesToTimeStr, generateBookingCustomId } from '@/utils/time';
 import { 
   X, 
   Clock, 
@@ -511,17 +511,11 @@ export default function BookingModal() {
               {isEditMode ? 'รายละเอียดและจัดการคิวไลฟ์' : 'สร้างรายการจองห้องไลฟ์สดใหม่'}
             </h3>
             {isEditMode && matchedBooking && (() => {
-              let displayCustomId = '';
-              if (matchedBooking.lsArtworkLayout) {
-                try {
-                  const meta = JSON.parse(matchedBooking.lsArtworkLayout);
-                  displayCustomId = meta.customId || '';
-                } catch(e){}
-              }
+              const displayCustomId = generateBookingCustomId(matchedBooking, calendarBookings);
               return (
                 <div className="flex flex-col gap-0.5 mt-0.5 select-none font-bold">
                   {displayCustomId && (
-                    <span className="text-[10px] text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono uppercase tracking-wide">
                       คิวจอง ID: {displayCustomId}
                     </span>
                   )}
