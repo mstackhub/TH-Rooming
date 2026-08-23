@@ -851,40 +851,41 @@ export default function AdminPanels() {
                 {/* Form card */}
                 {showForm && (
                   <div className="xl:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-1.5">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-2">
                       <Database className="w-4.5 h-4.5 text-brand-500" />
                       {isEditingRoom ? 'แก้ไขห้องสตูดิโอ' : 'เพิ่มห้องสตูดิโอใหม่'}
                     </h3>
                     
                     <form onSubmit={handleSaveRoom} className="space-y-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ชื่อห้องสตูดิโอ (Studio Name)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ชื่อห้องสตูดิโอ (Studio Name)</label>
                         <input
                           type="text"
                           placeholder="เช่น Room 01"
                           value={roomName}
                           onChange={(e) => setRoomName(e.target.value)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                           required
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">คำอธิบายเพิ่มเติม (Description)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">คำอธิบายเพิ่มเติม (Description)</label>
                         <textarea
                           placeholder="เช่น รายละเอียดสเปค ขนาดห้อง หรือกล้องที่ใช้"
                           value={roomDesc}
                           onChange={(e) => setRoomDesc(e.target.value)}
-                          className="w-full text-xs"
+                          rows={3}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">สถานะการใช้งาน (Status)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">สถานะการใช้งาน (Status)</label>
                         <select
                           value={roomStatus}
                           onChange={(e) => setRoomStatus(e.target.value as any)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                         >
                           <option value="Active">เปิดใช้งาน (Active)</option>
                           <option value="Inactive">ปิดชั่วคราว (Inactive)</option>
@@ -895,7 +896,7 @@ export default function AdminPanels() {
                         <button
                           type="submit"
                           disabled={submitting}
-                          className="flex-1 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer"
+                          className="flex-1 py-2.5 px-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                         >
                           {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                         </button>
@@ -903,7 +904,7 @@ export default function AdminPanels() {
                           <button
                             type="button"
                             onClick={resetRoomForm}
-                            className="py-2 px-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                            className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                           >
                             ยกเลิก
                           </button>
@@ -916,64 +917,65 @@ export default function AdminPanels() {
                 {/* Table List card */}
                 <div className={`${showForm ? 'xl:col-span-2' : 'xl:col-span-3'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4`}>
                   <div className="flex items-center justify-between gap-3 text-xs">
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-200">รายชื่อห้องสตูดิโอทั้งหมด</h4>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">รายชื่อห้องสตูดิโอทั้งหมด</h4>
                     
                     <div className="relative w-48 sm:w-64">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                       <input
                         type="search"
                         placeholder="ค้นหาห้อง..."
                         value={adminSearchQuery}
                         onChange={(e) => setAdminSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent"
+                        className="w-full pl-9 pr-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-850 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-850 text-slate-400 font-bold">
-                          <th className="p-3">ชื่อสตูดิโอ</th>
-                          <th className="p-3">คำอธิบายรายละเอียด</th>
-                          <th className="p-3">สถานะ</th>
-                          {(canEdit || canDelete) && <th className="p-3 text-center">จัดการ</th>}
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                          <th className="px-4 py-3.5">ชื่อสตูดิโอ</th>
+                          <th className="px-4 py-3.5">คำอธิบายรายละเอียด</th>
+                          <th className="px-4 py-3.5">สถานะ</th>
+                          {(canEdit || canDelete) && <th className="px-4 py-3.5 text-center">จัดการ</th>}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                         {filteredRooms.map(room => (
-                          <tr key={room.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
-                            <td className="p-3 font-extrabold text-slate-900 dark:text-white">{room.name}</td>
-                            <td className="p-3 text-slate-500 dark:text-slate-400 max-w-[200px] truncate" title={room.description}>
+                          <tr key={room.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors">
+                            <td className="px-4 py-3.5 font-extrabold text-slate-900 dark:text-white">{room.name}</td>
+                            <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 max-w-[200px] truncate" title={room.description}>
                               {room.description || '-'}
                             </td>
-                            <td className="p-3">
-                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold border ${
+                            <td className="px-4 py-3.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                                 room.status === 'Active' 
-                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-350 border-emerald-200' 
-                                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-350 border-rose-200'
+                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60' 
+                                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border-rose-200 dark:border-rose-800/60'
                               }`}>
-                                {room.status}
+                                <span className={`w-1.5 h-1.5 rounded-full ${room.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                {room.status === 'Active' ? 'Active' : 'Inactive'}
                               </span>
                             </td>
                             {(canEdit || canDelete) && (
-                              <td className="p-3 flex items-center justify-center gap-1.5">
+                              <td className="px-4 py-3.5 flex items-center justify-center gap-1">
                                 {canEdit && (
                                   <button
                                     onClick={() => handleEditRoomSelect(room)}
-                                    className="p-1.5 bg-slate-50 hover:bg-slate-150 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350 rounded transition-all cursor-pointer"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-all cursor-pointer"
                                     title="แก้ไขห้อง"
                                   >
-                                    <Edit2 className="w-3 h-3" />
+                                    <Edit2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                                 {canDelete && (
                                   <button
                                     onClick={() => handleDeleteRoom(room)}
-                                    className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition-all cursor-pointer"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
                                     title="ลบห้อง"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                               </td>
@@ -1004,27 +1006,27 @@ export default function AdminPanels() {
                 {/* Form card */}
                 {showForm && (
                   <div className="xl:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-1.5">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-2">
                       <Building className="w-4.5 h-4.5 text-brand-500" />
                       {isEditingBrand ? 'แก้ไขแบรนด์ลูกค้า' : 'เพิ่มแบรนด์ลูกค้าใหม่'}
                     </h3>
                     
                     <form onSubmit={handleSaveBrand} className="space-y-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ชื่อแบรนด์ลูกค้า (Brand Name)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ชื่อแบรนด์ลูกค้า (Brand Name)</label>
                         <input
                           type="text"
                           placeholder="เช่น Bau, 7.7, G-Shock"
                           value={brandName}
                           onChange={(e) => setBrandName(e.target.value)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                           required
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ผู้ดูแลแบรนด์ (Assigned Users)</label>
-                        <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-900/30 max-h-36 overflow-y-auto space-y-1">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ผู้ดูแลแบรนด์ (Assigned Users)</label>
+                        <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-900/30 max-h-40 overflow-y-auto space-y-1.5">
                           {allUsersAdmin.map(u => {
                             const isAssigned = brandAssignedUsers.includes(u.email);
                             return (
@@ -1038,10 +1040,10 @@ export default function AdminPanels() {
                                     setBrandAssignedUsers(prev => [...prev, u.email]);
                                   }
                                 }}
-                                className={`w-full flex items-center justify-between p-1.5 rounded-lg border text-[10px] font-semibold transition-all cursor-pointer ${
+                                className={`w-full flex items-center justify-between p-2 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
                                   isAssigned
-                                    ? 'bg-brand-50 dark:bg-brand-950/20 border-brand-300 text-brand-700 dark:text-brand-300'
-                                    : 'bg-white dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50'
+                                    ? 'bg-brand-50/80 dark:bg-brand-950/30 border-brand-300 dark:border-brand-800 text-brand-700 dark:text-brand-300 shadow-xs'
+                                    : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850'
                                 }`}
                               >
                                 <span>{u.name} ({u.email})</span>
@@ -1049,7 +1051,7 @@ export default function AdminPanels() {
                                   type="checkbox"
                                   checked={isAssigned}
                                   readOnly
-                                  className="w-3 h-3 text-brand-600 rounded pointer-events-none"
+                                  className="w-3.5 h-3.5 text-brand-600 rounded pointer-events-none"
                                 />
                               </button>
                             );
@@ -1060,12 +1062,12 @@ export default function AdminPanels() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">สถานะเปิดรับจอง (Status)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">สถานะเปิดรับจอง (Status)</label>
                         <select
                           value={brandStatus}
                           onChange={(e) => setBrandStatus(e.target.value as any)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                         >
                           <option value="Active">เปิดจองปกติ (Active)</option>
                           <option value="Inactive">ระงับชั่วคราว (Inactive)</option>
@@ -1076,7 +1078,7 @@ export default function AdminPanels() {
                         <button
                           type="submit"
                           disabled={submitting}
-                          className="flex-1 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer"
+                          className="flex-1 py-2.5 px-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                         >
                           {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                         </button>
@@ -1084,7 +1086,7 @@ export default function AdminPanels() {
                           <button
                             type="button"
                             onClick={resetBrandForm}
-                            className="py-2 px-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                            className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                           >
                             ยกเลิก
                           </button>
@@ -1097,46 +1099,46 @@ export default function AdminPanels() {
                 {/* Table List card */}
                 <div className={`${showForm ? 'xl:col-span-2' : 'xl:col-span-3'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4`}>
                   <div className="flex items-center justify-between gap-3 text-xs">
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-200">รายชื่อแบรนด์ลูกค้าทั้งหมด</h4>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">รายชื่อแบรนด์ลูกค้าทั้งหมด</h4>
                     
                     <div className="relative w-48 sm:w-64">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                       <input
                         type="search"
                         placeholder="ค้นหาแบรนด์..."
                         value={adminSearchQuery}
                         onChange={(e) => setAdminSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent"
+                        className="w-full pl-9 pr-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-850 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-850 text-slate-400 font-bold">
-                          <th className="p-3 w-1/3">ชื่อแบรนด์ลูกค้า</th>
-                          <th className="p-3 w-1/3">ผู้ดูแลแบรนด์</th>
-                          <th className="p-3">สถานะคิวจอง</th>
-                          {(canEdit || canDelete) && <th className="p-3 text-center">จัดการ</th>}
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                          <th className="px-4 py-3.5 w-1/3">ชื่อแบรนด์ลูกค้า</th>
+                          <th className="px-4 py-3.5 w-1/3">ผู้ดูแลแบรนด์</th>
+                          <th className="px-4 py-3.5">สถานะคิวจอง</th>
+                          {(canEdit || canDelete) && <th className="px-4 py-3.5 text-center">จัดการ</th>}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                         {filteredBrands.map(brand => {
                           const assignedList = brand.description && brand.description.startsWith('emails:')
                             ? brand.description.substring(7).split(',').filter(Boolean)
                             : [];
                           return (
-                            <tr key={brand.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
-                              <td className="p-3 font-extrabold text-slate-900 dark:text-white">{brand.name}</td>
-                              <td className="p-3">
+                            <tr key={brand.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors">
+                              <td className="px-4 py-3.5 font-extrabold text-slate-900 dark:text-white">{brand.name}</td>
+                              <td className="px-4 py-3.5">
                                 <div className="flex flex-wrap gap-1">
                                   {assignedList
                                     .filter(email => allUsersAdmin.some(u => u.email === email))
                                     .map(email => {
                                       const matchedUser = allUsersAdmin.find(u => u.email === email);
                                       return (
-                                        <span key={email} className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300 text-[9px] border border-slate-200 dark:border-slate-700">
+                                        <span key={email} className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-medium border border-slate-200 dark:border-slate-700">
                                           {matchedUser ? matchedUser.name : email}
                                         </span>
                                       );
@@ -1146,33 +1148,34 @@ export default function AdminPanels() {
                                   )}
                                 </div>
                               </td>
-                              <td className="p-3">
-                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold border ${
+                              <td className="px-4 py-3.5">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                                   brand.status === 'Active' 
-                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-350 border-emerald-200' 
-                                    : 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-350 border-rose-200'
+                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60' 
+                                    : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border-rose-200 dark:border-rose-800/60'
                                 }`}>
-                                  {brand.status}
+                                  <span className={`w-1.5 h-1.5 rounded-full ${brand.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                  {brand.status === 'Active' ? 'Active' : 'Inactive'}
                                 </span>
                               </td>
                               {(canEdit || canDelete) && (
-                                <td className="p-3 flex items-center justify-center gap-1.5">
+                                <td className="px-4 py-3.5 flex items-center justify-center gap-1">
                                   {canEdit && (
                                     <button
                                       onClick={() => handleEditBrandSelect(brand)}
-                                      className="p-1.5 bg-slate-50 hover:bg-slate-150 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350 rounded transition-all cursor-pointer"
+                                      className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-all cursor-pointer"
                                       title="แก้ไขแบรนด์"
                                     >
-                                      <Edit2 className="w-3 h-3" />
+                                      <Edit2 className="w-3.5 h-3.5" />
                                     </button>
                                   )}
                                   {canDelete && (
                                     <button
                                       onClick={() => handleDeleteBrand(brand)}
-                                      className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition-all cursor-pointer"
+                                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
                                       title="ลบแบรนด์"
                                     >
-                                      <Trash2 className="w-3 h-3" />
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   )}
                                 </td>
@@ -1204,43 +1207,43 @@ export default function AdminPanels() {
                 {/* Form card */}
                 {showForm && (
                   <div className="xl:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-1.5">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-2">
                       <UserPlus className="w-4.5 h-4.5 text-brand-500" />
                       {isEditingUser ? 'แก้ไขข้อมูลผู้ใช้งาน' : 'เพิ่มผู้ใช้งานระบบใหม่'}
                     </h3>
                     
                     <form onSubmit={handleSaveUser} className="space-y-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">อีเมล / บัญชี (User Account Email)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">อีเมล / บัญชี (User Account Email)</label>
                         <input
                           type="text"
                           placeholder="เช่น admin, creator1@th.co.th"
                           value={userEmail}
                           onChange={(e) => setUserEmail(e.target.value)}
                           disabled={isEditingUser}
-                          className="w-full text-xs font-semibold disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all disabled:opacity-50"
                           required
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ชื่อผู้ใช้ระบบ (Full Name)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ชื่อผู้ใช้ระบบ (Full Name)</label>
                         <input
                           type="text"
                           placeholder="เช่น สมชาย มีความสุข"
                           value={userName}
                           onChange={(e) => setUserName(e.target.value)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                           required
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">สิทธิ์เข้าถึง (Role Name)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">สิทธิ์เข้าถึง (Role Name)</label>
                         <select
                           value={userRole}
                           onChange={(e) => setUserRole(e.target.value)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                         >
                           {roles.map(r => (
                             <option key={r.roleName} value={r.roleName}>{r.roleName}</option>
@@ -1248,24 +1251,24 @@ export default function AdminPanels() {
                         </select>
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">รหัสผ่านบัญชี (Password)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">รหัสผ่านบัญชี (Password)</label>
                         <input
                           type="text"
                           placeholder={isEditingUser ? 'กรอกเมื่อต้องการเปลี่ยนรหัสผ่านใหม่' : 'เช่น 123456'}
                           value={userPassword}
                           onChange={(e) => setUserPassword(e.target.value)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                           required={!isEditingUser}
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">สถานะการใช้งาน (Status)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">สถานะการใช้งาน (Status)</label>
                         <select
                           value={userStatus}
                           onChange={(e) => setUserStatus(e.target.value as any)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                         >
                           <option value="Active">ใช้งานปกติ (Active)</option>
                           <option value="Inactive">บล็อกผู้ใช้ (Inactive)</option>
@@ -1276,7 +1279,7 @@ export default function AdminPanels() {
                         <button
                           type="submit"
                           disabled={submitting}
-                          className="flex-1 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer"
+                          className="flex-1 py-2.5 px-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                         >
                           {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                         </button>
@@ -1284,7 +1287,7 @@ export default function AdminPanels() {
                           <button
                             type="button"
                             onClick={resetUserForm}
-                            className="py-2 px-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                            className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                           >
                             ยกเลิก
                           </button>
@@ -1297,70 +1300,71 @@ export default function AdminPanels() {
                 {/* Table List card */}
                 <div className={`${showForm ? 'xl:col-span-2' : 'xl:col-span-3'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4`}>
                   <div className="flex items-center justify-between gap-3 text-xs">
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-200">รายชื่อผู้ใช้งานทั้งหมดในระบบ</h4>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">รายชื่อผู้ใช้งานทั้งหมดในระบบ</h4>
                     
                     <div className="relative w-48 sm:w-64">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                       <input
                         type="search"
                         placeholder="ค้นหาชื่อ / อีเมล..."
                         value={adminSearchQuery}
                         onChange={(e) => setAdminSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent"
+                        className="w-full pl-9 pr-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-850 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-850 text-slate-400 font-bold">
-                          <th className="p-3">บัญชีผู้ใช้ (Email)</th>
-                          <th className="p-3">ชื่อ-นามสกุล</th>
-                          <th className="p-3">ระดับสิทธิ์</th>
-                          <th className="p-3">รหัสผ่าน</th>
-                          <th className="p-3">สถานะ</th>
-                          {(canEdit || canDelete) && <th className="p-3 text-center">จัดการ</th>}
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                          <th className="px-4 py-3.5">บัญชีผู้ใช้ (Email)</th>
+                          <th className="px-4 py-3.5">ชื่อ-นามสกุล</th>
+                          <th className="px-4 py-3.5">ระดับสิทธิ์</th>
+                          <th className="px-4 py-3.5">รหัสผ่าน</th>
+                          <th className="px-4 py-3.5">สถานะ</th>
+                          {(canEdit || canDelete) && <th className="px-4 py-3.5 text-center">จัดการ</th>}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                         {filteredUsers.map(user => (
-                          <tr key={user.email} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 text-slate-700 dark:text-slate-350">
-                            <td className="p-3 font-bold text-slate-900 dark:text-white">{user.email}</td>
-                            <td className="p-3 font-semibold">{user.name}</td>
-                            <td className="p-3">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200/50">
+                          <tr key={user.email} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors text-slate-700 dark:text-slate-350">
+                            <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">{user.email}</td>
+                            <td className="px-4 py-3.5 font-semibold">{user.name}</td>
+                            <td className="px-4 py-3.5">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200/50">
                                 {user.role}
                               </span>
                             </td>
-                            <td className="p-3 font-mono">{user.password || '******'}</td>
-                            <td className="p-3">
-                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold border ${
+                            <td className="px-4 py-3.5 font-mono text-slate-500">{user.password || '******'}</td>
+                            <td className="px-4 py-3.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                                 user.status === 'Active'
-                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-350 border-emerald-200'
-                                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-350 border-rose-200'
+                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
+                                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border-rose-200 dark:border-rose-800/60'
                               }`}>
-                                {user.status}
+                                <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                {user.status === 'Active' ? 'Active' : 'Inactive'}
                               </span>
                             </td>
                             {(canEdit || canDelete) && (
-                              <td className="p-3 flex items-center justify-center gap-1.5">
+                              <td className="px-4 py-3.5 flex items-center justify-center gap-1">
                                 {canEdit && (
                                   <button
                                     onClick={() => handleEditUserSelect(user)}
-                                    className="p-1.5 bg-slate-50 hover:bg-slate-150 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350 rounded transition-all cursor-pointer"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-all cursor-pointer"
                                     title="แก้ไขผู้ใช้"
                                   >
-                                    <Edit2 className="w-3 h-3" />
+                                    <Edit2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                                 {canDelete && (
                                   <button
                                     onClick={() => handleDeleteUser(user)}
-                                    className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition-all cursor-pointer"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
                                     title="ลบผู้ใช้"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                               </td>
@@ -1391,40 +1395,40 @@ export default function AdminPanels() {
                 {/* Form card */}
                 {showForm && (
                   <div className="xl:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-1.5">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-2">
                       <Layers className="w-4.5 h-4.5 text-brand-500" />
                       {isEditingRole ? 'แก้ไขระดับสิทธิ์' : 'เพิ่มระดับสิทธิ์ใหม่'}
                     </h3>
                     
                     <form onSubmit={handleSaveRole} className="space-y-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ชื่อบทบาทระดับสิทธิ์ (Role Name)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ชื่อบทบาทระดับสิทธิ์ (Role Name)</label>
                         <input
                           type="text"
                           placeholder="เช่น Graphic Designer"
                           value={roleName}
                           onChange={(e) => setRoleName(e.target.value)}
                           disabled={isEditingRole}
-                          className="w-full text-xs font-semibold disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all disabled:opacity-50"
                           required
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">คำอธิบายสิทธิ์ (Description)</label>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">คำอธิบายสิทธิ์ (Description)</label>
                         <input
                           type="text"
                           placeholder="เช่น สิทธิ์สำหรับเข้ามาแปะลิงค์ของทีมดีไซเนอร์"
                           value={roleDesc}
                           onChange={(e) => setRoleDesc(e.target.value)}
-                          className="w-full text-xs font-semibold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                         />
                       </div>
 
                       {/* Booking Operations — 3-col pill toggle */}
                       <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">สิทธิ์คิวไลฟ์สด</p>
-                        <div className="grid grid-cols-3 gap-1.5">
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">สิทธิ์คิวไลฟ์สด</p>
+                        <div className="grid grid-cols-3 gap-2">
                           {[
                             { label: '➕ จอง', state: canCreateBooking, set: setCanCreateBooking },
                             { label: '✎ แก้ไข', state: canEditBooking, set: setCanEditBooking },
@@ -1434,10 +1438,10 @@ export default function AdminPanels() {
                               key={label}
                               type="button"
                               onClick={() => set(!state)}
-                              className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold transition-all cursor-pointer text-center ${
+                              className={`py-2 px-2.5 rounded-xl border text-[11px] font-bold transition-all cursor-pointer text-center ${
                                 state
-                                  ? 'bg-brand-500 border-brand-500 text-white shadow-sm shadow-brand-500/30'
-                                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                                  ? 'bg-brand-500 border-brand-500 text-white shadow-sm shadow-brand-500/25'
+                                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100'
                               }`}
                             >
                               {label}
@@ -1449,12 +1453,12 @@ export default function AdminPanels() {
                       {/* Visible Tabs — styled checkbox buttons */}
                       <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เมนูที่มองเห็น</p>
-                          <span className="text-[9px] text-brand-500 font-bold">
+                          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">เมนูที่มองเห็น</p>
+                          <span className="text-[10px] text-brand-500 font-extrabold">
                             {roleAllowedTabs.filter(t => [
                               'scheduler','calendar','my-bookings','campaign-schedule','analytics',
-                              'rooms','brands','users','roles-mgmt','audit-log','settings', 'mc-live'
-                            ].includes(t)).length} / 12
+                              'rooms','brands','users','roles-mgmt','audit-log','settings', 'mc-live', 'change-requests'
+                            ].includes(t)).length} / 13
                           </span>
                         </div>
                         
@@ -1472,17 +1476,17 @@ export default function AdminPanels() {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => handleCheckboxTabToggle(tab.id)}
-                                className={`flex items-center gap-2 p-1.5 rounded-lg border text-[10px] font-semibold transition-all cursor-pointer text-left truncate ${
+                                className={`flex items-center gap-2 p-2 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer text-left truncate ${
                                   on
-                                    ? 'bg-indigo-50 dark:bg-indigo-950/20 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
-                                    : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500'
+                                    ? 'bg-indigo-50/80 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                                    : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100'
                                 }`}
                               >
                                 <input
                                   type="checkbox"
                                   checked={on}
                                   readOnly
-                                  className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-650 pointer-events-none"
+                                  className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-600 pointer-events-none"
                                 />
                                 <span className="truncate">{tab.label}</span>
                               </button>
@@ -1491,9 +1495,9 @@ export default function AdminPanels() {
                         </div>
 
                         {/* Settings Sub-menus Group */}
-                        <div className="mt-3 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10 space-y-2">
-                          <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-800 pb-1.5">
-                            <span className="text-[10px] font-bold text-slate-550 dark:text-slate-400">⚙️ เมนูตั้งค่าระบบ</span>
+                        <div className="mt-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/20 space-y-2.5">
+                          <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-2">
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">⚙️ เมนูตั้งค่าระบบ</span>
                             
                             {/* ALL Checkbox Toggle */}
                             <button
@@ -1502,25 +1506,23 @@ export default function AdminPanels() {
                                 const settingsSubtabs = ['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'];
                                 const allChecked = settingsSubtabs.every(id => roleAllowedTabs.includes(id));
                                 if (allChecked) {
-                                  // remove all settings subtabs
                                   setRoleAllowedTabs(prev => prev.filter(t => !settingsSubtabs.includes(t)));
                                 } else {
-                                  // add missing settings subtabs
                                   setRoleAllowedTabs(prev => {
                                     const base = prev.filter(t => !settingsSubtabs.includes(t));
                                     return [...base, ...settingsSubtabs];
                                   });
                                 }
                               }}
-                              className="flex items-center gap-1 text-[9px] font-extrabold text-brand-600 dark:text-brand-400 hover:opacity-80 cursor-pointer"
+                              className="flex items-center gap-1.5 text-[10px] font-extrabold text-brand-600 dark:text-brand-400 hover:opacity-80 cursor-pointer"
                             >
                               <input
                                 type="checkbox"
                                 checked={['rooms', 'brands', 'users', 'roles-mgmt', 'audit-log', 'settings', 'mc-live', 'change-requests'].every(id => roleAllowedTabs.includes(id))}
                                 readOnly
-                                className="w-3 h-3 rounded border-slate-350 dark:border-slate-700 text-brand-650 pointer-events-none"
+                                className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-600 pointer-events-none"
                               />
-                              ตั้งค่า (All)
+                              เลือกทั้งหมด
                             </button>
                           </div>
                           
@@ -1528,12 +1530,12 @@ export default function AdminPanels() {
                             {[
                               { id: 'rooms',            label: '🚪 ห้องสตูดิโอ' },
                               { id: 'brands',           label: '🏢 แบรนด์ลูกค้า' },
-                              { id: 'mc-live',          label: '🎙️ การจัดการ MC ไลฟ์สด' },
-                              { id: 'change-requests',  label: '📋 คำขอแก้ไขคิวไลฟ์' },
+                              { id: 'mc-live',          label: '🎙️ การจัดการ MC' },
+                              { id: 'change-requests',  label: '📋 คำขอแก้ไขคิว' },
                               { id: 'users',            label: '👥 ผู้ใช้งานระบบ' },
-                              { id: 'roles-mgmt',       label: '🔑 ระดับสิทธิ์การจอง' },
+                              { id: 'roles-mgmt',       label: '🔑 ระดับสิทธิ์' },
                               { id: 'audit-log',        label: '📝 ประวัติกิจกรรม' },
-                              { id: 'settings',         label: '⚙️ ตั้งค่าการแจ้งเตือน' },
+                              { id: 'settings',         label: '⚙️ ตั้งค่าแจ้งเตือน' },
                             ].map(tab => {
                               const on = roleAllowedTabs.includes(tab.id);
                               return (
@@ -1541,17 +1543,17 @@ export default function AdminPanels() {
                                   key={tab.id}
                                   type="button"
                                   onClick={() => handleCheckboxTabToggle(tab.id)}
-                                  className={`flex items-center gap-2 p-1.5 rounded-lg border text-[10px] font-semibold transition-all cursor-pointer text-left truncate ${
+                                  className={`flex items-center gap-2 p-2 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer text-left truncate ${
                                     on
-                                      ? 'bg-brand-50/40 dark:bg-brand-950/20 border-brand-300 dark:border-brand-850 text-brand-700 dark:text-brand-300'
-                                      : 'bg-white dark:bg-slate-800/20 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-550'
+                                      ? 'bg-brand-50/80 dark:bg-brand-950/30 border-brand-300 dark:border-brand-800 text-brand-700 dark:text-brand-300 shadow-xs'
+                                      : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50'
                                   }`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={on}
                                     readOnly
-                                    className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-650 pointer-events-none"
+                                    className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-600 pointer-events-none"
                                   />
                                   <span className="truncate">{tab.label}</span>
                                 </button>
@@ -1563,24 +1565,24 @@ export default function AdminPanels() {
 
                       {/* Data Management — row per entity, 3 action pills */}
                       <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">สิทธิ์จัดการข้อมูล</p>
-                        <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">สิทธิ์จัดการข้อมูล</p>
+                        <div className="space-y-2">
                           {[
                             { icon: '🚪', label: 'ห้องสตูดิโอ', base: 'rooms' },
                             { icon: '🏢', label: 'แบรนด์', base: 'brands' },
                             { icon: '👥', label: 'ผู้ใช้งาน', base: 'users' },
                             { icon: '🔑', label: 'ระดับสิทธิ์', base: 'roles' },
                           ].map(({ icon, label, base }) => (
-                            <div key={base} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50/60 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800">
-                              <span className="text-[11px] shrink-0 w-20 font-semibold text-slate-600 dark:text-slate-300 truncate">{icon} {label}</span>
-                              <div className="flex gap-1 flex-1">
+                            <div key={base} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50/60 dark:bg-slate-850/40 border border-slate-150 dark:border-slate-800">
+                              <span className="text-[11px] shrink-0 w-20 font-bold text-slate-600 dark:text-slate-300 truncate">{icon} {label}</span>
+                              <div className="flex gap-1.5 flex-1">
                                 {(['create','edit','delete'] as const).map(action => {
                                   const permId = `${base}-${action}`;
                                   const on = roleAllowedTabs.includes(permId);
                                   const colors: Record<string, string> = {
-                                    create: on ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-700 dark:text-emerald-300' : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400',
-                                    edit:   on ? 'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-300'   : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400',
-                                    delete: on ? 'bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-950/30 dark:border-rose-700 dark:text-rose-300'       : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400',
+                                    create: on ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-300' : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50',
+                                    edit:   on ? 'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-950/40 dark:border-amber-700 dark:text-amber-300'   : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50',
+                                    delete: on ? 'bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-950/40 dark:border-rose-700 dark:text-rose-300'       : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50',
                                   };
                                   const actionLabel: Record<string, string> = { create: '➕ สร้าง', edit: '✎ แก้ไข', delete: '🗑 ลบ' };
                                   return (
@@ -1588,7 +1590,7 @@ export default function AdminPanels() {
                                       key={action}
                                       type="button"
                                       onClick={() => handleCheckboxTabToggle(permId)}
-                                      className={`flex-1 py-1 rounded-md border text-[9px] font-bold transition-all cursor-pointer text-center ${colors[action]}`}
+                                      className={`flex-1 py-1.5 rounded-lg border text-[10px] font-bold transition-all cursor-pointer text-center ${colors[action]}`}
                                     >
                                       {actionLabel[action]}
                                     </button>
@@ -1604,7 +1606,7 @@ export default function AdminPanels() {
                         <button
                           type="submit"
                           disabled={submitting}
-                          className="flex-1 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer"
+                          className="flex-1 py-2.5 px-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                         >
                           {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                         </button>
@@ -1612,7 +1614,7 @@ export default function AdminPanels() {
                           <button
                             type="button"
                             onClick={resetRoleForm}
-                            className="py-2 px-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                            className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                           >
                             ยกเลิก
                           </button>
@@ -1625,63 +1627,63 @@ export default function AdminPanels() {
                 {/* Table List card */}
                 <div className={`${showForm ? 'xl:col-span-2' : 'xl:col-span-3'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4`}>
                   <div className="flex items-center justify-between gap-3 text-xs">
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-200">สิทธิ์ทั้งหมดในฐานข้อมูล</h4>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">สิทธิ์ทั้งหมดในฐานข้อมูล</h4>
                   </div>
 
-                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-850 rounded-xl">
+                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-850 text-slate-400 font-bold">
-                          <th className="p-3">ระดับสิทธิ์</th>
-                          <th className="p-3">สิทธิ์อนุญาตการใช้งาน</th>
-                          <th className="p-3">การมองเห็นแถบ</th>
-                          {(canEdit || canDelete) && <th className="p-3 text-center">จัดการ</th>}
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                          <th className="px-4 py-3.5">ระดับสิทธิ์</th>
+                          <th className="px-4 py-3.5">สิทธิ์อนุญาตการใช้งาน</th>
+                          <th className="px-4 py-3.5">การมองเห็นแถบ</th>
+                          {(canEdit || canDelete) && <th className="px-4 py-3.5 text-center">จัดการ</th>}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                         {roles.map(role => (
-                          <tr key={role.roleName} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 text-slate-700 dark:text-slate-350">
-                            <td className="p-3 font-extrabold text-slate-900 dark:text-white">
+                          <tr key={role.roleName} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors text-slate-700 dark:text-slate-350">
+                            <td className="px-4 py-3.5 font-extrabold text-slate-900 dark:text-white">
                               {role.roleName}
-                              <span className="block text-[9px] font-normal text-slate-400 mt-0.5">{role.description}</span>
+                              <span className="block text-[10px] font-normal text-slate-400 mt-0.5">{role.description}</span>
                             </td>
-                            <td className="p-3">
-                              <div className="flex flex-wrap gap-1">
+                            <td className="px-4 py-3.5">
+                              <div className="flex flex-wrap gap-1.5">
                                 {role.canCreateBooking ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-250/20">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200/60">
                                     + จองคิว
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-slate-50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-600 border border-slate-200/30">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-600 border border-slate-200/30">
                                     - จองคิว
                                   </span>
                                 )}
                                 {role.canEditBooking ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-250/20">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200/60">
                                     ✎ แก้ไข
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-slate-50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-600 border border-slate-200/30">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-600 border border-slate-200/30">
                                     - แก้ไข
                                   </span>
                                 )}
                                 {role.canCancelBooking ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-450 border border-rose-250/20">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/60">
                                     🗙 ยกเลิก
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-slate-50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-600 border border-slate-200/30">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-600 border border-slate-200/30">
                                     - ยกเลิก
                                   </span>
                                 )}
                                 {role.isAdmin ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400 border border-purple-250/20">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400 border border-purple-200/60">
                                     🛡️ Admin
                                   </span>
                                 ) : null}
                               </div>
                             </td>
-                            <td className="p-3">
+                            <td className="px-4 py-3.5">
                               <div className="flex flex-wrap gap-1 max-w-[280px]">
                                 {role.allowedTabs.split(',').map(tabId => {
                                   const tabMap: Record<string, { label: string, color: string }> = {
@@ -1695,11 +1697,13 @@ export default function AdminPanels() {
                                     'users': { label: 'ผู้ใช้งาน', color: 'bg-teal-50 text-teal-700 dark:bg-teal-950/20 dark:text-teal-300' },
                                     'roles-mgmt': { label: 'จัดการสิทธิ์', color: 'bg-purple-50 text-purple-700 dark:bg-purple-950/20 dark:text-purple-300' },
                                     'audit-log': { label: 'ประวัติระบบ', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-350' },
-                                    'settings': { label: 'ตั้งค่าระบบ', color: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/20 dark:text-fuchsia-350' }
+                                    'settings': { label: 'ตั้งค่าระบบ', color: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/20 dark:text-fuchsia-350' },
+                                    'mc-live': { label: 'MC ไลฟ์สด', color: 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-300' },
+                                    'change-requests': { label: 'คำขอแก้ไข', color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300' }
                                   };
                                   const matched = tabMap[tabId.trim()] || { label: tabId, color: 'bg-slate-50 text-slate-650' };
                                   return (
-                                    <span key={tabId} className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold border border-current/10 ${matched.color}`}>
+                                    <span key={tabId} className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold border border-current/10 ${matched.color}`}>
                                       {matched.label}
                                     </span>
                                   );
@@ -1707,23 +1711,23 @@ export default function AdminPanels() {
                               </div>
                             </td>
                             {(canEdit || canDelete) && (
-                              <td className="p-3 flex items-center justify-center gap-1.5">
+                              <td className="px-4 py-3.5 flex items-center justify-center gap-1">
                                 {canEdit && (
                                   <button
                                     onClick={() => handleEditRoleSelect(role)}
-                                    className="p-1.5 bg-slate-50 hover:bg-slate-150 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350 rounded transition-all cursor-pointer"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-all cursor-pointer"
                                     title="แก้ไขสิทธิ์"
                                   >
-                                    <Edit2 className="w-3 h-3" />
+                                    <Edit2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                                 {canDelete && (
                                   <button
                                     onClick={() => handleDeleteRole(role)}
-                                    className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition-all cursor-pointer"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
                                     title="ลบสิทธิ์"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                               </td>
@@ -1740,34 +1744,34 @@ export default function AdminPanels() {
 
           {/* AUDIT LOGS SUBTAB */}
           {activeSubTab === 'logs' && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3 text-xs">
-                <h4 className="font-extrabold text-slate-850 dark:text-slate-200">ประวัติกิจกรรมการทำรายการในระบบ (Audit Log Trail)</h4>
+                <h4 className="font-extrabold text-slate-850 dark:text-slate-200 text-xs">ประวัติกิจกรรมการทำรายการในระบบ (Audit Log Trail)</h4>
                 
-                <div className="relative w-64">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <div className="relative w-48 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                   <input
                     type="search"
                     placeholder="ค้นหาชื่อผู้ใช้ / คำค้น..."
                     value={adminSearchQuery}
                     onChange={(e) => setAdminSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent"
+                    className="w-full pl-9 pr-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   />
                 </div>
               </div>
 
-              <div className="overflow-x-auto border border-slate-200 dark:border-slate-850 rounded-xl max-h-[500px]">
-                <table className="w-full text-[11px] text-left border-collapse">
+              <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl max-h-[500px]">
+                <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-850 text-slate-400 font-bold select-none sticky top-0 z-10">
-                      <th className="p-3">วัน-เวลา</th>
-                      <th className="p-3">ผู้ดำเนินการ</th>
-                      <th className="p-3">กิจกรรม</th>
-                      <th className="p-3">เป้าหมาย (Target)</th>
-                      <th className="p-3">รายละเอียด (Details)</th>
+                    <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none sticky top-0 z-10">
+                      <th className="px-4 py-3.5">วัน-เวลา</th>
+                      <th className="px-4 py-3.5">ผู้ดำเนินการ</th>
+                      <th className="px-4 py-3.5">กิจกรรม</th>
+                      <th className="px-4 py-3.5">เป้าหมาย (Target)</th>
+                      <th className="px-4 py-3.5">รายละเอียด (Details)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                     {logsLoading ? (
                       <tr>
                         <td colSpan={5} className="p-16 text-center">
@@ -1779,21 +1783,21 @@ export default function AdminPanels() {
                       </tr>
                     ) : (
                       filteredLogs.map((log, index) => (
-                        <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 text-slate-700 dark:text-slate-350">
-                          <td className="p-3 whitespace-nowrap text-slate-550 dark:text-slate-400">
+                        <tr key={index} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors text-slate-700 dark:text-slate-350">
+                          <td className="px-4 py-3.5 whitespace-nowrap text-slate-500 dark:text-slate-400">
                             {new Date(log.timestamp).toLocaleString('th-TH')}
                           </td>
-                          <td className="p-3 font-bold text-slate-900 dark:text-white">
+                          <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">
                             {log.userName}
-                            <span className="block text-[9px] font-normal text-slate-400">{log.userEmail}</span>
+                            <span className="block text-[10px] font-normal text-slate-400">{log.userEmail}</span>
                           </td>
-                          <td className="p-3">
-                            <span className="px-1.5 py-0.5 rounded font-extrabold text-[8px] bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300">
+                          <td className="px-4 py-3.5">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                               {log.action}
                             </span>
                           </td>
-                          <td className="p-3 font-bold text-brand-600 dark:text-brand-400">{log.target}</td>
-                          <td className="p-3 text-slate-500 dark:text-slate-400 leading-normal" title={log.details}>
+                          <td className="px-4 py-3.5 font-bold text-brand-600 dark:text-brand-400">{log.target}</td>
+                          <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 leading-normal" title={log.details}>
                             {log.details}
                           </td>
                         </tr>
@@ -1812,77 +1816,77 @@ export default function AdminPanels() {
 
           {/* SETTINGS SUBTAB */}
           {activeSubTab === 'settings' && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm max-w-2xl">
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-5 flex items-center gap-1.5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-2xl shadow-sm max-w-2xl">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-5 flex items-center gap-2">
                 <Bell className="w-4.5 h-4.5 text-brand-500" />
                 การแจ้งเตือนและการเชื่อมต่อ API
               </h3>
               
-              <form onSubmit={handleSaveSettings} className="space-y-5">
+              <form onSubmit={handleSaveSettings} className="space-y-4">
                 {/* Notification Enabled toggle */}
-                <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+                <div className="flex items-center justify-between p-4 bg-slate-50/60 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs">
                   <div className="flex flex-col gap-0.5">
-                    <span className="font-bold text-xs text-slate-800 dark:text-slate-250">เปิดใช้งาน Line Notification</span>
-                    <span className="text-[10px] text-slate-400">ส่งการแจ้งเตือนไปยังกลุ่มไลน์เมื่อมีการจอง แก้ไข หรือยกเลิกคิวไลฟ์สด</span>
+                    <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">เปิดใช้งาน Line Notification</span>
+                    <span className="text-[11px] text-slate-400 font-medium">ส่งการแจ้งเตือนไปยังกลุ่มไลน์เมื่อมีการจอง แก้ไข หรือยกเลิกคิวไลฟ์สด</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={settingsLineEnabled}
                     onChange={(e) => setSettingsLineEnabled(e.target.checked)}
-                    className="w-5 h-5 text-brand-600 rounded border-slate-350 dark:border-slate-700 cursor-pointer"
+                    className="w-4.5 h-4.5 text-brand-600 rounded cursor-pointer"
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wide">Line Messaging Channel Access Token</label>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">Line Messaging Channel Access Token</label>
                   <input
                     type="password"
                     placeholder="กรอก Messaging API channel access token ของไลน์บอท"
                     value={settingsLineToken}
                     onChange={(e) => setSettingsLineToken(e.target.value)}
-                    className="w-full text-xs font-semibold font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wide">Line Target Destination ID (GroupID / UserID)</label>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">Line Target Destination ID (GroupID / UserID)</label>
                   <input
                     type="text"
                     placeholder="เช่น C1234567890abcdef... ของกลุ่มไลน์แชทเป้าหมาย"
                     value={settingsLineDestId}
                     onChange={(e) => setSettingsLineDestId(e.target.value)}
-                    className="w-full text-xs font-semibold font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-460 dark:text-slate-400 uppercase tracking-wide">Frontend URL (ใช้สร้างลิงค์แนบไลน์)</label>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">Frontend URL (ใช้สร้างลิงค์แนบไลน์)</label>
                   <input
                     type="url"
                     placeholder="เช่น https://th-booking.vercel.app"
                     value={settingsUrl}
                     onChange={(e) => setSettingsUrl(e.target.value)}
-                    className="w-full text-xs font-semibold"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-460 dark:text-slate-400 uppercase tracking-wide">ช่องทางการไลฟ์สด (Live Channels)</label>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ช่องทางการไลฟ์สด (Live Channels)</label>
                   <input
                     type="text"
                     placeholder="เช่น Facebook,TikTok,Shopee,Lazada (คั่นด้วยเครื่องหมายจุลภาค ,)"
                     value={settingsLiveChannels}
                     onChange={(e) => setSettingsLiveChannels(e.target.value)}
-                    className="w-full text-xs font-semibold"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   />
-                  <span className="text-[9px] text-slate-400 font-medium">ระบุรายการช่องทางการไลฟ์โดยคั่นด้วยเครื่องหมายจุลภาค เพื่อให้ผู้ใช้สามารถเลือกได้ขณะทำรายการจองห้องไลฟ์</span>
+                  <span className="text-[10px] text-slate-400 font-medium mt-1 block">ระบุรายการช่องทางการไลฟ์โดยคั่นด้วยเครื่องหมายจุลภาค เพื่อให้ผู้ใช้สามารถเลือกได้ขณะทำรายการจองห้องไลฟ์</span>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer"
+                    className="w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     {submitting ? 'กำลังบันทึกการตั้งค่า...' : 'บันทึกการตั้งค่าระบบ'}
                   </button>
@@ -1898,9 +1902,9 @@ export default function AdminPanels() {
               <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 shrink-0">
                 <button
                   onClick={() => setMcSubTab('list')}
-                  className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 ${
+                  className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 cursor-pointer ${
                     mcSubTab === 'list'
-                      ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                      ? 'border-brand-500 text-brand-600 dark:text-brand-400 font-extrabold'
                       : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-250'
                   }`}
                 >
@@ -1908,9 +1912,9 @@ export default function AdminPanels() {
                 </button>
                 <button
                   onClick={() => setMcSubTab('tiers')}
-                  className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 ${
+                  className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 cursor-pointer ${
                     mcSubTab === 'tiers'
-                      ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                      ? 'border-brand-500 text-brand-600 dark:text-brand-400 font-extrabold'
                       : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-250'
                   }`}
                 >
@@ -1922,25 +1926,25 @@ export default function AdminPanels() {
               {mcSubTab === 'list' && (
                 <div className="flex flex-col gap-4">
                   {/* Filters & Actions bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm">
                     <div className="flex flex-wrap items-center gap-3">
                       {/* Search */}
-                      <div className="relative">
+                      <div className="relative w-48 sm:w-56">
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                           type="text"
                           placeholder="ค้นหาชื่อ MC..."
                           value={mcSearch}
                           onChange={(e) => setMcSearch(e.target.value)}
-                          className="w-48 pl-9 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:border-brand-500"
+                          className="w-full pl-9 pr-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                         />
-                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       </div>
 
                       {/* Filter by Tier */}
                       <select
                         value={mcFilterTier}
                         onChange={(e) => setMcFilterTier(e.target.value)}
-                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none"
+                        className="py-2 px-3.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                       >
                         <option value="">ทุกระดับ Tier</option>
                         {mcTiers.map(t => (
@@ -1952,7 +1956,7 @@ export default function AdminPanels() {
                       <select
                         value={mcFilterStatus}
                         onChange={(e) => setMcFilterStatus(e.target.value)}
-                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none"
+                        className="py-2 px-3.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                       >
                         <option value="">ทุกสถานะ</option>
                         <option value="Active">Active</option>
@@ -1963,7 +1967,7 @@ export default function AdminPanels() {
                       <select
                         value={mcSort}
                         onChange={(e) => setMcSort(e.target.value as any)}
-                        className="py-1.5 px-3 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none"
+                        className="py-2 px-3.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                       >
                         <option value="name-asc">ชื่อ MC (ก-ฮ)</option>
                         <option value="name-desc">ชื่อ MC (ฮ-ก)</option>
@@ -1976,7 +1980,7 @@ export default function AdminPanels() {
                         resetMcForm();
                         setIsMcModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/25 cursor-pointer"
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       เพิ่ม MC ใหม่
@@ -1984,18 +1988,18 @@ export default function AdminPanels() {
                   </div>
 
                   {/* MC List Table */}
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto border border-slate-150 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-                          <th className="p-4 font-bold">ชื่อ MC</th>
-                          <th className="p-4 font-bold">ระดับ Tier</th>
-                          <th className="p-4 font-bold">จำนวนคิวไลฟ์สด</th>
-                          <th className="p-4 font-bold">สถานะ</th>
-                          <th className="p-4 font-bold text-right">จัดการ</th>
+                        <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider select-none">
+                          <th className="px-4 py-3.5">ชื่อ MC</th>
+                          <th className="px-4 py-3.5">ระดับ Tier</th>
+                          <th className="px-4 py-3.5">จำนวนคิวไลฟ์สด</th>
+                          <th className="px-4 py-3.5">สถานะ</th>
+                          <th className="px-4 py-3.5 text-center">จัดการ</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                         {(() => {
                           let filtered = [...mcList];
 
@@ -2038,46 +2042,45 @@ export default function AdminPanels() {
                             const count = calendarBookings.filter(b => b.mcId === mc.id && b.status !== 'Cancelled').length;
 
                             return (
-                              <tr key={mc.id} className="hover:bg-slate-50/55 dark:hover:bg-slate-800/10">
-                                <td className="p-4 font-bold text-slate-900 dark:text-white">{mc.name}</td>
-                                <td className="p-4">
-                                  <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg font-bold text-[10px] text-slate-700 dark:text-slate-350">
+                              <tr key={mc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors">
+                                <td className="px-4 py-3.5 font-extrabold text-slate-900 dark:text-white">{mc.name}</td>
+                                <td className="px-4 py-3.5">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200/50">
                                     {tier ? tier.name : 'ไม่ระบุ'}
                                   </span>
                                 </td>
-                                <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">{count} คิว</td>
-                                <td className="p-4">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                <td className="px-4 py-3.5 font-semibold text-slate-700 dark:text-slate-300">{count} คิว</td>
+                                <td className="px-4 py-3.5">
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                                     mc.status === 'Active'
-                                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
-                                      : 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 dark:text-rose-400'
+                                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
+                                      : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border-rose-200 dark:border-rose-800/60'
                                   }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${mc.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                                     {mc.status === 'Active' ? 'Active' : 'Inactive'}
                                   </span>
                                 </td>
-                                <td className="p-4 text-right">
-                                  <div className="flex items-center justify-end gap-1.5">
-                                    <button
-                                      onClick={() => {
-                                        setEditingMc(mc);
-                                        setMcName(mc.name);
-                                        setMcTierId(mc.tierId);
-                                        setMcStatus(mc.status);
-                                        setIsMcModalOpen(true);
-                                      }}
-                                      title="แก้ไขข้อมูล MC"
-                                      className="p-2 text-slate-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/20 rounded-lg transition-all cursor-pointer"
-                                    >
-                                      <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteMc(mc)}
-                                      title="ลบ MC"
-                                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
+                                <td className="px-4 py-3.5 flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => {
+                                      setEditingMc(mc);
+                                      setMcName(mc.name);
+                                      setMcTierId(mc.tierId);
+                                      setMcStatus(mc.status);
+                                      setIsMcModalOpen(true);
+                                    }}
+                                    title="แก้ไขข้อมูล MC"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-all cursor-pointer"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteMc(mc)}
+                                    title="ลบ MC"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </td>
                               </tr>
                             );
@@ -2093,14 +2096,14 @@ export default function AdminPanels() {
               {mcSubTab === 'tiers' && (
                 <div className="flex flex-col gap-4 max-w-2xl">
                   {/* Action row */}
-                  <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm">
-                    <span className="text-xs font-semibold text-slate-500">ระดับ Tier (กลุ่มประเภท MC) สำหรับจัดกลุ่มคิวจองไลฟ์สด</span>
+                  <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ระดับ Tier (กลุ่มประเภท MC) สำหรับจัดกลุ่มคิวจองไลฟ์สด</span>
                     <button
                       onClick={() => {
                         resetTierForm();
                         setIsTierModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/25 cursor-pointer"
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       เพิ่ม Tier ใหม่
@@ -2108,8 +2111,8 @@ export default function AdminPanels() {
                   </div>
 
                   {/* Tier lists */}
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
                       {mcTiers.length === 0 ? (
                         <div className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium text-xs">
                           ยังไม่มีข้อมูลระดับ Tier ในระบบ
@@ -2131,35 +2134,36 @@ export default function AdminPanels() {
                             if (idxB !== -1) return 1;
                             return a.name.localeCompare(b.name);
                           })
-                          .map((tier, idx) => {
+                          .map((tier) => {
                             const mcsUsing = mcList.filter(mc => mc.tierId === tier.id).length;
                           return (
-                            <div key={tier.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/10 transition-colors">
+                            <div key={tier.id} className="flex items-center justify-between p-4 hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors">
                               <div className="flex items-center gap-3">
-                                {/* Bullet indicator */}
-                                <div className="w-2 h-2 rounded-full bg-brand-500" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-brand-500 shadow-sm shadow-brand-500/50" />
                                 <div className="flex flex-col">
-                                  <span className="font-bold text-slate-800 dark:text-white text-xs">{tier.name}</span>
+                                  <span className="font-extrabold text-slate-800 dark:text-white text-xs">{tier.name}</span>
                                   <span className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
                                     มี MC ในระบบ {mcsUsing} คน
                                   </span>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => {
                                     setEditingTier(tier);
                                     setTierName(tier.name);
                                     setIsTierModalOpen(true);
                                   }}
-                                  className="p-2 text-slate-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/20 rounded-lg transition-all cursor-pointer"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-all cursor-pointer"
+                                  title="แก้ไข Tier"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteTier(tier)}
-                                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
+                                  title="ลบ Tier"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -2235,18 +2239,18 @@ export default function AdminPanels() {
               </div>
 
               {/* Filters & Actions bar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm">
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Search */}
-                  <div className="relative">
+                  <div className="relative w-64">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="ค้นหา ID คิว, ผู้ส่ง, รายละเอียด..."
                       value={adminSearchQuery}
                       onChange={(e) => setAdminSearchQuery(e.target.value)}
-                      className="w-64 pl-9 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:border-brand-500"
+                      className="w-full pl-9 pr-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                     />
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   </div>
 
                   {/* Filter Status Pills */}
@@ -2290,19 +2294,19 @@ export default function AdminPanels() {
               </div>
 
               {/* Table of Requests */}
-              <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+              <div className="border border-slate-150 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-slate-150 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/50 text-[10px] uppercase font-bold text-slate-450 dark:text-slate-400 tracking-wider select-none">
-                        <th className="py-3 px-4">ID คิวจอง (Booking ID)</th>
-                        <th className="py-3 px-4">วันที่ & ห้องไลฟ์</th>
-                        <th className="py-3 px-4">ผู้ส่งคำร้อง</th>
-                        <th className="py-3 px-4">ประเภทคำขอ</th>
-                        <th className="py-3 px-4">รายละเอียดที่ขอแก้ไข</th>
-                        <th className="py-3 px-4">สถานะ</th>
-                        <th className="py-3 px-4">ผู้ดำเนินการ & วันที่แก้ไข</th>
-                        <th className="py-3 px-4 text-center">จัดการ</th>
+                      <tr className="border-b border-slate-150 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-[10px] uppercase font-bold text-slate-450 dark:text-slate-400 tracking-wider select-none">
+                        <th className="py-3.5 px-4">ID คิวจอง (Booking ID)</th>
+                        <th className="py-3.5 px-4">วันที่ & ห้องไลฟ์</th>
+                        <th className="py-3.5 px-4">ผู้ส่งคำร้อง</th>
+                        <th className="py-3.5 px-4">ประเภทคำขอ</th>
+                        <th className="py-3.5 px-4">รายละเอียดที่ขอแก้ไข</th>
+                        <th className="py-3.5 px-4">สถานะ</th>
+                        <th className="py-3.5 px-4">ผู้ดำเนินการ & วันที่แก้ไข</th>
+                        <th className="py-3.5 px-4 text-center">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
@@ -2336,7 +2340,7 @@ export default function AdminPanels() {
                           const isRejected = req.status === 'Rejected';
 
                           return (
-                            <tr key={req.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-850/40 transition-all">
+                            <tr key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors">
                               {/* Booking ID */}
                               <td className="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
                                 {req.bookingCustomId || (matchedB ? generateBookingCustomId(matchedB, calendarBookings) : req.bookingId.substring(0, 8))}
@@ -2374,10 +2378,10 @@ export default function AdminPanels() {
 
                               {/* Type */}
                               <td className="py-3.5 px-4">
-                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                                   req.requestType === 'cancel'
-                                    ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400'
-                                    : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400'
+                                    ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/60'
+                                    : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200/60'
                                 }`}>
                                   {req.requestType === 'cancel' ? '🗑️ ขอยกเลิกคิว' : '✏️ ขอแก้ไขข้อมูล'}
                                 </span>
@@ -2385,7 +2389,7 @@ export default function AdminPanels() {
 
                               {/* Details */}
                               <td className="py-3.5 px-4 max-w-xs">
-                                <div className="p-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 line-clamp-3">
+                                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 line-clamp-3">
                                   {req.requestDetails || '-'}
                                 </div>
                               </td>
@@ -2393,19 +2397,19 @@ export default function AdminPanels() {
                               {/* Status */}
                               <td className="py-3.5 px-4">
                                 {isPending && (
-                                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center gap-1 w-max">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
                                     รอพิจารณา
                                   </span>
                                 )}
                                 {isApproved && (
-                                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 w-max">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                                     อนุมัติแล้ว
                                   </span>
                                 )}
                                 {isRejected && (
-                                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center gap-1 w-max">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
                                     <XCircle className="w-3 h-3 text-rose-500" />
                                     ปฏิเสธ
                                   </span>
@@ -2444,7 +2448,7 @@ export default function AdminPanels() {
                                   }`}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
-                                  {isPending ? 'พิจารณา & แก้ไข' : 'ดูรายละเอียด'}
+                                  {isPending ? 'พิจารณา' : 'ดูรายละเอียด'}
                                 </button>
                               </td>
                             </tr>
@@ -2460,42 +2464,37 @@ export default function AdminPanels() {
 
       </div>
 
-      {/* REVIEW & APPROVAL MODAL */}
+      {/* Review & Action Modal */}
       {isReviewModalOpen && selectedReq && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" onClick={() => setIsReviewModalOpen(false)} />
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
-            {/* Header */}
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl p-6 shadow-2xl z-10 animate-in zoom-in duration-200 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4 shrink-0">
-              <div>
-                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <FileEdit className="w-4 h-4 text-brand-500" />
-                  พิจารณาคำขอแก้ไขคิวไลฟ์
+              <div className="flex items-center gap-2">
+                <FileEdit className="w-5 h-5 text-indigo-500" />
+                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                  พิจารณาคำขอ: {selectedReq.bookingCustomId || selectedReq.bookingId.substring(0, 8)}
                 </h3>
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">
-                  คิวจอง ID: {selectedReq.bookingCustomId || selectedReq.bookingId}
-                </span>
               </div>
-              <button onClick={() => setIsReviewModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+              <button onClick={() => setIsReviewModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto space-y-4 text-xs pr-1">
-              {/* Request Info Card */}
-              <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between">
+            <div className="overflow-y-auto space-y-4 pr-1">
+              {/* Requester Info Box */}
+              <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl space-y-2 text-xs">
+                <div className="flex justify-between items-center">
                   <span className="font-bold text-indigo-900 dark:text-indigo-300">
-                    ผู้ส่งคำร้อง: {selectedReq.requesterName} ({selectedReq.requesterEmail})
+                    ผู้ยื่นคำขอ: {selectedReq.requesterName} ({selectedReq.requesterEmail})
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-slate-400 font-medium">
                     {safeDateLocaleString(selectedReq.createdAt)}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">รายละเอียด / สิ่งที่ขอแก้ไข:</span>
-                  <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200 bg-white/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+                  <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200 bg-white/80 dark:bg-slate-900/60 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
                     {selectedReq.requestDetails || 'ไม่ได้ระบุ'}
                   </p>
                 </div>
@@ -2503,27 +2502,27 @@ export default function AdminPanels() {
 
               {/* If Edit Mode -> Editable Booking Fields */}
               {selectedReq.requestType === 'edit' && reviewMatchedBooking && (
-                <div className="p-4 bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
                   <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs block">
                     ✏️ ปรับปรุงข้อมูลคิวจองจริง (จะถูกบันทึกทันทีเมื่อกดอนุมัติ):
                   </span>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">วันที่ไลฟ์</label>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">วันที่ไลฟ์</label>
                       <input
                         type="date"
                         value={revDate}
                         onChange={(e) => setRevDate(e.target.value)}
-                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                       />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">ห้องสตูดิโอ</label>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">ห้องสตูดิโอ</label>
                       <select
                         value={revRoom}
                         onChange={(e) => setRevRoom(e.target.value)}
-                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                       >
                         {(allRoomsAdmin && allRoomsAdmin.length > 0 ? allRoomsAdmin : (rooms || [])).map(r => (
                           <option key={r.id} value={r.name}>{r.name}</option>
@@ -2533,59 +2532,59 @@ export default function AdminPanels() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">เวลาเริ่ม</label>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">เวลาเริ่ม</label>
                       <input
                         type="text"
                         value={revStartTime}
                         onChange={(e) => setRevStartTime(e.target.value)}
                         placeholder="09:00"
-                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold font-mono"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                       />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">เวลาจบ</label>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">เวลาจบ</label>
                       <input
                         type="text"
                         value={revEndTime}
                         onChange={(e) => setRevEndTime(e.target.value)}
                         placeholder="11:00"
-                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold font-mono"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">แบรนด์สินค้า</label>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">แบรนด์สินค้า</label>
                       <select
                         value={revBrand}
                         onChange={(e) => setRevBrand(e.target.value)}
-                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                       >
                         {(allBrandsAdmin && allBrandsAdmin.length > 0 ? allBrandsAdmin : (brands || [])).map(b => (
                           <option key={b.id} value={b.name}>{b.name}</option>
                         ))}
                       </select>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">ชื่อแคมเปญ</label>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">ชื่อแคมเปญ</label>
                       <input
                         type="text"
                         value={revCampaign}
                         onChange={(e) => setRevCampaign(e.target.value)}
-                        className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">MC ประจำไลฟ์ (เลือกหลายท่านได้)</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto p-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">MC ประจำไลฟ์ (เลือกหลายท่านได้)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950">
                       {(mcList || []).map(m => {
                         const checked = revSelectedMcIds.includes(m.id);
                         return (
-                          <label key={m.id} className="flex items-center gap-1.5 text-[11px] font-medium cursor-pointer">
+                          <label key={m.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 text-xs font-semibold cursor-pointer">
                             <input
                               type="checkbox"
                               checked={checked}
@@ -2596,7 +2595,7 @@ export default function AdminPanels() {
                                   setRevSelectedMcIds(revSelectedMcIds.filter(id => id !== m.id));
                                 }
                               }}
-                              className="rounded border-slate-300"
+                              className="w-3.5 h-3.5 rounded border-slate-350 dark:border-slate-700 text-brand-600"
                             />
                             <span className="truncate">{m.name}</span>
                           </label>
@@ -2605,13 +2604,13 @@ export default function AdminPanels() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">บรีฟงาน (Brief / Script)</label>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">บรีฟงาน (Brief / Script)</label>
                     <textarea
                       value={revBriefText}
                       onChange={(e) => setRevBriefText(e.target.value)}
                       rows={2}
-                      className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -2622,8 +2621,8 @@ export default function AdminPanels() {
                 <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
                   <div>
-                    <span className="font-extrabold text-rose-900 dark:text-rose-300 block">คำขอนี้ต้องการยกเลิกคิวจอง</span>
-                    <span className="text-[10px] text-rose-700 dark:text-rose-400 block">
+                    <span className="font-extrabold text-rose-900 dark:text-rose-300 block text-xs">คำขอนี้ต้องการยกเลิกคิวจอง</span>
+                    <span className="text-[11px] text-rose-700 dark:text-rose-400 block mt-0.5">
                       เมื่อกดอนุมัติ ระบบจะเปลี่ยนสถานะคิวจองเป็น "Cancelled" และคืนช่วงเวลาให้สตูดิโอว่าง
                     </span>
                   </div>
@@ -2631,8 +2630,8 @@ export default function AdminPanels() {
               )}
 
               {/* Handler Note */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">
                   หมายเหตุจากผู้รับคำร้อง / ข้อความตอบกลับผู้ส่ง:
                 </label>
                 <input
@@ -2640,7 +2639,7 @@ export default function AdminPanels() {
                   placeholder="เช่น อัปเดตเวลาให้เรียบร้อยแล้ว หรือ ติดปัญหาเวลาชนกับแบรนด์อื่น"
                   value={reviewHandlerNote}
                   onChange={(e) => setReviewHandlerNote(e.target.value)}
-                  className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                 />
               </div>
             </div>
@@ -2650,7 +2649,7 @@ export default function AdminPanels() {
               <button
                 type="button"
                 onClick={() => setIsReviewModalOpen(false)}
-                className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 ปิด
               </button>
@@ -2660,7 +2659,7 @@ export default function AdminPanels() {
                   type="button"
                   disabled={revSubmitting}
                   onClick={() => handleResolveRequest('REJECT')}
-                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 dark:text-rose-400 rounded-xl text-xs font-bold transition-all border border-rose-200 dark:border-rose-800 flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 dark:text-rose-400 rounded-xl text-xs font-bold transition-all border border-rose-200 dark:border-rose-800 flex items-center gap-1.5 cursor-pointer"
                 >
                   <XCircle className="w-3.5 h-3.5" /> ปฏิเสธคำขอ
                 </button>
@@ -2669,7 +2668,7 @@ export default function AdminPanels() {
                   type="button"
                   disabled={revSubmitting}
                   onClick={() => handleResolveRequest('APPROVE')}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   {revSubmitting ? 'กำลังบันทึก...' : 'อัปเดตข้อมูล & อนุมัติคำขอ'}
@@ -2686,33 +2685,34 @@ export default function AdminPanels() {
           <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" onClick={() => setIsMcModalOpen(false)} />
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-5">
-              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <UserPlus className="w-4.5 h-4.5 text-brand-500" />
                 {editingMc ? 'แก้ไขข้อมูล MC' : 'เพิ่ม MC ใหม่'}
               </h3>
-              <button onClick={() => setIsMcModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+              <button onClick={() => setIsMcModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSaveMc} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ชื่อ MC (MC Name)</label>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ชื่อ MC (MC Name)</label>
                 <input
                   type="text"
                   placeholder="กรอกชื่อสำหรับแสดงผล"
                   value={mcName}
                   onChange={(e) => setMcName(e.target.value)}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   required
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ระดับ Tier (MC Tier)</label>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ระดับ Tier (MC Tier)</label>
                 <select
                   value={mcTierId}
                   onChange={(e) => setMcTierId(e.target.value)}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                   required
                 >
                   <option value="">-- เลือก Tier --</option>
@@ -2722,15 +2722,15 @@ export default function AdminPanels() {
                 </select>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">สถานะการใช้งาน (Status)</label>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">สถานะการใช้งาน (Status)</label>
                 <select
                   value={mcStatus}
                   onChange={(e) => setMcStatus(e.target.value as any)}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all cursor-pointer"
                 >
-                  <option value="Active">Active (เปิดใช้งาน)</option>
-                  <option value="Inactive">Inactive (ปิดใช้งาน)</option>
+                  <option value="Active">เปิดใช้งาน (Active)</option>
+                  <option value="Inactive">ปิดใช้งาน (Inactive)</option>
                 </select>
               </div>
 
@@ -2738,14 +2738,14 @@ export default function AdminPanels() {
                 <button
                   type="button"
                   onClick={() => setIsMcModalOpen(false)}
-                  className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/25"
+                  className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                 </button>
@@ -2761,23 +2761,24 @@ export default function AdminPanels() {
           <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" onClick={() => setIsTierModalOpen(false)} />
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-5">
-              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-4.5 h-4.5 text-brand-500" />
                 {editingTier ? 'แก้ไขระดับ Tier' : 'เพิ่ม Tier ใหม่'}
               </h3>
-              <button onClick={() => setIsTierModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+              <button onClick={() => setIsTierModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSaveTier} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wide">ชื่อ Tier</label>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">ชื่อ Tier</label>
                 <input
                   type="text"
                   placeholder="เช่น Tier S, Tier VIP"
                   value={tierName}
                   onChange={(e) => setTierName(e.target.value)}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-350 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   required
                 />
               </div>
@@ -2786,14 +2787,14 @@ export default function AdminPanels() {
                 <button
                   type="button"
                   onClick={() => setIsTierModalOpen(false)}
-                  className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/25"
+                  className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                 </button>
@@ -2812,7 +2813,7 @@ export default function AdminPanels() {
               <h3 className="font-extrabold text-sm text-rose-600 dark:text-rose-450 flex items-center gap-2">
                 ⚠️ ไม่สามารถลบข้อมูล MC ท่านนี้ได้
               </h3>
-              <button onClick={() => setIsBlockModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+              <button onClick={() => setIsBlockModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -2839,7 +2840,7 @@ export default function AdminPanels() {
                         setHighlightedBookingId(b.id);
                         setCurrentTab('scheduler');
                       }}
-                      className="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/20 dark:hover:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-lg font-bold transition-all text-[10px] shrink-0"
+                      className="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/20 dark:hover:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-lg font-bold transition-all text-[10px] shrink-0 cursor-pointer"
                     >
                       ดูคิวไลฟ์
                     </button>
@@ -2851,7 +2852,7 @@ export default function AdminPanels() {
                 <button
                   type="button"
                   onClick={() => setIsBlockModalOpen(false)}
-                  className="px-5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   ปิดหน้าต่าง
                 </button>

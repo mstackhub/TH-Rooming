@@ -132,7 +132,7 @@ export default function Navigation() {
 
               {/* Indented Collapsible Analytics Sub-menus */}
               {isAnalyticsItem && isAnalyticsExpanded && (
-                <div className="pl-5 pr-2 py-1 flex flex-col gap-1 border-l border-slate-200 dark:border-slate-800 ml-6 mt-1.5 animate-in slide-in-from-top-1 duration-150">
+                <div className="pl-3 pr-2 py-1 flex flex-col gap-1 border-l border-slate-200 dark:border-slate-800 ml-6 mt-1.5 animate-in slide-in-from-top-1 duration-150">
                   {[
                     { id: 'analytics', name: 'สถิติและการใช้งาน' },
                     { id: 'analytics-staff', name: 'ประสิทธิภาพ Staff' },
@@ -143,10 +143,10 @@ export default function Navigation() {
                       <button
                         key={sub.id}
                         onClick={() => setCurrentTab(sub.id)}
-                        className={`text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                        className={`text-left px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all focus:outline-none ${
                           isSubActive
-                            ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/20 dark:text-brand-400 font-bold'
-                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:text-slate-800 dark:hover:text-slate-200'
+                            ? 'bg-brand-50/90 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400 font-bold border-l-2 border-brand-500 rounded-r-xl rounded-l-none pl-3'
+                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/30 hover:text-slate-800 dark:hover:text-slate-200 border-l-2 border-transparent pl-3'
                         }`}
                       >
                         {sub.name}
@@ -158,7 +158,7 @@ export default function Navigation() {
 
               {/* Indented Collapsible Settings Sub-menus */}
               {isSettingsItem && isSettingsExpanded && (
-                <div className="pl-5 pr-2 py-1 flex flex-col gap-1 border-l border-slate-200 dark:border-slate-800 ml-6 mt-1.5 animate-in slide-in-from-top-1 duration-150">
+                <div className="pl-3 pr-2 py-1 flex flex-col gap-1 border-l border-slate-200 dark:border-slate-800 ml-6 mt-1.5 animate-in slide-in-from-top-1 duration-150">
                   {[
                     { id: 'rooms', name: 'ห้องสตูดิโอ' },
                     { id: 'brands', name: 'แบรนด์ลูกค้า' },
@@ -173,10 +173,10 @@ export default function Navigation() {
                       <button
                         key={sub.id}
                         onClick={() => setCurrentTab(sub.id)}
-                        className={`text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center justify-between ${
+                        className={`text-left px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all focus:outline-none flex items-center justify-between ${
                           isSubActive
-                            ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/20 dark:text-brand-400 font-bold'
-                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:text-slate-800 dark:hover:text-slate-200'
+                            ? 'bg-brand-50/90 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400 font-bold border-l-2 border-brand-500 rounded-r-xl rounded-l-none pl-3'
+                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/30 hover:text-slate-800 dark:hover:text-slate-200 border-l-2 border-transparent pl-3'
                         }`}
                       >
                         <span>{sub.name}</span>
