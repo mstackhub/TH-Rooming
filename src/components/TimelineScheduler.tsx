@@ -521,23 +521,6 @@ export default function TimelineScheduler() {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
-            
-            {canWrite && (
-              <>
-                <button 
-                  onClick={() => setIsImportModalOpen(true)}
-                  className="px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <FileSpreadsheet className="w-4 h-4" /> นำเข้าคิวจอง Excel
-                </button>
-                <button 
-                  onClick={() => setActiveBookingCreateData({ date: selectedDate, roomName: '', startTime: '09:00', endTime: '10:00' })}
-                  className="px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-semibold shadow-md shadow-brand-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> จองห้องไลฟ์
-                </button>
-              </>
-            )}
           </div>
         </div>
       </div>
