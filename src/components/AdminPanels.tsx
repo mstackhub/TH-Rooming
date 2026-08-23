@@ -824,12 +824,12 @@ export default function AdminPanels() {
           {currentTab === 'change-requests' ? (
             <>
               <FileEdit className="w-5 h-5 text-indigo-500" />
-              จัดการคำขอแก้ไขและยกเลิกคิวไลฟ์ (Booking Change Requests)
+              จัดการคำขอแก้ไขและยกเลิกคิวไลฟ์
             </>
           ) : (
             <>
               <Shield className="w-5 h-5 text-brand-500" />
-              ระบบผู้ดูแลระบบ (Admin Management Dashboard)
+              ระบบจัดการและตั้งค่า
             </>
           )}
         </h2>
@@ -2207,56 +2207,56 @@ export default function AdminPanels() {
           {activeSubTab === 'change-requests' && (
             <div className="flex flex-col gap-6 w-full animate-in fade-in duration-200">
               {/* Top KPI Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
                 <div 
                   onClick={() => setReqFilterStatus('ALL')}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     reqFilterStatus === 'ALL'
-                      ? 'bg-brand-50/80 dark:bg-brand-950/30 border-brand-300 dark:border-brand-800'
+                      ? 'bg-brand-50/90 dark:bg-brand-950/40 border-brand-300 dark:border-brand-800 shadow-xs'
                       : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
                   }`}
                 >
-                  <span className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider block">คำขอทั้งหมด</span>
-                  <span className="text-xl font-black text-slate-800 dark:text-white">{(changeRequests || []).length}</span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">คำขอทั้งหมด</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white mt-1 block">{(changeRequests || []).length}</span>
                 </div>
                 <div 
                   onClick={() => setReqFilterStatus('Pending')}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     reqFilterStatus === 'Pending'
-                      ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800'
+                      ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 shadow-xs'
                       : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
                   }`}
                 >
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" /> รอพิจารณา
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" /> รอพิจารณา
                   </span>
-                  <span className="text-xl font-black text-amber-600 dark:text-amber-400">
+                  <span className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 block">
                     {(changeRequests || []).filter(r => r.status === 'Pending').length}
                   </span>
                 </div>
                 <div 
                   onClick={() => setReqFilterStatus('Approved')}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     reqFilterStatus === 'Approved'
-                      ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
+                      ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 shadow-xs'
                       : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
                   }`}
                 >
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">อนุมัติแล้ว</span>
-                  <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">อนุมัติแล้ว</span>
+                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
                     {(changeRequests || []).filter(r => r.status === 'Approved').length}
                   </span>
                 </div>
                 <div 
                   onClick={() => setReqFilterStatus('Rejected')}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     reqFilterStatus === 'Rejected'
-                      ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
+                      ? 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 shadow-xs'
                       : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
                   }`}
                 >
-                  <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block">ปฏิเสธคำขอ</span>
-                  <span className="text-xl font-black text-rose-600 dark:text-rose-400">
+                  <span className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block">ปฏิเสธคำขอ</span>
+                  <span className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 block">
                     {(changeRequests || []).filter(r => r.status === 'Rejected').length}
                   </span>
                 </div>
@@ -2266,14 +2266,14 @@ export default function AdminPanels() {
               <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm">
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Search */}
-                  <div className="relative w-64">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <div className="relative w-72">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="ค้นหา ID คิว, ผู้ส่ง, รายละเอียด..."
                       value={adminSearchQuery}
                       onChange={(e) => setAdminSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
                     />
                   </div>
 
@@ -2288,7 +2288,7 @@ export default function AdminPanels() {
                       <button
                         key={f.id}
                         onClick={() => setReqFilterStatus(f.id as any)}
-                        className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                        className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                           reqFilterStatus === f.id
                             ? 'bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-xs'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -2300,7 +2300,7 @@ export default function AdminPanels() {
                   </div>
                 </div>
 
-                <div className="text-[11px] text-slate-450 dark:text-slate-400 font-semibold">
+                <div className="text-xs text-slate-500 dark:text-slate-400 font-bold">
                   แสดง {
                     (changeRequests || []).filter(r => {
                       if (reqFilterStatus !== 'ALL' && r.status !== reqFilterStatus) return false;
@@ -2318,19 +2318,19 @@ export default function AdminPanels() {
               </div>
 
               {/* Table of Requests */}
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+              <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-[10px] uppercase font-bold text-slate-450 dark:text-slate-400 tracking-wider select-none">
-                        <th className="py-3.5 px-4">ID คิวจอง (Booking ID)</th>
-                        <th className="py-3.5 px-4">วันที่ & ห้องไลฟ์</th>
-                        <th className="py-3.5 px-4">ผู้ส่งคำร้อง</th>
-                        <th className="py-3.5 px-4">ประเภทคำขอ</th>
-                        <th className="py-3.5 px-4">รายละเอียดที่ขอแก้ไข</th>
-                        <th className="py-3.5 px-4">สถานะ</th>
-                        <th className="py-3.5 px-4">ผู้ดำเนินการ & วันที่แก้ไข</th>
-                        <th className="py-3.5 px-4 text-center">จัดการ</th>
+                      <tr className="border-b border-slate-200/90 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/80 text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
+                        <th className="py-4 px-5">ID คิวจอง</th>
+                        <th className="py-4 px-5">วันที่ & ห้องไลฟ์</th>
+                        <th className="py-4 px-5">ผู้ส่งคำร้อง</th>
+                        <th className="py-4 px-5">ประเภทคำขอ</th>
+                        <th className="py-4 px-5">รายละเอียดที่ขอแก้ไข</th>
+                        <th className="py-4 px-5">สถานะ</th>
+                        <th className="py-4 px-5">ผู้ดำเนินการ & วันที่</th>
+                        <th className="py-4 px-5 text-center">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
@@ -2350,7 +2350,7 @@ export default function AdminPanels() {
                         if (list.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={8} className="py-12 text-center text-slate-400 dark:text-slate-500 font-semibold">
+                              <td colSpan={8} className="py-16 text-center text-slate-400 dark:text-slate-500 font-bold text-sm">
                                 ไม่พบรายการคำขอแก้ไขคิวไลฟ์
                               </td>
                             </tr>
@@ -2364,115 +2364,119 @@ export default function AdminPanels() {
                           const isRejected = req.status === 'Rejected';
 
                           return (
-                            <tr key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/40 transition-colors">
+                            <tr key={req.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-850/50 transition-colors">
                               {/* Booking ID */}
-                              <td className="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
+                              <td className="py-4 px-5 font-mono font-black text-sm text-amber-600 dark:text-amber-400">
                                 {req.bookingCustomId || (matchedB ? generateBookingCustomId(matchedB, calendarBookings) : req.bookingId.substring(0, 8))}
                               </td>
 
                               {/* Date & Room */}
-                              <td className="py-3.5 px-4">
+                              <td className="py-4 px-5">
                                 {matchedB ? (
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                                  <div className="flex flex-col gap-1">
+                                    <span className="font-extrabold text-sm text-slate-900 dark:text-white">
                                       {formatThaiDate(matchedB.date)}
                                     </span>
-                                    <span className="text-[10px] text-slate-400">
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                       {matchedB.roomName} ({matchedB.startTime} - {matchedB.endTime} น.)
                                     </span>
-                                    <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold">
+                                    <span className="text-xs text-brand-600 dark:text-brand-400 font-bold">
                                       แบรนด์: {matchedB.brandName}
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 text-[10px]">คิวจองถูกลบหรือยกเลิกแล้ว</span>
+                                  <span className="text-slate-400 text-xs">คิวจองถูกลบหรือยกเลิกแล้ว</span>
                                 )}
                               </td>
 
                               {/* Requester */}
-                              <td className="py-3.5 px-4">
+                              <td className="py-4 px-5">
                                 <div className="flex flex-col gap-0.5">
-                                  <span className="font-bold text-slate-800 dark:text-slate-200">{req.requesterName}</span>
-                                  <span className="text-[10px] text-slate-400">{req.requesterEmail}</span>
-                                  <span className="text-[9px] text-slate-450 dark:text-slate-500">
+                                  <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{req.requesterName}</span>
+                                  <span className="text-xs text-slate-400">{req.requesterEmail}</span>
+                                  <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                                     {safeDateLocaleString(req.createdAt)}
                                   </span>
                                 </div>
                               </td>
 
                               {/* Type */}
-                              <td className="py-3.5 px-4">
-                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              <td className="py-4 px-5">
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
                                   req.requestType === 'cancel'
-                                    ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/60'
-                                    : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200/60'
+                                    ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/80'
+                                    : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200/80'
                                 }`}>
                                   {req.requestType === 'cancel' ? '🗑️ ขอยกเลิกคิว' : '✏️ ขอแก้ไขข้อมูล'}
                                 </span>
                               </td>
 
                               {/* Details */}
-                              <td className="py-3.5 px-4 max-w-xs">
-                                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 line-clamp-3">
+                              <td className="py-4 px-5 max-w-sm">
+                                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-3">
                                   {req.requestDetails || '-'}
                                 </div>
                               </td>
 
                               {/* Status */}
-                              <td className="py-3.5 px-4">
+                              <td className="py-4 px-5">
                                 {isPending && (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
                                     รอพิจารณา
                                   </span>
                                 )}
                                 {isApproved && (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                                     อนุมัติแล้ว
                                   </span>
                                 )}
                                 {isRejected && (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
-                                    <XCircle className="w-3 h-3 text-rose-500" />
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                                    <XCircle className="w-3.5 h-3.5 text-rose-500" />
                                     ปฏิเสธ
                                   </span>
                                 )}
                               </td>
 
                               {/* Handled By & Date */}
-                              <td className="py-3.5 px-4 text-[11px]">
+                              <td className="py-4 px-5">
                                 {req.handledAt ? (
-                                  <div className="flex flex-col gap-0.5">
+                                  <div className="flex flex-col gap-0.5 text-xs">
                                     <span className="font-bold text-slate-800 dark:text-slate-200">
                                       {req.handlerName || req.handlerEmail || 'ผู้ดูแล'}
                                     </span>
-                                    <span className="text-[10px] text-slate-400">
+                                    <span className="text-slate-400">
                                       {safeDateLocaleString(req.handledAt)}
                                     </span>
                                     {req.handlerNote && (
-                                      <span className="text-[10px] text-slate-500 italic">
+                                      <span className="text-slate-500 italic mt-0.5">
                                         หมายเหตุ: {req.handlerNote}
                                       </span>
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 text-[10px]">- ยังไม่ดำเนินการ -</span>
+                                  <span className="text-slate-400 text-xs">- ยังไม่ดำเนินการ -</span>
                                 )}
                               </td>
 
                               {/* Actions */}
-                              <td className="py-3.5 px-4 text-center">
+                              <td className="py-4 px-5 text-center">
                                 <button
                                   onClick={() => handleOpenReview(req)}
-                                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1 mx-auto ${
+                                  title={isPending ? 'พิจารณาคำขอแก้ไข' : 'ดูรายละเอียดคำขอ'}
+                                  className={`w-9 h-9 rounded-xl font-bold transition-all cursor-pointer flex items-center justify-center mx-auto hover:scale-105 active:scale-95 ${
                                     isPending
-                                      ? 'bg-brand-500 hover:bg-brand-600 text-white shadow-xs'
-                                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                      ? 'bg-brand-500 hover:bg-brand-600 text-white shadow-sm'
+                                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
                                   }`}
                                 >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                  {isPending ? 'พิจารณา' : 'ดูรายละเอียด'}
+                                  {isPending ? (
+                                    <FileEdit className="w-4.5 h-4.5" />
+                                  ) : (
+                                    <Eye className="w-4.5 h-4.5" />
+                                  )}
                                 </button>
                               </td>
                             </tr>
