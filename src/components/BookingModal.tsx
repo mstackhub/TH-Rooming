@@ -245,8 +245,6 @@ export default function BookingModal() {
     }
   }, [isOpen, activeBookingIdForEdit, activeBookingCreateData, matchedBooking]);
 
-  if (!isOpen) return null;
-
   const handleClose = () => {
     setActiveBookingIdForEdit(null);
     setActiveBookingCreateData(null);
@@ -595,6 +593,8 @@ export default function BookingModal() {
       return [...prev, email];
     });
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
