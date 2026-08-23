@@ -512,6 +512,10 @@ export default function BookingModal() {
   const canDirectCancel = hasCancelPerm && (!isLocked14Days || isAdmin);
 
   const handleOpenEditRequest = () => {
+    if (pendingChangeReq) {
+      showToast('คิวนี้มีคำร้องขอที่อยู่ระหว่างรอการพิจารณาอยู่แล้ว ไม่สามารถส่งคำร้องซ้ำได้', 'warning');
+      return;
+    }
     setRequestDialogType('edit');
     const changes: string[] = [];
     if (matchedBooking) {
@@ -533,6 +537,10 @@ export default function BookingModal() {
   };
 
   const handleOpenCancelRequest = () => {
+    if (pendingChangeReq) {
+      showToast('คิวนี้มีคำร้องขอที่อยู่ระหว่างรอการพิจารณาอยู่แล้ว ไม่สามารถส่งคำร้องซ้ำได้', 'warning');
+      return;
+    }
     setRequestDialogType('cancel');
     setRequestDialogDetails('');
     setIsRequestDialogOpen(true);
@@ -1060,24 +1068,36 @@ export default function BookingModal() {
             {/* Modal Actions controls */}
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5 select-none text-xs">
               
-              {/* If 14-Day Lock applies and user is not admin -> Show Change Request Buttons */}
+              {/* If Lock applies and user is not admin -> Show Change Request Buttons or Pending Alert */}
               {requiresChangeRequest ? (
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={handleOpenEditRequest}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <Send className="w-4 h-4" /> ส่งคำร้องขอแก้ไขคิวไลฟ์ (Request Edit)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenCancelRequest}
-                    className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> ส่งคำร้องขอยกเลิกคิว (Request Cancel)
-                  </button>
-                </div>
+                pendingChangeReq ? (
+                  <div className="p-3.5 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/90 dark:border-amber-900/60 rounded-xl text-center text-amber-900 dark:text-amber-300 space-y-1">
+                    <div className="font-extrabold text-xs flex items-center justify-center gap-1.5">
+                      <Clock className="w-4 h-4 text-amber-500 animate-pulse" />
+                      คำร้องขออยู่ระหว่างรอ Admin พิจารณา
+                    </div>
+                    <p className="text-[10.5px] text-amber-700/90 dark:text-amber-400 font-medium">
+                      ไม่สามารถส่งคำร้องซ้ำได้ กรุณารอผู้ดูแลระบบดำเนินการอนุมัติหรือปฏิเสธคำร้องเดิมก่อน
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleOpenEditRequest}
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Send className="w-4 h-4" /> ส่งคำร้องขอแก้ไขคิวไลฟ์ (Request Edit)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenCancelRequest}
+                      className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> ส่งคำร้องขอยกเลิกคิว (Request Cancel)
+                    </button>
+                  </div>
+                )
               ) : (
                 /* Primary Direct Save Button (Full Width) */
                 canDirectSave && (

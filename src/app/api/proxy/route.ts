@@ -1241,6 +1241,15 @@ export async function POST(request: Request) {
           return NextResponse.json({ success: false, message: 'ไม่พบคิวจองที่ระบุในระบบ' }, { headers: corsHeaders });
         }
 
+        // Check if there is already a Pending request for this booking
+        const pendingCheck = await requestSupabase('GET', `booking_change_requests?booking_id=eq.${encodeURIComponent(bId)}&status=eq.Pending`);
+        if (pendingCheck && pendingCheck.length > 0) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'คิวนี้มีคำร้องขอแก้ไข/ยกเลิกที่อยู่ระหว่างรอการพิจารณาอยู่แล้ว กรุณารอผู้ดูแลระบบดำเนินการก่อนส่งคำร้องใหม่' 
+          }, { headers: corsHeaders });
+        }
+
         // Insert change request
         const reqRecord = {
           booking_id: bId,
