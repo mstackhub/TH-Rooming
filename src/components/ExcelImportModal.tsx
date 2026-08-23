@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
-import { useApp } from '@/context/AppContext';
-import { parseTimeToMinutes } from '@/utils/time';
+import { useApp, Booking } from '@/context/AppContext';
+import { parseTimeToMinutes, generateBookingCustomId } from '@/utils/time';
 import { 
   X, 
   UploadCloud, 
@@ -12,12 +12,15 @@ import {
   AlertTriangle,
   Download,
   Check,
-  RefreshCw
+  RefreshCw,
+  PlusCircle,
+  Edit3
 } from 'lucide-react';
 
 interface ParsedRow {
   index: number;
   bookingId?: string;
+  displayCustomId?: string;
   date: string;
   roomName: string;
   startTime: string;
@@ -29,6 +32,7 @@ interface ParsedRow {
   mcName?: string;
   mcId?: string | null;
   isUpdateAction?: boolean;
+  changesList?: string[];
   success: boolean;
   reason: string;
 }
@@ -206,23 +210,48 @@ export default function ExcelImportModal() {
         reason = 'ไม่พบชื่อแบรนด์ลูกค้านี้ในระบบ';
       }
 
-      // 2. Conflict database bookings (Allow exact key match for overwrites/updates)
+      // 2. Conflict database bookings: Check by ID first, then fallback to (date + room + start + end)
       let isUpdateAction = false;
+      let matchedExistingBooking: Booking | null = null;
+      const changesList: string[] = [];
+
       if (success) {
+        // Step A: Search existing booking by Booking ID
+        if (idVal) {
+          const byId = calendarBookings.find(b => {
+            if (b.status === 'Cancelled') return false;
+            const customId = generateBookingCustomId(b, calendarBookings);
+            return customId.toLowerCase() === idVal.toLowerCase() || b.id.toLowerCase() === idVal.toLowerCase();
+          });
+          if (byId) {
+            matchedExistingBooking = byId;
+            isUpdateAction = true;
+          }
+        }
+
+        // Step B: Fallback search by exact (Date + Room + Start + End)
+        if (!matchedExistingBooking) {
+          const bySlot = calendarBookings.find(b => {
+            if (b.status === 'Cancelled') return false;
+            if (b.roomName.toLowerCase().trim() !== roomVal.toLowerCase() || b.date !== dateVal) return false;
+            const bStart = parseTimeToMinutes(b.startTime);
+            const bEnd = parseTimeToMinutes(b.endTime);
+            return bStart === startMins && bEnd === endMins;
+          });
+          if (bySlot) {
+            matchedExistingBooking = bySlot;
+            isUpdateAction = true;
+          }
+        }
+
+        // Step C: Check for overlapping collision with OTHER bookings
         const conflict = calendarBookings.find(b => {
           if (b.status === 'Cancelled') return false;
+          if (matchedExistingBooking && b.id === matchedExistingBooking.id) return false;
           if (b.roomName.toLowerCase().trim() !== roomVal.toLowerCase() || b.date !== dateVal) return false;
           
           const bStart = parseTimeToMinutes(b.startTime);
           const bEnd = parseTimeToMinutes(b.endTime);
-          
-          // If it matches date, room, and exact start/end time, it is an update/overwrite - ALLOW IT
-          if (bStart === startMins && bEnd === endMins) {
-            isUpdateAction = true;
-            return false;
-          }
-          
-          // Otherwise check for overlapping collision
           return !(endMins <= bStart || startMins >= bEnd);
         });
 
@@ -247,9 +276,44 @@ export default function ExcelImportModal() {
         }
       }
 
+      // 4. Compute diff / changes summary if it's an update
+      if (success && isUpdateAction && matchedExistingBooking) {
+        const prevMcNames = (() => {
+          if (!matchedExistingBooking.mcId) return '';
+          const ids = matchedExistingBooking.mcId.split(',').map(x => x.trim()).filter(Boolean);
+          return ids.map(id => mcList.find(m => m.id === id)?.name).filter(Boolean).join(', ');
+        })();
+
+        if (mcVal && mcVal.toLowerCase() !== prevMcNames.toLowerCase()) {
+          changesList.push(`🎤 MC: ${prevMcNames ? `เปลี่ยน "${prevMcNames}" ➔ "${mcVal}"` : `เพิ่ม "${mcVal}"`}`);
+        }
+        if (campaignVal && campaignVal !== matchedExistingBooking.campaignName) {
+          changesList.push(`🏷️ แคมเปญ: "${matchedExistingBooking.campaignName || '-'}" ➔ "${campaignVal}"`);
+        }
+        if (matchedExistingBooking.roomName !== roomVal) {
+          changesList.push(`🚪 ย้ายห้อง: ${matchedExistingBooking.roomName} ➔ ${roomVal}`);
+        }
+        if (matchedExistingBooking.startTime !== startVal || matchedExistingBooking.endTime !== endVal) {
+          changesList.push(`🕒 เวลา: ${matchedExistingBooking.startTime}-${matchedExistingBooking.endTime} ➔ ${startVal}-${endVal}`);
+        }
+        if (briefVal && briefVal !== matchedExistingBooking.briefLink) {
+          changesList.push(`📝 อัปเดตบรีฟ`);
+        }
+        if (remarkVal && remarkVal !== matchedExistingBooking.remark) {
+          changesList.push(`💬 อัปเดตหมายเหตุ`);
+        }
+
+        if (changesList.length === 0) {
+          changesList.push('ไม่มีข้อมูลเปลี่ยนแปลง (ข้อมูลตรงกับเดิม)');
+        }
+      }
+
+      const rowDisplayId = idVal || (matchedExistingBooking ? generateBookingCustomId(matchedExistingBooking, calendarBookings) : generateBookingCustomId({ date: dateVal, roomName: roomVal, brandName: brandVal, startTime: startVal, endTime: endVal }, calendarBookings));
+
       rows.push({
         index: i,
-        bookingId: idVal || undefined,
+        bookingId: idVal || (matchedExistingBooking ? matchedExistingBooking.id : undefined),
+        displayCustomId: rowDisplayId,
         date: dateVal,
         roomName: roomVal,
         startTime: startVal,
@@ -261,6 +325,7 @@ export default function ExcelImportModal() {
         mcName: mcVal,
         mcId: resolvedMcId || null,
         isUpdateAction, // Store the flag
+        changesList,
         success,
         reason
       });
@@ -328,6 +393,9 @@ export default function ExcelImportModal() {
 
     setLoading(true);
 
+    const newCount = validList.filter(r => !r.isUpdateAction).length;
+    const updateCount = validList.filter(r => r.isUpdateAction).length;
+
     const bookingsList = validList.map(r => ({
       id: r.bookingId || undefined,
       roomName: r.roomName,
@@ -347,7 +415,12 @@ export default function ExcelImportModal() {
       if (err) {
         showToast("นำเข้าตารางคิวงานจองผิดพลาด: " + err, "error");
       } else {
-        showToast(`นำเข้าคิวจองสำเร็จทั้งหมด ${validList.length} คิวงานแล้ว!`, "success");
+        const msg = updateCount > 0 && newCount > 0
+          ? `นำเข้าสำเร็จ! (สร้างคิวใหม่ ${newCount} คิว / อัปเดตข้อมูล ${updateCount} คิว)`
+          : updateCount > 0
+          ? `อัปเดตข้อมูลคิวจองเดิมสำเร็จทั้งหมด ${updateCount} คิว!`
+          : `สร้างคิวจองใหม่สำเร็จทั้งหมด ${newCount} คิว!`;
+        showToast(msg, "success");
         handleClose();
         refreshActiveTabData();
       }
@@ -371,6 +444,9 @@ export default function ExcelImportModal() {
 
   if (!isImportModalOpen) return null;
 
+  const newRowsCount = parsedRows.filter(r => r.success && !r.isUpdateAction).length;
+  const updateRowsCount = parsedRows.filter(r => r.success && r.isUpdateAction).length;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-200">
       {/* Backdrop */}
@@ -380,7 +456,7 @@ export default function ExcelImportModal() {
       />
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-2xl h-[calc(100%-48px)] max-h-[600px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between shadow-2xl z-10 overflow-hidden mx-4">
+      <div className="relative w-full max-w-4xl h-[calc(100%-48px)] max-h-[640px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between shadow-2xl z-10 overflow-hidden mx-4">
         {/* Header */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 flex items-center justify-between shrink-0 select-none">
           <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -400,10 +476,9 @@ export default function ExcelImportModal() {
           {/* Instructions banner */}
           <div className="bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100 dark:border-indigo-900/40 p-4 rounded-xl flex items-start justify-between gap-3 shadow-sm select-none">
             <div className="space-y-1">
-              <span className="font-extrabold text-indigo-700 dark:text-indigo-400 block">คู่มือคำแนะนำการนำเข้าคิวจอง:</span>
+              <span className="font-extrabold text-indigo-700 dark:text-indigo-400 block">ระบบตรวจเช็ค ID อัตโนมัติ (Create & Update):</span>
               <p className="text-[10px] text-slate-450 dark:text-slate-400 leading-normal">
-                กรุณาดาวน์โหลดไฟล์เทมเพลตตัวอย่างด้านขวา และทำการระบุข้อมูลวันที่เป็นรูปแบบ <strong>YYYY-MM-DD</strong>, 
-                ชั่วโมงเวลาไลฟ์เป็นรูปแบบ <strong>HH:MM</strong> พร้อมระบุชื่อห้องและแบรนด์สะกดให้ตรงกับฐานข้อมูลสตูดิโอ
+                ระบบจะตรวจสอบ <strong>Booking ID</strong> เป็นหลัก หากพบว่ามีไอดีอยู่ในระบบแล้วจะทำการ <strong>อัปเดตข้อมูลทับคิวเดิม</strong> หากไม่มีจะทำการ <strong>สร้างคิวจองใหม่</strong> ให้อัตโนมัติ
               </p>
             </div>
             <button
@@ -421,7 +496,7 @@ export default function ExcelImportModal() {
             onDragLeave={handleDrag}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-2 cursor-pointer transition-all select-none ${
+            className={`border-2 border-dashed rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2 cursor-pointer transition-all select-none ${
               dragActive 
                 ? 'border-brand-500 bg-brand-50/20 dark:bg-brand-950/10' 
                 : 'border-slate-200 dark:border-slate-850 hover:border-slate-350 dark:hover:border-slate-800 bg-slate-50/20'
@@ -434,33 +509,47 @@ export default function ExcelImportModal() {
               onChange={handleFileChange}
               className="hidden"
             />
-            <UploadCloud className="w-10 h-10 text-slate-400 dark:text-slate-650" />
-            <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs mt-1">
+            <UploadCloud className="w-8 h-8 text-slate-400 dark:text-slate-650" />
+            <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">
               {fileName ? `ไฟล์ที่เลือก: ${fileName}` : 'ลากไฟล์ CSV มาวางที่นี่ หรือคลิกเพื่ออัพโหลดไฟล์'}
             </span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">รองรับเฉพาะสกุลไฟล์ .CSV (UTF-8)</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">รองรับไฟล์ที่ Export ออกจากระบบ หรือไฟล์ตามเทมเพลต</span>
           </div>
 
           {/* Previews Container */}
           {parsedRows.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between font-extrabold">
-                <span className="text-slate-700 dark:text-slate-350">ตารางรีวิวพรีวิวการตรวจสอบความถูกต้องคิวงาน:</span>
-                <span className={conflictCount > 0 ? "text-rose-500 animate-pulse" : "text-emerald-500"}>
-                  {`พร้อมจอง ${successCount} คิว / มีปัญหาติดขัด ${conflictCount} คิว`}
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-2 font-extrabold text-xs">
+                <span className="text-slate-700 dark:text-slate-350">ผลการตรวจสอบคิวงานในไฟล์:</span>
+                <div className="flex items-center gap-2 text-[11px]">
+                  {newRowsCount > 0 && (
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 rounded-md font-bold">
+                      ✨ สร้างใหม่ {newRowsCount} คิว
+                    </span>
+                  )}
+                  {updateRowsCount > 0 && (
+                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-450 rounded-md font-bold">
+                      ✏️ อัปเดต {updateRowsCount} คิว
+                    </span>
+                  )}
+                  {conflictCount > 0 && (
+                    <span className="px-2 py-0.5 bg-rose-500/10 text-rose-500 dark:text-rose-450 rounded-md font-bold animate-pulse">
+                      ❌ ติดขัด {conflictCount} คิว
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl max-h-48">
+              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl max-h-56 shadow-inner">
                 <table className="w-full text-[10px] text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold select-none sticky top-0">
-                      <th className="p-2.5">แถว</th>
-                      <th className="p-2.5">วันที่ไลฟ์</th>
-                      <th className="p-2.5">ห้องสตูดิโอ</th>
-                      <th className="p-2.5">เวลาคิวไลฟ์</th>
+                    <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold select-none sticky top-0 z-10">
+                      <th className="p-2.5 w-10">แถว</th>
+                      <th className="p-2.5">Booking ID</th>
+                      <th className="p-2.5">วัน / เวลา / ห้อง</th>
                       <th className="p-2.5">แบรนด์ (แคมเปญ)</th>
-                      <th className="p-2.5">ผลการตรวจสอบ</th>
+                      <th className="p-2.5 w-28">ประเภท</th>
+                      <th className="p-2.5">รายการเปลี่ยนแปลง / สถานะ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
@@ -468,31 +557,65 @@ export default function ExcelImportModal() {
                       <tr 
                         key={row.index}
                         className={row.success 
-                          ? "bg-emerald-50/15 dark:bg-emerald-950/5 text-slate-800 dark:text-slate-300"
-                          : "bg-rose-50/15 dark:bg-rose-950/5 text-slate-800 dark:text-slate-300"
+                          ? (row.isUpdateAction ? "bg-amber-50/15 dark:bg-amber-950/10" : "bg-emerald-50/15 dark:bg-emerald-950/5")
+                          : "bg-rose-50/15 dark:bg-rose-950/5"
                         }
                       >
                         <td className="p-2.5 font-bold text-slate-400">{row.index}</td>
-                        <td className="p-2.5 font-bold">{row.date}</td>
-                        <td className="p-2.5 font-extrabold text-slate-900 dark:text-white">{row.roomName}</td>
-                        <td className="p-2.5 font-semibold">{row.startTime} - {row.endTime} น.</td>
-                        <td className="p-2.5 font-bold text-brand-600 dark:text-brand-400">
-                          {row.brandName} <span className="text-[9px] text-slate-400 dark:text-slate-500 font-normal">({row.campaignName})</span>
+                        <td className="p-2.5 font-mono font-bold text-amber-600 dark:text-amber-400 select-all">
+                          {row.displayCustomId || '-'}
+                        </td>
+                        <td className="p-2.5">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-900 dark:text-white">{row.date}</span>
+                            <span className="text-[9px] text-slate-400">{row.startTime}-{row.endTime} น. • {row.roomName}</span>
+                          </div>
+                        </td>
+                        <td className="p-2.5">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-brand-600 dark:text-brand-400">{row.brandName}</span>
+                            <span className="text-[9px] text-slate-400 truncate max-w-[150px]">{row.campaignName || '-'}</span>
+                          </div>
                         </td>
                         <td className="p-2.5">
                           {row.success ? (
                             row.isUpdateAction ? (
-                              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-450 font-bold bg-amber-500/10 px-2 py-1 rounded-lg">
-                                <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> อัปเดตข้อมูล (ทับคิวเดิม)
+                              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-450 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md text-[9px]">
+                                <Edit3 className="w-3 h-3 shrink-0" /> อัปเดตคิวเดิม
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-450 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg">
-                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> พร้อมจอง (คิวใหม่)
+                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-450 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md text-[9px]">
+                                <PlusCircle className="w-3 h-3 shrink-0" /> สร้างคิวใหม่
                               </span>
                             )
                           ) : (
-                            <span className="flex items-center gap-1 text-rose-500 dark:text-rose-450 font-bold bg-rose-500/10 px-2 py-1 rounded-lg">
-                              <XCircle className="w-3.5 h-3.5 shrink-0" /> {row.reason}
+                            <span className="inline-flex items-center gap-1 text-rose-500 dark:text-rose-450 font-bold bg-rose-500/10 px-2 py-0.5 rounded-md text-[9px]">
+                              <XCircle className="w-3 h-3 shrink-0" /> ข้อผิดพลาด
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2.5">
+                          {row.success ? (
+                            row.isUpdateAction ? (
+                              <div className="flex flex-wrap gap-1">
+                                {row.changesList && row.changesList.length > 0 ? (
+                                  row.changesList.map((ch, idx) => (
+                                    <span key={idx} className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-[9px] font-semibold">
+                                      {ch}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-slate-400 text-[9px]">ไม่มีการเปลี่ยนแปลง</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-emerald-600 dark:text-emerald-450 font-bold text-[9px] flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 shrink-0" /> พร้อมบันทึกคิวจอง
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-rose-500 dark:text-rose-450 font-bold text-[9px]">
+                              {row.reason}
                             </span>
                           )}
                         </td>

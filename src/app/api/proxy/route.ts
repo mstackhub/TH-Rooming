@@ -594,12 +594,34 @@ export async function POST(request: Request) {
           const dbObj = mapBookingToDb(item);
           if (!dbObj) continue;
 
-          // Check if slot with ID or exact date, room, and start/end time already exists
+          // Check if slot with ID (UUID or Custom ID) or exact date, room, and start/end time already exists
           let existingSlot: any[] | null = null;
           if (item.id) {
-            const byId = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(item.id)}`);
-            if (byId && byId.length > 0) {
-              existingSlot = byId;
+            try {
+              const byId = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(item.id)}`);
+              if (byId && byId.length > 0) {
+                existingSlot = byId;
+              }
+            } catch (e) {}
+
+            // If not found by primary key ID, search bookings on that date by customId
+            if (!existingSlot || existingSlot.length === 0) {
+              const onDate = await requestSupabase('GET', `bookings?date=eq.${dbObj.date}`);
+              if (Array.isArray(onDate)) {
+                const matched = onDate.filter((b: any) => {
+                  let bCustomId = '';
+                  try {
+                    if (b.ls_artwork_layout) {
+                      const meta = JSON.parse(b.ls_artwork_layout);
+                      bCustomId = meta.customId || '';
+                    }
+                  } catch(e){}
+                  return bCustomId.toLowerCase() === String(item.id).toLowerCase() || String(b.id).toLowerCase() === String(item.id).toLowerCase();
+                });
+                if (matched.length > 0) {
+                  existingSlot = matched;
+                }
+              }
             }
           }
           if (!existingSlot || existingSlot.length === 0) {
