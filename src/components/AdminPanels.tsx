@@ -3141,10 +3141,10 @@ export default function AdminPanels() {
                 {/* Download Actions */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
                   {/* JSON Backup Button Card */}
-                  <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 flex flex-col justify-between gap-3">
+                  <div className="p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 flex flex-col justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2 font-extrabold text-xs text-emerald-900 dark:text-emerald-300">
-                        <FileJson className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <div className="flex items-center gap-2 font-extrabold text-xs text-blue-900 dark:text-blue-300">
+                        <FileJson className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         ไฟล์สำรองข้อมูล JSON (Full Database Dump)
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
@@ -3156,7 +3156,7 @@ export default function AdminPanels() {
                       type="button"
                       disabled={isBackingUp}
                       onClick={() => handleDownloadBackup('json')}
-                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isBackingUp ? (
                         <>
@@ -3171,10 +3171,10 @@ export default function AdminPanels() {
                   </div>
 
                   {/* Excel Multi-Sheet Backup Button Card */}
-                  <div className="p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 flex flex-col justify-between gap-3">
+                  <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 flex flex-col justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2 font-extrabold text-xs text-blue-900 dark:text-blue-300">
-                        <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <div className="flex items-center gap-2 font-extrabold text-xs text-emerald-900 dark:text-emerald-300">
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         ไฟล์สำรองข้อมูล Excel (All-in-One Multi-Sheet)
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
@@ -3186,7 +3186,7 @@ export default function AdminPanels() {
                       type="button"
                       disabled={isBackingUp}
                       onClick={() => handleDownloadBackup('xlsx')}
-                      className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isBackingUp ? (
                         <>
