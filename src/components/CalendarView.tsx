@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp, Booking } from '@/context/AppContext';
-import { CustomSelect } from './CustomSelect';
 import { formatThaiDate, parseTimeToMinutes, getAutoStatus } from '@/utils/time';
 import { 
   ChevronLeft, 
@@ -12,7 +11,6 @@ import {
   ListFilter,
   CheckCircle,
   XCircle,
-  FileSpreadsheet,
   Plus,
   Search,
   ChevronDown
@@ -31,7 +29,6 @@ export default function CalendarView() {
     setCalendarSelectedDate,
     setActiveBookingIdForEdit,
     setActiveBookingCreateData,
-    setIsImportModalOpen,
     currentUser,
     mcList,
     allUsersAdmin
@@ -44,21 +41,28 @@ export default function CalendarView() {
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth()); // 0-indexed
 
-  // Brand dropdown filter states
+  // Brand & Room dropdown filter states
   const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
   const [brandSearchQuery, setBrandSearchQuery] = useState('');
   const brandDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
+  const roomDropdownRef = useRef<HTMLDivElement>(null);
 
   const THAI_MONTH_NAMES = [
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
     'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
   ];
 
-  // Click outside brand dropdown listener
+  // Click outside dropdowns listener
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (brandDropdownRef.current && !brandDropdownRef.current.contains(e.target as Node)) {
         setIsBrandDropdownOpen(false);
+      }
+      if (roomDropdownRef.current && !roomDropdownRef.current.contains(e.target as Node)) {
+        setIsRoomDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -203,6 +207,29 @@ export default function CalendarView() {
     });
   }, [filteredBookings, calendarSelectedDate]);
 
+  // Room dropdown selection helpers
+  const handleRoomCheckboxChange = (roomName: string, checked: boolean) => {
+    setFilters(prev => {
+      const room = checked 
+        ? [...prev.room, roomName]
+        : prev.room.filter(r => r !== roomName);
+      return { ...prev, room };
+    });
+  };
+
+  const handleSelectAllRooms = (checked: boolean) => {
+    setFilters(prev => ({
+      ...prev,
+      room: checked ? rooms.map(r => r.name) : []
+    }));
+  };
+
+  const filteredRoomsForDropdown = useMemo(() => {
+    return rooms.map(r => r.name).filter(roomName => 
+      roomName.toLowerCase().includes(roomSearchQuery.toLowerCase())
+    );
+  }, [rooms, roomSearchQuery]);
+
   // Brand dropdown selection helpers
   const handleBrandCheckboxChange = (brandName: string, checked: boolean) => {
     setFilters(prev => {
@@ -242,7 +269,7 @@ export default function CalendarView() {
   }, [viewMode, currentMonth, currentYear, weekDays, calendarSelectedDate]);
 
   return (
-    <div className="flex-1 p-6 overflow-y-auto space-y-6 animate-in fade-in duration-200 text-slate-800 dark:text-slate-200">
+    <div className="flex-1 p-3 sm:p-5 md:p-6 overflow-y-auto space-y-4 sm:space-y-6 animate-in fade-in duration-200 text-slate-800 dark:text-slate-200">
       
       {/* 1. Header Title */}
       <div>
@@ -262,7 +289,7 @@ export default function CalendarView() {
             <button 
               onClick={() => setViewMode('month')} 
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'month' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                viewMode === 'month' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               รายเดือน
@@ -270,7 +297,7 @@ export default function CalendarView() {
             <button 
               onClick={() => setViewMode('week')} 
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'week' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                viewMode === 'week' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               รายสัปดาห์
@@ -278,7 +305,7 @@ export default function CalendarView() {
             <button 
               onClick={() => setViewMode('day')} 
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'day' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                viewMode === 'day' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               รายวัน
@@ -308,16 +335,10 @@ export default function CalendarView() {
         {canWrite && (
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => setIsImportModalOpen(true)}
-              className="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <FileSpreadsheet className="w-4 h-4" /> นำเข้าคิวจอง Excel
-            </button>
-            <button 
               onClick={() => setActiveBookingCreateData({ date: calendarSelectedDate, roomName: '', startTime: '13:00', endTime: '14:00' })}
-              className="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-emerald-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> จองห้องไลฟ์
+              <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> จองห้องไลฟ์
             </button>
           </div>
         )}
@@ -330,18 +351,89 @@ export default function CalendarView() {
           <span>ตัวกรองปฏิทิน:</span>
         </div>
 
-        {/* Room Filter */}
-        <CustomSelect
-          value={filters.room[0] || ''}
-          onChange={(v) => setFilters(prev => ({ ...prev, room: v ? [v] : [] }))}
-          options={[
-            { value: '', label: 'ทุกห้องสตูดิโอ (All)' },
-            ...rooms.map(r => ({ value: r.name, label: r.name }))
-          ]}
-          searchable={rooms.length > 5}
-          searchPlaceholder="ค้นหาห้อง..."
-          className="min-w-[160px]"
-        />
+        {/* Multi-Select Room Filter */}
+        <div className="relative" ref={roomDropdownRef}>
+          <button
+            onClick={() => setIsRoomDropdownOpen(!isRoomDropdownOpen)}
+            className={`w-48 sm:w-56 flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 dark:hover:border-brand-500 focus:outline-none transition-all duration-150 cursor-pointer ${
+              isRoomDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <span className="truncate">
+              {filters.room.length === 0 
+                ? 'ทุกห้องสตูดิโอ (All)' 
+                : filters.room.length === rooms.length 
+                  ? `เลือกทุกห้อง (${filters.room.length})` 
+                  : filters.room.join(', ')}
+            </span>
+            <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isRoomDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {isRoomDropdownOpen && (
+            <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+              <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="ค้นหาห้อง..."
+                    value={roomSearchQuery}
+                    onChange={(e) => setRoomSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              
+              <div className="p-1">
+                <div
+                  onClick={() => handleSelectAllRooms(!(filters.room.length === rooms.length && rooms.length > 0))}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                >
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                    filters.room.length === rooms.length && rooms.length > 0
+                      ? 'bg-brand-500 border-brand-500'
+                      : 'border-slate-300 dark:border-slate-650'
+                  }`}>
+                    {filters.room.length === rooms.length && rooms.length > 0 && (
+                      <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-700 dark:text-slate-300 font-bold select-none">เลือกทั้งหมด (Select All)</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-col overflow-y-auto flex-1 px-1 pb-1">
+                {filteredRoomsForDropdown.map(roomName => {
+                  const isChecked = filters.room.includes(roomName);
+                  return (
+                    <div
+                      key={roomName}
+                      onClick={() => handleRoomCheckboxChange(roomName, !isChecked)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    >
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                        isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300 dark:border-slate-650'
+                      }`}>
+                        {isChecked && (
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>{roomName}</span>
+                    </div>
+                  );
+                })}
+                {filteredRoomsForDropdown.length === 0 && (
+                  <div className="px-3 py-3 text-xs text-slate-400 text-center">ไม่พบห้องสตูดิโอ</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Multi-Select Brand Filter */}
         <div className="relative" ref={brandDropdownRef}>
@@ -365,13 +457,14 @@ export default function CalendarView() {
             <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
               <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="ค้นหาแบรนด์..."
                     value={brandSearchQuery}
                     onChange={(e) => setBrandSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent"
+                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                    autoFocus
                   />
                 </div>
               </div>
@@ -403,12 +496,10 @@ export default function CalendarView() {
                     <div
                       key={brand}
                       onClick={() => handleBrandCheckboxChange(brand, !isChecked)}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                        isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                      }`}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                        isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-355'
+                        isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300 dark:border-slate-650'
                       }`}>
                         {isChecked && (
                           <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -416,7 +507,7 @@ export default function CalendarView() {
                           </svg>
                         )}
                       </div>
-                      <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 font-bold' : ''}`}>{brand}</span>
+                      <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>{brand}</span>
                     </div>
                   );
                 })}
@@ -462,13 +553,15 @@ export default function CalendarView() {
                         setCalendarSelectedDate(day.dateStr);
                       }}
                       className={`calendar-day-box min-h-[100px] flex flex-col justify-between cursor-pointer transition-all hover:bg-slate-50/50 dark:hover:bg-slate-800/20 ${
-                        isSelected ? 'ring-2 ring-brand-500 dark:ring-brand-500 bg-brand-50/5 dark:bg-slate-800/10' : ''
+                        isSelected ? 'ring-1 ring-emerald-500 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20' : ''
                       }`}
                     >
-                      <span className={`text-[10px] font-extrabold self-end w-5 h-5 flex items-center justify-center rounded-full select-none ${
+                      <span className={`text-[10px] font-bold self-end w-5 h-5 flex items-center justify-center rounded-full select-none ${
                         isToday 
-                          ? 'bg-brand-500 text-white shadow-sm shadow-brand-500/20' 
-                          : 'text-slate-500 dark:text-slate-400'
+                          ? 'bg-emerald-600 text-white shadow-xs' 
+                          : isSelected
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 font-extrabold'
+                            : 'text-slate-500 dark:text-slate-400'
                       }`}>
                         {day.dayNum}
                       </span>
@@ -538,14 +631,16 @@ export default function CalendarView() {
                         setCalendarSelectedDate(day.dateStr);
                       }}
                       className={`calendar-day-box min-h-[300px] flex flex-col justify-between cursor-pointer p-2 rounded-xl transition-all hover:bg-slate-50/50 dark:hover:bg-slate-800/20 ${
-                        isSelected ? 'ring-2 ring-brand-500 bg-brand-50/5 dark:bg-slate-800/10' : 'bg-slate-50/10 dark:bg-slate-900/10 border border-slate-100 dark:border-slate-850'
+                        isSelected ? 'ring-1 ring-emerald-500 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20' : 'bg-slate-50/10 dark:bg-slate-900/10 border border-slate-100 dark:border-slate-850'
                       }`}
                     >
                       <div className="flex flex-col items-center justify-between gap-1 w-full border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                        <span className={`text-[10px] font-extrabold w-5 h-5 flex items-center justify-center rounded-full select-none ${
+                        <span className={`text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full select-none ${
                           isToday 
-                            ? 'bg-brand-500 text-white shadow-sm shadow-brand-500/20' 
-                            : 'text-slate-500 dark:text-slate-400'
+                            ? 'bg-emerald-600 text-white shadow-xs' 
+                            : isSelected
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 font-extrabold'
+                              : 'text-slate-500 dark:text-slate-400'
                         }`}>
                           {day.dayNum}
                         </span>

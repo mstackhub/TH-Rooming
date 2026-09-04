@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { parseTimeToMinutes } from '@/utils/time';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
@@ -42,6 +43,16 @@ async function requestSupabase(method: string, path: string, data: any = null, h
 // ── DATA MAPPING HELPERS ─────────────────────────────────────────────────────
 function mapBookingToFrontend(b: any) {
   if (!b) return null;
+  let mcIdVal = b.mc_id || null;
+  if (b.ls_artwork_layout) {
+    try {
+      const meta = typeof b.ls_artwork_layout === 'string' ? JSON.parse(b.ls_artwork_layout) : b.ls_artwork_layout;
+      if (meta && meta.mcIds) {
+        mcIdVal = meta.mcIds;
+      }
+    } catch(e){}
+  }
+
   return {
     id: b.id,
     roomName: b.room_name,
@@ -58,7 +69,7 @@ function mapBookingToFrontend(b: any) {
     status: b.status,
     remark: b.remark,
     createdAt: b.created_at,
-    mcId: b.mc_id || null
+    mcId: mcIdVal
   };
 }
 
@@ -68,21 +79,65 @@ function isUuid(str: string): boolean {
 
 function mapBookingToDb(b: any) {
   if (!b) return null;
+
+  // Handle single vs multiple MC IDs safely
+  let primaryMcId: string | null = null;
+  let allMcIds: string | null = null;
+
+  if (b.mcId) {
+    const ids = String(b.mcId).split(',').map((x: string) => x.trim()).filter(Boolean);
+    if (ids.length === 1 && isUuid(ids[0])) {
+      primaryMcId = ids[0];
+      allMcIds = ids[0];
+    } else if (ids.length > 1) {
+      const validUuids = ids.filter(isUuid);
+      primaryMcId = validUuids[0] || null;
+      allMcIds = ids.join(',');
+    } else if (isUuid(String(b.mcId))) {
+      primaryMcId = String(b.mcId);
+      allMcIds = String(b.mcId);
+    }
+  }
+
+  // Preserve & merge metadata in ls_artwork_layout
+  let meta: any = {};
+  if (b.lsArtworkLayout) {
+    try {
+      meta = typeof b.lsArtworkLayout === 'string' ? JSON.parse(b.lsArtworkLayout) : b.lsArtworkLayout;
+    } catch(e) {
+      meta = {};
+    }
+  }
+  if (allMcIds && allMcIds.includes(',')) {
+    meta.mcIds = allMcIds;
+  } else if (primaryMcId && !meta.mcIds) {
+    meta.mcIds = primaryMcId;
+  }
+
+  const cleanTimeStr = (str: any): string => {
+    if (!str) return '';
+    const match = String(str).trim().match(/^(\d{1,2})[:.](\d{2})/);
+    if (match) {
+      return `${match[1].padStart(2, '0')}:${match[2]}`;
+    }
+    return String(str).trim();
+  };
+
   const dbObj: any = {
     room_name: b.roomName,
     date: b.date,
-    start_time: b.startTime,
-    end_time: b.endTime,
+    start_time: cleanTimeStr(b.startTime),
+    end_time: cleanTimeStr(b.endTime),
     brand_name: b.brandName,
     campaign_name: b.campaignName || '',
     brief_text: b.briefText || '',
     brief_link: b.briefLink || '',
-    ls_artwork_layout: b.lsArtworkLayout || '',
+    ls_artwork_layout: Object.keys(meta).length > 0 ? JSON.stringify(meta) : (b.lsArtworkLayout || ''),
     owner_email: b.ownerEmail,
     owner_name: b.ownerName,
     status: b.status || 'Confirmed',
     remark: b.remark || '',
-    mc_id: b.mcId || null
+    mc_id: primaryMcId
   };
   
   if (b.id && isUuid(b.id)) {
@@ -436,6 +491,26 @@ export async function POST(request: Request) {
           changeRequestLockDays: settingsDict['change_request_lock_days'] !== undefined ? parseInt(settingsDict['change_request_lock_days'], 10) : 14
         };
 
+        let chatMessages: any[] = [];
+        try {
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const dbChats = await requestSupabase('GET', `chat_messages?created_at=gte.${sevenDaysAgo}&order=created_at.asc`);
+          if (Array.isArray(dbChats)) {
+            chatMessages = dbChats.map((c: any) => ({
+              id: c.id,
+              senderName: c.sender_name,
+              senderEmail: c.sender_email,
+              senderRole: c.sender_role,
+              recipientEmail: c.recipient_email || null,
+              recipientName: c.recipient_name || null,
+              message: c.message,
+              messageType: c.message_type || 'text',
+              metadata: c.metadata,
+              createdAt: c.created_at
+            }));
+          }
+        } catch (e) {}
+
         return NextResponse.json({
           user: mappedUser,
           rooms,
@@ -448,6 +523,7 @@ export async function POST(request: Request) {
           mcTiers: mappedMcTiers,
           mcList: mappedMcList,
           changeRequests,
+          chatMessages,
           settings: mappedSettings
         }, { headers: corsHeaders });
       }
@@ -474,10 +550,21 @@ export async function POST(request: Request) {
         }
         const bData = params.bookingData;
 
-        // Brand access validation
+        // 1. Room existence validation
+        const roomCheck = await requestSupabase('GET', `rooms?name=ilike.${encodeURIComponent(bData.roomName || '')}`);
+        if (!roomCheck || roomCheck.length === 0) {
+          return NextResponse.json({ success: false, message: `ไม่พบชื่อห้องสตูดิโอ "${bData.roomName}" ในระบบ ไม่อนุญาตให้สร้างคิวห้องนี้` }, { headers: corsHeaders });
+        }
+
+        // 2. Brand existence validation
+        const brandCheck = await requestSupabase('GET', `brands?name=ilike.${encodeURIComponent(bData.brandName || '')}`);
+        if (!brandCheck || brandCheck.length === 0) {
+          return NextResponse.json({ success: false, message: `ไม่พบชื่อแบรนด์ "${bData.brandName}" ในระบบ ไม่อนุญาตให้สร้างคิวแบรนด์นี้` }, { headers: corsHeaders });
+        }
+
+        // 3. Brand access validation for non-admin
         if (!isAdmin) {
-          const brandCheck = await requestSupabase('GET', `brands?name=eq.${encodeURIComponent(bData.brandName)}`);
-          if (brandCheck && brandCheck.length > 0 && brandCheck[0].description && brandCheck[0].description.startsWith('emails:')) {
+          if (brandCheck[0].description && brandCheck[0].description.startsWith('emails:')) {
             const allowedEmails = brandCheck[0].description.substring(7).toLowerCase().split(',');
             if (!allowedEmails.includes(user.email.toLowerCase())) {
               return NextResponse.json({ success: false, message: `ท่านไม่มีสิทธิ์ดูแลแบรนด์ "${bData.brandName}" จึงไม่สามารถสร้างคิวจองนี้ได้` }, { headers: corsHeaders });
@@ -617,24 +704,57 @@ export async function POST(request: Request) {
         }
         const list = params.bookingsList; // List of booking objects
 
+        // Pre-validate all Rooms and Brands exist in DB
+        const allDbRooms = await requestSupabase('GET', 'rooms?select=name');
+        const dbRoomNames = new Set((Array.isArray(allDbRooms) ? allDbRooms : []).map((r: any) => (r.name || '').toLowerCase().trim()));
+        
+        const allDbBrands = await requestSupabase('GET', 'brands?select=name,description');
+        const dbBrandMap = new Map<string, any>((Array.isArray(allDbBrands) ? allDbBrands : []).map((b: any) => [(b.name || '').toLowerCase().trim(), b]));
+
+        for (const item of list) {
+          const rName = (item.roomName || '').toLowerCase().trim();
+          if (!dbRoomNames.has(rName)) {
+            return NextResponse.json({ success: false, message: `ไม่พบชื่อห้องสตูดิโอ "${item.roomName}" ในระบบ ไม่อนุญาตให้นำเข้าข้อมูล` }, { headers: corsHeaders });
+          }
+          const bName = (item.brandName || '').toLowerCase().trim();
+          if (!dbBrandMap.has(bName)) {
+            return NextResponse.json({ success: false, message: `ไม่พบชื่อแบรนด์ "${item.brandName}" ในระบบ ไม่อนุญาตให้นำเข้าข้อมูล` }, { headers: corsHeaders });
+          }
+        }
+
         // Brand access validation for bulk
         if (!isAdmin && list.length > 0) {
-          const uniqueBrandsInList = Array.from(new Set(list.map((b: any) => b.brandName)));
+          const uniqueBrandsInList: string[] = Array.from(new Set(list.map((b: any) => (b.brandName || '').toLowerCase().trim())));
           for (const bName of uniqueBrandsInList) {
-            const brandCheck = await requestSupabase('GET', `brands?name=eq.${encodeURIComponent(bName as string)}`);
-            if (brandCheck && brandCheck.length > 0 && brandCheck[0].description && brandCheck[0].description.startsWith('emails:')) {
-              const allowedEmails = brandCheck[0].description.substring(7).toLowerCase().split(',');
+            const brandObj = dbBrandMap.get(bName);
+            if (brandObj && brandObj.description && brandObj.description.startsWith('emails:')) {
+              const allowedEmails = brandObj.description.substring(7).toLowerCase().split(',');
               if (!allowedEmails.includes(user.email.toLowerCase())) {
-                return NextResponse.json({ success: false, message: `ท่านไม่มีสิทธิ์ดูแลแบรนด์ "${bName}" จึงไม่สามารถนำเข้าข้อมูลคิวจองชุดนี้ได้` }, { headers: corsHeaders });
+                return NextResponse.json({ success: false, message: `ท่านไม่มีสิทธิ์ดูแลแบรนด์ "${brandObj.name}" จึงไม่สามารถนำเข้าข้อมูลคิวจองชุดนี้ได้` }, { headers: corsHeaders });
               }
             }
           }
         }
 
         // Iterate through all slots to manually check and perform update or insert
+        let createdCount = 0;
+        let updatedCount = 0;
+        const detailsList: string[] = [];
+        const roomsSet = new Set<string>();
+        const brandsSet = new Set<string>();
+        const mcsSet = new Set<string>();
+        const datesSet = new Set<string>();
+
         for (const item of list) {
           const dbObj = mapBookingToDb(item);
           if (!dbObj) continue;
+
+          if (dbObj.room_name) roomsSet.add(dbObj.room_name);
+          if (dbObj.brand_name) brandsSet.add(dbObj.brand_name);
+          if (dbObj.date) datesSet.add(dbObj.date);
+          const mcDisplay = item.mcName || item.mc || item.mcNames || '';
+          const changesSummary = item.changesSummary || '';
+          if (mcDisplay) mcsSet.add(mcDisplay);
 
           // Fetch all bookings on this date for accurate in-memory matching
           const onDate = await requestSupabase('GET', `bookings?date=eq.${dbObj.date}`);
@@ -689,7 +809,13 @@ export async function POST(request: Request) {
             let parsedMeta: any = {};
             if (existingSlot[0].ls_artwork_layout) {
               try {
-                parsedMeta = JSON.parse(existingSlot[0].ls_artwork_layout);
+                parsedMeta = typeof existingSlot[0].ls_artwork_layout === 'string' ? JSON.parse(existingSlot[0].ls_artwork_layout) : existingSlot[0].ls_artwork_layout;
+              } catch(e){}
+            }
+            if (dbObj.ls_artwork_layout) {
+              try {
+                const newMeta = typeof dbObj.ls_artwork_layout === 'string' ? JSON.parse(dbObj.ls_artwork_layout) : dbObj.ls_artwork_layout;
+                parsedMeta = { ...parsedMeta, ...newMeta };
               } catch(e){}
             }
             if (item.id && !isUuid(String(item.id))) {
@@ -706,6 +832,9 @@ export async function POST(request: Request) {
 
             // UPDATE EXISTING SLOT
             await requestSupabase('PATCH', `bookings?id=eq.${existingSlot[0].id}`, dbObj);
+            updatedCount++;
+            const updateSuffix = changesSummary ? ` (${changesSummary})` : (mcDisplay ? ` (MC: ${mcDisplay})` : '');
+            detailsList.push(`[อัปเดต] ${dbObj.room_name} (${dbObj.brand_name}) ${dbObj.date} ${dbObj.start_time}-${dbObj.end_time}${updateSuffix}`);
           } else {
             // INSERT NEW SLOT
             dbObj.owner_email = item.ownerEmail || user.email;
@@ -777,10 +906,34 @@ export async function POST(request: Request) {
             } catch(e){}
 
             await requestSupabase('POST', 'bookings', dbObj);
+            createdCount++;
+            detailsList.push(`[สร้างใหม่] ${dbObj.room_name} (${dbObj.brand_name}) ${dbObj.date} ${dbObj.start_time}-${dbObj.end_time}${mcDisplay ? ` (MC: ${mcDisplay})` : ''}`);
           }
         }
 
-        await logActivity(user, "CREATE_BOOKINGS_BULK", `${list.length} slots`, `Bulk booking / Upsert of ${list.length} slots processed on ${list[0]?.date}`, clientIp, userAgent);
+        // Build informative Audit Log description
+        const brandArr = Array.from(brandsSet);
+        const roomArr = Array.from(roomsSet);
+        const mcArr = Array.from(mcsSet);
+        const dateArr = Array.from(datesSet);
+
+        let logTarget = `${list.length} slots`;
+        if (brandArr.length > 0) {
+          logTarget = `${list.length} คิว (${brandArr.slice(0, 2).join(', ')}${brandArr.length > 2 ? '...' : ''})`;
+        }
+
+        let logDetails = '';
+        if (list.length <= 3) {
+          logDetails = detailsList.join(' | ');
+        } else {
+          const brandText = brandArr.slice(0, 4).join(', ') + (brandArr.length > 4 ? ` (+${brandArr.length - 4})` : '');
+          const roomText = roomArr.join(', ');
+          const mcText = mcArr.length > 0 ? ` | MC: ${mcArr.slice(0, 4).join(', ')}${mcArr.length > 4 ? '...' : ''}` : '';
+          const dateText = dateArr.slice(0, 2).join(', ') + (dateArr.length > 2 ? '...' : '');
+          logDetails = `นำเข้า ${list.length} คิว (สร้างใหม่ ${createdCount}, อัปเดต ${updatedCount}) วันที่ ${dateText} | แบรนด์: ${brandText} | ห้อง: ${roomText}${mcText}`;
+        }
+
+        await logActivity(user, "CREATE_BOOKINGS_BULK", logTarget, logDetails, clientIp, userAgent);
         return NextResponse.json({ success: true }, { headers: corsHeaders });
       }
 
@@ -1148,12 +1301,31 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'มี Tier ชื่อนี้อยู่ในระบบแล้ว' }, { headers: corsHeaders });
           }
           const allTiers = await requestSupabase('GET', 'mc_tiers');
-          const maxSort = (allTiers || []).reduce((max: number, t: any) => t.sort_order > max ? t.sort_order : max, 0);
-          await requestSupabase('POST', 'mc_tiers', { name: p.name, sort_order: maxSort + 1 });
-          await logActivity(user, "CREATE_MC_TIER", p.name, `Created MC tier: ${p.name}`, clientIp, userAgent);
+          let targetSort = typeof p.sortOrder === 'number' ? p.sortOrder : (typeof p.sort_order === 'number' ? p.sort_order : null);
+          if (targetSort === null) {
+            const maxSort = (allTiers || []).reduce((max: number, t: any) => (typeof t.sort_order === 'number' && t.sort_order > max ? t.sort_order : max), -1);
+            targetSort = maxSort + 1;
+          } else {
+            const duplicate = (allTiers || []).find((t: any) => t.sort_order === targetSort);
+            if (duplicate) {
+              return NextResponse.json({ success: false, message: `ลำดับความสำคัญ "${targetSort}" มีอยู่ในระบบแล้ว (Tier "${duplicate.name}") กรุณาระบุลำดับที่ไม่ซ้ำกัน (เช่น 0, 1, 2, 3...)` }, { headers: corsHeaders });
+            }
+          }
+          await requestSupabase('POST', 'mc_tiers', { name: p.name, sort_order: targetSort });
+          await logActivity(user, "CREATE_MC_TIER", p.name, `Created MC tier: ${p.name} (Priority/Order: ${targetSort})`, clientIp, userAgent);
         } else if (subAction === 'UPDATE') {
-          await requestSupabase('PATCH', `mc_tiers?id=eq.${encodeURIComponent(p.id)}`, { name: p.name });
-          await logActivity(user, "UPDATE_MC_TIER", p.name, `Updated MC tier: ${p.name} (ID: ${p.id})`, clientIp, userAgent);
+          const allTiers = await requestSupabase('GET', 'mc_tiers');
+          const updateData: any = { name: p.name };
+          if (typeof p.sortOrder === 'number' || typeof p.sort_order === 'number') {
+            const targetSort = typeof p.sortOrder === 'number' ? p.sortOrder : p.sort_order;
+            const duplicate = (allTiers || []).find((t: any) => t.sort_order === targetSort && t.id !== p.id);
+            if (duplicate) {
+              return NextResponse.json({ success: false, message: `ลำดับความสำคัญ "${targetSort}" มีอยู่ในระบบแล้ว (Tier "${duplicate.name}") กรุณาระบุลำดับที่ไม่ซ้ำกัน (เช่น 0, 1, 2, 3...)` }, { headers: corsHeaders });
+            }
+            updateData.sort_order = targetSort;
+          }
+          await requestSupabase('PATCH', `mc_tiers?id=eq.${encodeURIComponent(p.id)}`, updateData);
+          await logActivity(user, "UPDATE_MC_TIER", p.name, `Updated MC tier: ${p.name} (ID: ${p.id}${updateData.sort_order !== undefined ? `, Priority: ${updateData.sort_order}` : ''})`, clientIp, userAgent);
         } else if (subAction === 'UPDATE_ORDER') {
           for (const item of p.tiers) {
             await requestSupabase('PATCH', `mc_tiers?id=eq.${encodeURIComponent(item.id)}`, { sort_order: item.sortOrder });
@@ -1229,31 +1401,35 @@ export async function POST(request: Request) {
       }
 
       case 'createChangeRequest': {
+        const NIL_UUID = '00000000-0000-0000-0000-000000000000';
         const p = params;
-        const bId = p.bookingId;
+        const bId = p.bookingId || 'NEW_SLOT';
         const bCustomId = p.bookingCustomId || '';
-        const reqType = p.requestType || 'edit'; // 'edit' or 'cancel'
+        const reqType = p.requestType || 'edit'; // 'edit', 'cancel', or 'create_slot'
         const details = p.requestDetails || '';
 
-        // Verify booking exists
-        const existing = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(bId)}`);
-        if (!existing || existing.length === 0) {
-          return NextResponse.json({ success: false, message: 'ไม่พบคิวจองที่ระบุในระบบ' }, { headers: corsHeaders });
+        // Verify booking exists if edit or cancel
+        let existing: any[] = [];
+        if (reqType !== 'create_slot' && bId !== 'NEW_SLOT' && bId !== NIL_UUID) {
+          existing = await requestSupabase('GET', `bookings?id=eq.${encodeURIComponent(bId)}`);
+          if (!existing || existing.length === 0) {
+            return NextResponse.json({ success: false, message: 'ไม่พบคิวจองที่ระบุในระบบ' }, { headers: corsHeaders });
+          }
+
+          // Check if there is already a Pending request for this booking
+          const pendingCheck = await requestSupabase('GET', `booking_change_requests?booking_id=eq.${encodeURIComponent(bId)}&status=eq.Pending`);
+          if (pendingCheck && pendingCheck.length > 0) {
+            return NextResponse.json({ 
+              success: false, 
+              message: 'คิวนี้มีคำร้องขอแก้ไข/ยกเลิกที่อยู่ระหว่างรอการพิจารณาอยู่แล้ว กรุณารอผู้ดูแลระบบดำเนินการก่อนส่งคำร้องใหม่' 
+            }, { headers: corsHeaders });
+          }
         }
 
-        // Check if there is already a Pending request for this booking
-        const pendingCheck = await requestSupabase('GET', `booking_change_requests?booking_id=eq.${encodeURIComponent(bId)}&status=eq.Pending`);
-        if (pendingCheck && pendingCheck.length > 0) {
-          return NextResponse.json({ 
-            success: false, 
-            message: 'คิวนี้มีคำร้องขอแก้ไข/ยกเลิกที่อยู่ระหว่างรอการพิจารณาอยู่แล้ว กรุณารอผู้ดูแลระบบดำเนินการก่อนส่งคำร้องใหม่' 
-          }, { headers: corsHeaders });
-        }
-
-        // Insert change request
+        // Insert change request with valid UUID
         const reqRecord = {
-          booking_id: bId,
-          booking_custom_id: bCustomId,
+          booking_id: (reqType === 'create_slot' || bId === 'NEW_SLOT' || !bId) ? NIL_UUID : bId,
+          booking_custom_id: bCustomId || (reqType === 'create_slot' ? '[ขอ Slot ใหม่]' : ''),
           requester_email: user.email,
           requester_name: user.name,
           request_type: reqType,
@@ -1264,21 +1440,23 @@ export async function POST(request: Request) {
         const resReq = await requestSupabase('POST', 'booking_change_requests', reqRecord, { 'Prefer': 'return=representation' });
 
         // Update booking metadata to reflect pending change request
-        try {
-          let meta: any = {};
-          if (existing[0].ls_artwork_layout) {
-            meta = JSON.parse(existing[0].ls_artwork_layout);
-          }
-          meta.hasPendingChangeRequest = true;
-          meta.lastChangeRequestId = resReq && resReq[0] ? resReq[0].id : undefined;
-          await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { ls_artwork_layout: JSON.stringify(meta) });
-        } catch (e) {}
+        if (existing.length > 0 && bId && bId !== 'NEW_SLOT' && bId !== NIL_UUID) {
+          try {
+            let meta: any = {};
+            if (existing[0].ls_artwork_layout) {
+              meta = JSON.parse(existing[0].ls_artwork_layout);
+            }
+            meta.hasPendingChangeRequest = true;
+            meta.lastChangeRequestId = resReq && resReq[0] ? resReq[0].id : undefined;
+            await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { ls_artwork_layout: JSON.stringify(meta) });
+          } catch (e) {}
+        }
 
         return NextResponse.json({ 
           success: true,
           changeRequest: resReq && resReq[0] ? {
             id: resReq[0].id,
-            bookingId: resReq[0].booking_id,
+            bookingId: (resReq[0].booking_id === NIL_UUID || !resReq[0].booking_id) ? 'NEW_SLOT' : resReq[0].booking_id,
             bookingCustomId: resReq[0].booking_custom_id,
             requesterEmail: resReq[0].requester_email,
             requesterName: resReq[0].requester_name,
@@ -1291,10 +1469,11 @@ export async function POST(request: Request) {
       }
 
       case 'getChangeRequests': {
+        const NIL_UUID = '00000000-0000-0000-0000-000000000000';
         const dbRequests = await requestSupabase('GET', 'booking_change_requests?order=created_at.desc');
         const mapped = (dbRequests || []).map((r: any) => ({
           id: r.id,
-          bookingId: r.booking_id,
+          bookingId: (r.booking_id === NIL_UUID || !r.booking_id) ? 'NEW_SLOT' : r.booking_id,
           bookingCustomId: r.booking_custom_id,
           requesterEmail: r.requester_email,
           requesterName: r.requester_name,
@@ -1312,7 +1491,7 @@ export async function POST(request: Request) {
 
       case 'resolveChangeRequest': {
         const allowedTabs = (rolePerms.allowed_tabs || '').split(',');
-        if (!isAdmin && !allowedTabs.includes('change-requests') && !rolePerms.can_edit_booking) {
+        if (!isAdmin && !allowedTabs.includes('change-requests-edit')) {
           return NextResponse.json({ success: false, message: 'ท่านไม่มีสิทธิ์ในการอนุมัติหรือจัดการคำขอแก้ไข' }, { status: 403, headers: corsHeaders });
         }
         const p = params;
@@ -1326,15 +1505,157 @@ export async function POST(request: Request) {
           return NextResponse.json({ success: false, message: 'ไม่พบข้อมูลคำร้องนี้' }, { headers: corsHeaders });
         }
         const changeReq = reqList[0];
-        const bId = changeReq.booking_id;
+        let bId = changeReq.booking_id;
         const nowIso = new Date().toISOString();
 
         if (decision === 'APPROVE') {
           if (changeReq.request_type === 'cancel') {
             await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { status: 'Cancelled' });
+          } else if (changeReq.request_type === 'create_slot') {
+            // Create booking for the requester
+            let bookingToCreate = updatedBookingData;
+            if (!bookingToCreate) {
+              try {
+                const parsed = JSON.parse(changeReq.request_details);
+                bookingToCreate = parsed.bookingDraft || parsed;
+              } catch (e) {}
+            }
+            if (bookingToCreate) {
+              const dbPayload = mapBookingToDb(bookingToCreate);
+              if (dbPayload) {
+                // Server-side Conflict Validation
+                const reqStartMin = parseTimeToMinutes(dbPayload.start_time || '');
+                const reqEndMin = parseTimeToMinutes(dbPayload.end_time || '');
+                if (reqStartMin !== -1 && reqEndMin !== -1 && dbPayload.date && dbPayload.room_name) {
+                  const existingOnDate = await requestSupabase('GET', `bookings?date=eq.${dbPayload.date}`);
+                  if (Array.isArray(existingOnDate)) {
+                    const conflict = existingOnDate.find((b: any) => {
+                      if (b.status === 'Cancelled') return false;
+                      if (b.room_name !== dbPayload.room_name) return false;
+                      const bStart = parseTimeToMinutes(b.start_time || '');
+                      const bEnd = parseTimeToMinutes(b.end_time || '');
+                      return reqStartMin < bEnd && reqEndMin > bStart;
+                    });
+                    if (conflict) {
+                      return NextResponse.json({
+                        success: false,
+                        message: `ไม่สามารถอนุมัติได้ เนื่องจากห้อง "${dbPayload.room_name}" มีคิวจองทับซ้อนกับแบรนด์ "${conflict.brand_name}" (${conflict.start_time} - ${conflict.end_time} น.)`
+                      }, { headers: corsHeaders });
+                    }
+                  }
+                }
+
+                dbPayload.owner_email = changeReq.requester_email || user.email;
+                dbPayload.owner_name = changeReq.requester_name || user.name;
+
+                const formattedDate = (dbPayload.date || '').replace(/-/g, '');
+                let brandAbbr = 'XX';
+                if (dbPayload.brand_name) {
+                  const rawBrand = dbPayload.brand_name.trim().toUpperCase();
+                  if (rawBrand.startsWith('FOREMOST')) brandAbbr = 'FM';
+                  else if (rawBrand.startsWith('FINELINE')) brandAbbr = 'FL';
+                  else if (rawBrand.startsWith('EVERSENSE') || rawBrand.startsWith('EVERSENCE')) brandAbbr = 'ES';
+                  else {
+                    const words = rawBrand.replace(/[^A-Z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+                    if (words.length >= 2) brandAbbr = (words[0][0] + words[1][0]).substring(0, 2);
+                    else if (words.length === 1 && words[0].length >= 2) brandAbbr = words[0].substring(0, 2);
+                    else brandAbbr = (words[0] || 'X') + 'X';
+                  }
+                }
+
+                let platformAbbr = 'FB';
+                try {
+                  const parsedMeta = JSON.parse(dbPayload.ls_artwork_layout || '{}');
+                  const rawChan = (parsedMeta.liveChannel === 'Other' ? (parsedMeta.customLiveChannel || '') : (parsedMeta.liveChannel || '')).trim().toUpperCase();
+                  if (rawChan.includes('FACEBOOK') || rawChan === 'FB') platformAbbr = 'FB';
+                  else if (rawChan.includes('TIKTOK') || rawChan.includes('TIK TOK') || rawChan === 'TT') platformAbbr = 'TT';
+                  else if (rawChan.includes('LAZADA') || rawChan === 'LZ') platformAbbr = 'LZ';
+                  else if (rawChan.includes('SHOPEE') || rawChan === 'SP') platformAbbr = 'SP';
+                  else if (rawChan) {
+                    const cleanedChan = rawChan.replace(/[^A-Z0-9]/g, '');
+                    if (cleanedChan.length >= 2) platformAbbr = cleanedChan.substring(0, 2);
+                    else platformAbbr = (cleanedChan || 'X') + 'X';
+                  }
+                } catch (e) {}
+
+                let roomNum = 'R00';
+                if (dbPayload.room_name) {
+                  const digits = dbPayload.room_name.replace(/[^0-9]/g, '');
+                  if (digits) roomNum = 'R' + digits.padStart(2, '0');
+                  else {
+                    const cleanedRoom = dbPayload.room_name.replace(/[^A-Z0-9]/g, '').toUpperCase();
+                    if (cleanedRoom.length >= 2) roomNum = 'R' + cleanedRoom.substring(0, 2);
+                    else roomNum = 'R' + (cleanedRoom || 'X').padEnd(2, 'X');
+                  }
+                }
+
+                const prefixPattern = `${formattedDate}${brandAbbr}${platformAbbr}${roomNum}`;
+                const existingOnDate = await requestSupabase('GET', `bookings?date=eq.${dbPayload.date}`);
+                let seq = 1;
+                if (Array.isArray(existingOnDate)) {
+                  const matches = existingOnDate.filter((b: any) => {
+                    let bookingCustomId = '';
+                    try {
+                      if (b.ls_artwork_layout) {
+                        const meta = JSON.parse(b.ls_artwork_layout);
+                        bookingCustomId = meta.customId || '';
+                      }
+                    } catch(e){}
+                    return String(b.id || '').startsWith(prefixPattern) || bookingCustomId.startsWith(prefixPattern);
+                  });
+                  seq = matches.length + 1;
+                }
+                const customId = `${prefixPattern}${String(seq).padStart(3, '0')}`;
+                
+                try {
+                  const parsedMeta = JSON.parse(dbPayload.ls_artwork_layout || '{}');
+                  parsedMeta.customId = customId;
+                  parsedMeta.hasPendingChangeRequest = false;
+                  parsedMeta.lastHandledAt = nowIso;
+                  parsedMeta.lastHandlerName = user.name;
+                  parsedMeta.lastHandlerNote = handlerNote;
+                  dbPayload.ls_artwork_layout = JSON.stringify(parsedMeta);
+                } catch(e){}
+
+                const newBookings = await requestSupabase('POST', 'bookings', dbPayload, { 'Prefer': 'return=representation' });
+                const inserted = Array.isArray(newBookings) ? newBookings[0] : newBookings;
+                const createdBookingId = inserted ? inserted.id : null;
+
+                if (createdBookingId) {
+                  bId = createdBookingId;
+                  await requestSupabase('PATCH', `booking_change_requests?id=eq.${encodeURIComponent(reqId)}`, {
+                    booking_id: createdBookingId,
+                    booking_custom_id: customId
+                  });
+                }
+              }
+            }
           } else if (updatedBookingData) {
             const dbPayload = mapBookingToDb(updatedBookingData);
             if (dbPayload) {
+              // Server-side Conflict Validation for Edit
+              const reqStartMin = parseTimeToMinutes(dbPayload.start_time || '');
+              const reqEndMin = parseTimeToMinutes(dbPayload.end_time || '');
+              if (reqStartMin !== -1 && reqEndMin !== -1 && dbPayload.date && dbPayload.room_name) {
+                const existingOnDate = await requestSupabase('GET', `bookings?date=eq.${dbPayload.date}`);
+                if (Array.isArray(existingOnDate)) {
+                  const conflict = existingOnDate.find((b: any) => {
+                    if (b.status === 'Cancelled') return false;
+                    if (b.id === bId) return false;
+                    if (b.room_name !== dbPayload.room_name) return false;
+                    const bStart = parseTimeToMinutes(b.start_time || '');
+                    const bEnd = parseTimeToMinutes(b.end_time || '');
+                    return reqStartMin < bEnd && reqEndMin > bStart;
+                  });
+                  if (conflict) {
+                    return NextResponse.json({
+                      success: false,
+                      message: `ไม่สามารถอนุมัติได้ เนื่องจากห้อง "${dbPayload.room_name}" มีคิวจองทับซ้อนกับแบรนด์ "${conflict.brand_name}" (${conflict.start_time} - ${conflict.end_time} น.)`
+                    }, { headers: corsHeaders });
+                  }
+                }
+              }
+
               // Ensure metadata records approval history
               let meta: any = {};
               if (dbPayload.ls_artwork_layout) {
@@ -1361,15 +1682,17 @@ export async function POST(request: Request) {
           await logActivity(user, "APPROVE_CHANGE_REQUEST", changeReq.booking_custom_id || bId, `Approved change request ID: ${reqId}`, clientIp, userAgent);
         } else {
           // REJECT
-          // Clear pending flag on booking
-          const existingB = await requestSupabase('GET', `bookings?id=eq.${bId}`);
-          if (existingB && existingB.length > 0) {
-            let meta: any = {};
-            if (existingB[0].ls_artwork_layout) {
-              try { meta = JSON.parse(existingB[0].ls_artwork_layout); } catch (e) {}
+          // Clear pending flag on booking if it was an existing booking
+          if (changeReq.request_type !== 'create_slot' && bId !== 'NEW_SLOT' && bId !== '00000000-0000-0000-0000-000000000000') {
+            const existingB = await requestSupabase('GET', `bookings?id=eq.${bId}`);
+            if (existingB && existingB.length > 0) {
+              let meta: any = {};
+              if (existingB[0].ls_artwork_layout) {
+                try { meta = JSON.parse(existingB[0].ls_artwork_layout); } catch (e) {}
+              }
+              meta.hasPendingChangeRequest = false;
+              await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { ls_artwork_layout: JSON.stringify(meta) });
             }
-            meta.hasPendingChangeRequest = false;
-            await requestSupabase('PATCH', `bookings?id=eq.${bId}`, { ls_artwork_layout: JSON.stringify(meta) });
           }
 
           await requestSupabase('PATCH', `booking_change_requests?id=eq.${encodeURIComponent(reqId)}`, {
@@ -1384,6 +1707,196 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ success: true }, { headers: corsHeaders });
+      }
+
+      case 'getChatMessages': {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        let chatMessages: any[] = [];
+        try {
+          const dbChats = await requestSupabase('GET', `chat_messages?created_at=gte.${sevenDaysAgo}&order=created_at.asc`);
+          if (Array.isArray(dbChats)) {
+            chatMessages = dbChats.map((c: any) => ({
+              id: c.id,
+              senderName: c.sender_name,
+              senderEmail: c.sender_email,
+              senderRole: c.sender_role,
+              recipientEmail: c.recipient_email || null,
+              recipientName: c.recipient_name || null,
+              message: c.message,
+              messageType: c.message_type || 'text',
+              metadata: c.metadata,
+              createdAt: c.created_at
+            }));
+          }
+        } catch (e) {
+          return NextResponse.json({ success: true, chatMessages: [] }, { headers: corsHeaders });
+        }
+        return NextResponse.json({ success: true, chatMessages }, { headers: corsHeaders });
+      }
+
+      case 'sendChatMessage': {
+        const text = String(params.message || '').trim();
+        if (!text) {
+          return NextResponse.json({ success: false, message: 'กรุณากรอกข้อความ' }, { status: 400, headers: corsHeaders });
+        }
+        const messageType = params.messageType || 'text';
+        const metadata = params.metadata || {};
+        const recipientEmail = params.recipientEmail ? String(params.recipientEmail).trim() : null;
+        const recipientName = params.recipientName ? String(params.recipientName).trim() : null;
+
+        const payload: any = {
+          sender_name: user.name || user.email,
+          sender_email: user.email,
+          sender_role: user.role || 'Staff',
+          message: text,
+          message_type: messageType,
+          metadata
+        };
+
+        if (recipientEmail) payload.recipient_email = recipientEmail;
+        if (recipientName) payload.recipient_name = recipientName;
+
+        let res: any = null;
+        try {
+          res = await requestSupabase('POST', 'chat_messages', payload, { 'Prefer': 'return=representation' });
+        } catch (postErr: any) {
+          const errMsg = String(postErr.message || '');
+          if (errMsg.includes('recipient_email') || errMsg.includes('recipient_name')) {
+            // Column missing in DB, fallback without recipient fields
+            delete payload.recipient_email;
+            delete payload.recipient_name;
+            try {
+              res = await requestSupabase('POST', 'chat_messages', payload, { 'Prefer': 'return=representation' });
+            } catch (fallbackErr: any) {
+              return NextResponse.json({ 
+                success: false, 
+                message: 'ยังไม่ได้สร้างตาราง chat_messages ใน Supabase กรุณารันคำสั่ง SQL ใน Supabase Editor' 
+              }, { status: 500, headers: corsHeaders });
+            }
+          } else if (errMsg.includes('chat_messages') || errMsg.includes('404')) {
+            return NextResponse.json({ 
+              success: false, 
+              message: 'ยังไม่ได้สร้างตาราง chat_messages ใน Supabase กรุณารัน SQL ใน migrations_chat.sql' 
+            }, { status: 500, headers: corsHeaders });
+          } else {
+            return NextResponse.json({ success: false, message: postErr.message || 'ส่งข้อความไม่สำเร็จ' }, { status: 500, headers: corsHeaders });
+          }
+        }
+
+        const insertedItem = Array.isArray(res) && res.length > 0 ? {
+          id: res[0].id,
+          senderName: res[0].sender_name,
+          senderEmail: res[0].sender_email,
+          senderRole: res[0].sender_role,
+          recipientEmail: res[0].recipient_email || null,
+          recipientName: res[0].recipient_name || null,
+          message: res[0].message,
+          messageType: res[0].message_type || 'text',
+          metadata: res[0].metadata,
+          createdAt: res[0].created_at
+        } : {
+          id: 'msg_' + Date.now(),
+          senderName: user.name || user.email,
+          senderEmail: user.email,
+          senderRole: user.role || 'Staff',
+          recipientEmail: recipientEmail || null,
+          recipientName: recipientName || null,
+          message: text,
+          messageType,
+          metadata,
+          createdAt: new Date().toISOString()
+        };
+
+        // Auto clean messages older than 7 days in background
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        requestSupabase('DELETE', `chat_messages?created_at=lt.${sevenDaysAgo}`).catch(() => {});
+
+        return NextResponse.json({ success: true, message: 'ส่งข้อความสำเร็จ', chatMessage: insertedItem }, { headers: corsHeaders });
+      }
+
+      case 'clearWeeklyChat': {
+        if (!isAdmin && user.role !== 'Master Admin') {
+          return NextResponse.json({ success: false, message: 'คุณไม่มีสิทธิ์ล้างข้อความแชท' }, { status: 403, headers: corsHeaders });
+        }
+        await requestSupabase('DELETE', `chat_messages?created_at=lte.${new Date().toISOString()}`);
+        return NextResponse.json({ success: true, message: 'ล้างข้อความแชทเรียบร้อยแล้ว' }, { headers: corsHeaders });
+      }
+
+      case 'exportFullBackup': {
+        const allowedTabs = (rolePerms.allowed_tabs || '').split(',');
+        if (!isAdmin && !allowedTabs.includes('settings')) {
+          return NextResponse.json({ success: false, message: 'ท่านไม่มีสิทธิ์ในการสำรองข้อมูลระบบ' }, { status: 403, headers: corsHeaders });
+        }
+
+        try {
+          const [
+            bookings,
+            rooms,
+            brands,
+            users,
+            roles,
+            mcTiers,
+            mcList,
+            changeRequests,
+            settings,
+            auditLogs
+          ] = await Promise.all([
+            requestSupabase('GET', 'bookings?select=*&order=date.desc').catch(() => []),
+            requestSupabase('GET', 'rooms?select=*&order=name.asc').catch(() => []),
+            requestSupabase('GET', 'brands?select=*&order=name.asc').catch(() => []),
+            requestSupabase('GET', 'users?select=id,email,name,role,status,created_at&order=name.asc').catch(() => []),
+            requestSupabase('GET', 'roles?select=*&order=role_name.asc').catch(() => []),
+            requestSupabase('GET', 'mc_tiers?select=*&order=sort_order.asc').catch(() => []),
+            requestSupabase('GET', 'mc_list?select=*&order=name.asc').catch(() => []),
+            requestSupabase('GET', 'booking_change_requests?select=*&order=created_at.desc').catch(() => []),
+            requestSupabase('GET', 'settings?select=*').catch(() => []),
+            requestSupabase('GET', 'audit_logs?select=*&order=timestamp.desc&limit=1000').catch(() => [])
+          ]);
+
+          const backupPayload = {
+            version: "1.0",
+            system: "TH-Rooming Studio Booking Management System",
+            exportedAt: new Date().toISOString(),
+            exportedBy: {
+              email: user.email,
+              name: user.name,
+              role: user.role
+            },
+            summary: {
+              bookingsCount: Array.isArray(bookings) ? bookings.length : 0,
+              roomsCount: Array.isArray(rooms) ? rooms.length : 0,
+              brandsCount: Array.isArray(brands) ? brands.length : 0,
+              usersCount: Array.isArray(users) ? users.length : 0,
+              rolesCount: Array.isArray(roles) ? roles.length : 0,
+              mcTiersCount: Array.isArray(mcTiers) ? mcTiers.length : 0,
+              mcListCount: Array.isArray(mcList) ? mcList.length : 0,
+              changeRequestsCount: Array.isArray(changeRequests) ? changeRequests.length : 0,
+              auditLogsCount: Array.isArray(auditLogs) ? auditLogs.length : 0,
+            },
+            tables: {
+              bookings: Array.isArray(bookings) ? bookings : [],
+              rooms: Array.isArray(rooms) ? rooms : [],
+              brands: Array.isArray(brands) ? brands : [],
+              users: Array.isArray(users) ? users : [],
+              roles: Array.isArray(roles) ? roles : [],
+              mc_tiers: Array.isArray(mcTiers) ? mcTiers : [],
+              mc_list: Array.isArray(mcList) ? mcList : [],
+              booking_change_requests: Array.isArray(changeRequests) ? changeRequests : [],
+              settings: Array.isArray(settings) ? settings : [],
+              system_settings: Array.isArray(settings) ? settings : [],
+              audit_logs: Array.isArray(auditLogs) ? auditLogs : []
+            }
+          };
+
+          await logActivity(user, "EXPORT_FULL_BACKUP", "SYSTEM", `Exported full system backup (${backupPayload.summary.bookingsCount} bookings, ${backupPayload.summary.brandsCount} brands, ${backupPayload.summary.roomsCount} rooms)`, clientIp, userAgent);
+
+          return NextResponse.json({
+            success: true,
+            backupData: backupPayload
+          }, { headers: corsHeaders });
+        } catch (backupErr: any) {
+          return NextResponse.json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสำรอง: ' + backupErr.message }, { status: 500, headers: corsHeaders });
+        }
       }
 
       default:

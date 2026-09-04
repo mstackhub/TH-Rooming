@@ -27,7 +27,7 @@ export interface BookingChangeRequest {
   bookingCustomId?: string;
   requesterEmail: string;
   requesterName: string;
-  requestType: 'edit' | 'cancel';
+  requestType: 'edit' | 'cancel' | 'create_slot';
   requestDetails: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   handlerEmail?: string;
@@ -110,6 +110,19 @@ export interface SystemSettings {
   changeRequestLockDays?: number;
 }
 
+export interface ChatMessage {
+  id: string;
+  senderName: string;
+  senderEmail: string;
+  senderRole: string;
+  recipientEmail?: string | null;
+  recipientName?: string | null;
+  message: string;
+  messageType?: 'text' | 'system' | 'booking_alert';
+  metadata?: any;
+  createdAt: string;
+}
+
 export interface Filters {
   room: string[]; // Supported multi-select array
   brand: string[]; // Supported multi-select array
@@ -143,6 +156,7 @@ interface AppContextType {
   mcTiers: McTier[];
   mcList: McList[];
   changeRequests: BookingChangeRequest[];
+  chatMessages: ChatMessage[];
   
   // State methods
   setCurrentTab: (tab: string) => void;
@@ -155,6 +169,7 @@ interface AppContextType {
   setMcTiers: React.Dispatch<React.SetStateAction<McTier[]>>;
   setMcList: React.Dispatch<React.SetStateAction<McList[]>>;
   setChangeRequests: React.Dispatch<React.SetStateAction<BookingChangeRequest[]>>;
+  setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   
   // Modal states
   activeBookingIdForEdit: string | null;
@@ -171,6 +186,9 @@ interface AppContextType {
   logout: () => void;
   apiCall: (action: string, payload: any, callback?: (err: string | null, data?: any) => void) => Promise<any>;
   refreshActiveTabData: () => Promise<void>;
+  fetchChatMessages: () => Promise<void>;
+  sendChatMessage: (message: string, recipientEmail?: string | null, recipientName?: string | null) => Promise<boolean>;
+  clearWeeklyChat: () => Promise<boolean>;
   
   // Toast notifications helper
   showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
@@ -221,6 +239,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mcTiers, setMcTiers] = useState<McTier[]>([]);
   const [mcList, setMcList] = useState<McList[]>([]);
   const [changeRequests, setChangeRequests] = useState<BookingChangeRequest[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Initialize Dates
   useEffect(() => {
@@ -361,6 +380,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.mcTiers) setMcTiers(data.mcTiers);
         if (data.mcList) setMcList(data.mcList);
         if (data.changeRequests) setChangeRequests(data.changeRequests);
+        if (data.chatMessages) setChatMessages(data.chatMessages);
         if (data.settings) setSettings(data.settings);
         
         // Local My Bookings filtering matching getMyBookings
@@ -471,6 +491,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (data.mcTiers) setMcTiers(data.mcTiers);
             if (data.mcList) setMcList(data.mcList);
             if (data.changeRequests) setChangeRequests(data.changeRequests);
+            if (data.chatMessages) setChatMessages(data.chatMessages);
             if (data.settings) setSettings(data.settings);
           }
         } finally {
@@ -481,6 +502,77 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsSessionRestoring(false);
     }
   }, []); // Run ONCE on mount!
+
+  // Fast dedicated chat fetcher
+  const fetchChatMessages = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await apiCall('getChatMessages', {});
+      if (res && res.success && Array.isArray(res.chatMessages)) {
+        setChatMessages(res.chatMessages);
+      }
+    } catch (e) {}
+  }, [token, apiCall]);
+
+  // Send a chat message with INSTANT Optimistic UI Update (0ms latency!)
+  const sendChatMessage = useCallback(async (message: string, recipientEmail?: string | null, recipientName?: string | null) => {
+    if (!currentUser) return false;
+    const tempId = 'temp_' + Math.random().toString(36).substring(2, 9);
+    const nowIso = new Date().toISOString();
+    const optimisticMsg: ChatMessage = {
+      id: tempId,
+      senderName: currentUser.name,
+      senderEmail: currentUser.email,
+      senderRole: currentUser.role,
+      recipientEmail: recipientEmail || null,
+      recipientName: recipientName || null,
+      message: message,
+      messageType: 'text',
+      createdAt: nowIso
+    };
+
+    // 1. Instantly display in UI (0ms delay!)
+    setChatMessages(prev => [...prev, optimisticMsg]);
+
+    try {
+      // 2. Send in background without blocking
+      const res = await apiCall('sendChatMessage', { 
+        message, 
+        recipientEmail: recipientEmail || null, 
+        recipientName: recipientName || null 
+      });
+      if (res && res.success) {
+        if (res.chatMessage) {
+          setChatMessages(prev => prev.map(m => m.id === tempId ? res.chatMessage : m));
+        } else {
+          fetchChatMessages();
+        }
+        return true;
+      } else {
+        // Rollback on failure
+        setChatMessages(prev => prev.filter(m => m.id !== tempId));
+        if (res && res.message) {
+          showToast(res.message, 'error');
+        }
+        return false;
+      }
+    } catch (err: any) {
+      setChatMessages(prev => prev.filter(m => m.id !== tempId));
+      showToast(err?.message || 'เกิดข้อผิดพลาดในการส่งข้อความ', 'error');
+      return false;
+    }
+  }, [currentUser, apiCall, fetchChatMessages, showToast]);
+
+  // Clear weekly chat messages (Admin only)
+  const clearWeeklyChat = useCallback(async () => {
+    const res = await apiCall('clearWeeklyChat', {});
+    if (res && res.success) {
+      setChatMessages([]);
+      showToast("ล้างข้อความแชทเรียบร้อยแล้ว", "success");
+      return true;
+    }
+    return false;
+  }, [apiCall, showToast]);
 
   // Polling data every 10 seconds & on tab focus for instant real-time sync
   useEffect(() => {
@@ -535,6 +627,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       mcTiers,
       mcList,
       changeRequests,
+      chatMessages,
       
       setCurrentTab,
       setFilters,
@@ -546,6 +639,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setMcTiers,
       setMcList,
       setChangeRequests,
+      setChatMessages,
       
       activeBookingIdForEdit,
       setActiveBookingIdForEdit,
@@ -560,6 +654,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       logout,
       apiCall,
       refreshActiveTabData,
+      fetchChatMessages,
+      sendChatMessage,
+      clearWeeklyChat,
       
       showToast,
       toasts,

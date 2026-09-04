@@ -4,8 +4,8 @@ import { AppProvider } from "@/context/AppContext";
 import ToastContainer from "@/components/ToastContainer";
 
 export const metadata: Metadata = {
-  title: "TH Booking - Live Studio Room Booking Portal",
-  description: "ระบบจองห้องไลฟ์สดและสตูดิโอ แบบเรียลไทม์เพื่อจัดการแคมเปญแบรนด์ลูกค้า",
+  title: "Tuesday House Agency - Live Studio Room Booking Portal",
+  description: "ระบบจองห้องไลฟ์สดและสตูดิโอ แบบเรียลไทม์เพื่อจัดการแคมเปญแบรนด์ลูกค้า Tuesday House Agency",
 };
 
 export default function RootLayout({

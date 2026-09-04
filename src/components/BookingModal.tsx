@@ -72,7 +72,7 @@ export default function BookingModal() {
 
   // 14-day lock & Change Request dialog states
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
-  const [requestDialogType, setRequestDialogType] = useState<'edit' | 'cancel'>('edit');
+  const [requestDialogType, setRequestDialogType] = useState<'edit' | 'cancel' | 'create_slot'>('edit');
   const [requestDialogDetails, setRequestDialogDetails] = useState('');
   const [requestDialogSubmitting, setRequestDialogSubmitting] = useState(false);
 
@@ -294,7 +294,13 @@ export default function BookingModal() {
     }
 
     if (!roomName) return showToast("กรุณาเลือกห้องสตูดิโอ", "warning");
+    const matchedRoom = rooms.find(r => r.name.toLowerCase().trim() === roomName.toLowerCase().trim());
+    if (!matchedRoom) return showToast(`ไม่พบห้องสตูดิโอ "${roomName}" ในระบบ ไม่อนุญาตให้สร้างคิว`, "error");
+
     if (!brandName) return showToast("กรุณาเลือกแบรนด์ลูกค้า", "warning");
+    const matchedBrand = brands.find(b => b.name.toLowerCase().trim() === brandName.toLowerCase().trim());
+    if (!matchedBrand) return showToast(`ไม่พบชื่อแบรนด์ "${brandName}" ในระบบ ไม่อนุญาตให้สร้างคิว`, "error");
+
     if (!date) return showToast("กรุณากรอกวันที่จองห้อง", "warning");
 
     // Check Conflict
@@ -479,9 +485,10 @@ export default function BookingModal() {
   const hasCancelPerm = isEditMode && (!!currentUser?.permissions?.canCancelBooking || isAdmin);
 
   const daysUntilBooking = useMemo(() => {
-    if (!matchedBooking?.date) return 999;
+    const targetDateStr = isEditMode ? matchedBooking?.date : date;
+    if (!targetDateStr) return 999;
     try {
-      const parts = matchedBooking.date.split('-');
+      const parts = targetDateStr.split('-');
       if (parts.length === 3) {
         const target = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         const today = new Date();
@@ -491,11 +498,12 @@ export default function BookingModal() {
       }
     } catch (e) {}
     return 999;
-  }, [matchedBooking?.date]);
+  }, [isEditMode, matchedBooking?.date, date]);
 
   const lockThresholdDays = settings?.changeRequestLockDays !== undefined ? Number(settings.changeRequestLockDays) : 14;
   const isLocked14Days = isEditMode && daysUntilBooking < lockThresholdDays;
-  const requiresChangeRequest = isLocked14Days && !isAdmin;
+  const isCreateLocked = !isEditMode && daysUntilBooking < lockThresholdDays && !isAdmin;
+  const requiresChangeRequest = (isLocked14Days || isCreateLocked) && !isAdmin;
 
   const pendingChangeReq = useMemo(() => {
     if (!matchedBooking || !Array.isArray(changeRequests)) return null;
@@ -508,8 +516,20 @@ export default function BookingModal() {
   }, [matchedBooking, changeRequests]);
 
   // Direct save without change request: allowed when >= lockThresholdDays OR user is Admin
-  const canDirectSave = hasEditPerm && (!isLocked14Days || isAdmin);
+  const canDirectSave = hasEditPerm && (!isLocked14Days || isAdmin) && !isCreateLocked;
   const canDirectCancel = hasCancelPerm && (!isLocked14Days || isAdmin);
+
+  const handleOpenCreateSlotRequest = () => {
+    if (!roomName) return showToast('กรุณาเลือกห้องสตูดิโอ', 'warning');
+    if (!brandName) return showToast('กรุณาเลือกแบรนด์สินค้า', 'warning');
+    if (!date) return showToast('กรุณาเลือกวันที่ต้องการจองห้อง', 'warning');
+    if (!startTime || !endTime) return showToast('กรุณาระบุช่วงเวลาไลฟ์', 'warning');
+
+    setRequestDialogType('create_slot');
+    const defaultText = `รายละเอียด Slot ที่ขอเปิดเพิ่ม:\n• วันที่: ${formatThaiDate(date)} (${date})\n• เวลา: ${startTime} - ${endTime} น.\n• ห้อง: ${roomName}\n• แบรนด์: ${brandName}\n• แคมเปญ: ${campaignName.trim() || '-'}\n\nเหตุผลความจำเป็น: `;
+    setRequestDialogDetails(defaultText);
+    setIsRequestDialogOpen(true);
+  };
 
   const handleOpenEditRequest = () => {
     if (pendingChangeReq) {
@@ -548,16 +568,80 @@ export default function BookingModal() {
 
   const handleSubmitChangeRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!matchedBooking) return;
+    if (requestDialogType !== 'create_slot' && !matchedBooking) return;
     if (!requestDialogDetails.trim()) {
       showToast('กรุณาระบุรายละเอียดและเหตุผลที่ต้องการขอเปลี่ยนแปลง', 'warning');
       return;
     }
     setRequestDialogSubmitting(true);
-    const customId = generateBookingCustomId(matchedBooking, calendarBookings);
     
+    if (requestDialogType === 'create_slot') {
+      let artworksArray: any[] = [];
+      if (artworkLink.trim()) {
+        let type = 'Link';
+        if (artworkLink.includes('drive.google.com')) type = 'Google Drive';
+        else if (artworkLink.includes('canva.com')) type = 'Canva';
+        else if (artworkLink.includes('docs.google.com/spreadsheets')) type = 'Google Sheet';
+        artworksArray = [{ type, url: artworkLink.trim() }];
+      }
+
+      const lsArtworkLayoutPayload = JSON.stringify({
+        artworks: artworksArray,
+        briefStatus: briefStatus,
+        artworkStatus: artworkStatus,
+        lastUpdated: new Date().toISOString(),
+        lastUpdatedBy: currentUser?.name || currentUser?.email || 'System',
+        scale: scale,
+        isImportant: isImportant,
+        liveChannel: liveChannel,
+        customLiveChannel: customLiveChannel,
+        staffEmails: selectedStaffEmails
+      });
+
+      const bookingDraft = {
+        roomName,
+        date,
+        startTime,
+        endTime,
+        brandName,
+        campaignName: campaignName.trim(),
+        briefText: briefText.trim(),
+        briefLink: selectedStaffEmails.join(','),
+        lsArtworkLayout: lsArtworkLayoutPayload,
+        status: bookingStatus,
+        remark: remark.trim(),
+        mcId: selectedMcIds.join(',') || null
+      };
+
+      await apiCall('createChangeRequest', {
+        bookingId: 'NEW_SLOT',
+        bookingCustomId: 'NEW_SLOT',
+        requestType: 'create_slot',
+        requestDetails: JSON.stringify({
+          reason: requestDialogDetails.trim(),
+          bookingDraft
+        })
+      }, (err, res) => {
+        setRequestDialogSubmitting(false);
+        if (err) {
+          showToast(err, 'error');
+        } else {
+          showToast('ส่งคำร้องขอเพิ่ม Slot เรียบร้อยแล้ว ผู้รับผิดชอบจะดำเนินการตรวจสอบ', 'success');
+          if (res && res.changeRequest) {
+            setChangeRequests(prev => [res.changeRequest, ...(prev || []).filter(x => x.id !== res.changeRequest.id)]);
+          }
+          setIsRequestDialogOpen(false);
+          setRequestDialogDetails('');
+          handleClose();
+          refreshActiveTabData();
+        }
+      });
+      return;
+    }
+
+    const customId = matchedBooking ? generateBookingCustomId(matchedBooking, calendarBookings) : '';
     await apiCall('createChangeRequest', {
-      bookingId: matchedBooking.id,
+      bookingId: matchedBooking!.id,
       bookingCustomId: customId,
       requestType: requestDialogType,
       requestDetails: requestDialogDetails.trim()
@@ -936,14 +1020,14 @@ export default function BookingModal() {
                         disabled={!hasEditPerm}
                         className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
                           isSelected
-                            ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-200'
+                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-300'
                         }`}
                       >
                         <span>{mc.name}</span>
                         {tier && (
                           <span className={`text-[8px] font-black uppercase px-1 rounded ${
-                            isSelected ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                            isSelected ? 'bg-emerald-700 text-white dark:bg-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                           }`}>
                             {tier.name.replace('Tier ', '')}
                           </span>
@@ -974,7 +1058,7 @@ export default function BookingModal() {
                         disabled={!hasEditPerm}
                         className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
                           isSelected
-                            ? 'bg-indigo-500 border-indigo-500 text-white shadow-sm'
+                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
                             : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-300 hover:border-slate-200'
                         }`}
                       >
@@ -1070,7 +1154,20 @@ export default function BookingModal() {
               
               {/* If Lock applies and user is not admin -> Show Change Request Buttons or Pending Alert */}
               {requiresChangeRequest ? (
-                pendingChangeReq ? (
+                isCreateLocked ? (
+                  <div className="space-y-2">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-xl text-blue-900 dark:text-blue-300 text-[11px] leading-relaxed">
+                      💡 วันที่เลือกอยู่ในช่วงระยะเวลาล็อก (&lt; {lockThresholdDays} วัน) การจองคิวนี้จะต้องส่งเป็นคำร้องขอเพิ่ม Slot ด่วนเพื่อให้ผู้ดูแลระบบอนุมัติ
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleOpenCreateSlotRequest}
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Send className="w-4 h-4" /> ส่งคำร้องขอเพิ่ม Slot
+                    </button>
+                  </div>
+                ) : pendingChangeReq ? (
                   <div className="p-3.5 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/90 dark:border-amber-900/60 rounded-xl text-center text-amber-900 dark:text-amber-300 space-y-1">
                     <div className="font-extrabold text-xs flex items-center justify-center gap-1.5">
                       <Clock className="w-4 h-4 text-amber-500 animate-pulse" />
@@ -1085,7 +1182,7 @@ export default function BookingModal() {
                     <button
                       type="button"
                       onClick={handleOpenEditRequest}
-                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-1.5"
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex items-center justify-center gap-1.5"
                     >
                       <Send className="w-4 h-4" /> ส่งคำร้องขอแก้ไขคิวไลฟ์ (Request Edit)
                     </button>
@@ -1104,7 +1201,7 @@ export default function BookingModal() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full py-3 bg-slate-900 hover:bg-black text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Save className="w-4 h-4" /> {loading ? 'กำลังบันทึก...' : 'บันทึกรายการจอง'}
                   </button>
@@ -1156,8 +1253,22 @@ export default function BookingModal() {
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 animate-in zoom-in duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
               <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                {requestDialogType === 'edit' ? <FileEdit className="w-4 h-4 text-indigo-500" /> : <Trash2 className="w-4 h-4 text-rose-500" />}
-                {requestDialogType === 'edit' ? 'ส่งคำร้องขอแก้ไขข้อมูลคิวไลฟ์' : 'ส่งคำร้องขอยกเลิกคิวไลฟ์'}
+                {requestDialogType === 'create_slot' ? (
+                  <>
+                    <Plus className="w-4 h-4 text-blue-600" />
+                    ส่งคำร้องขอเพิ่ม Slot คิวไลฟ์
+                  </>
+                ) : requestDialogType === 'edit' ? (
+                  <>
+                    <FileEdit className="w-4 h-4 text-emerald-600" />
+                    ส่งคำร้องขอแก้ไขข้อมูลคิวไลฟ์
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 text-rose-500" />
+                    ส่งคำร้องขอยกเลิกคิวไลฟ์
+                  </>
+                )}
               </h3>
               <button onClick={() => setIsRequestDialogOpen(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400">
                 <X className="w-4 h-4" />
@@ -1166,22 +1277,32 @@ export default function BookingModal() {
 
             <form onSubmit={handleSubmitChangeRequest} className="space-y-4 text-xs">
               <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl text-[11px] text-amber-900 dark:text-amber-300">
-                เนื่องจากคิวนี้มีกำหนดการไลฟ์ในอีก <strong>{daysUntilBooking} วัน (ต่ำกว่า {lockThresholdDays} วัน)</strong> คำร้องนี้จะถูกส่งไปยัง <strong>"เมนูจัดการคำขอแก้ไข"</strong> เพื่อให้ผู้รับผิดชอบพิจารณาและอัปเดตระบบ
+                {requestDialogType === 'create_slot' ? (
+                  <>เนื่องจากวันที่เลือกมีกำหนดการไลฟ์ในอีก <strong>{daysUntilBooking} วัน (ต่ำกว่า {lockThresholdDays} วัน)</strong> คำร้องนี้จะถูกส่งไปยัง <strong>"เมนูจัดการคำขอแก้ไขและยกเลิกคิวไลฟ์"</strong> เพื่อให้ผู้ดูแลระบบพิจารณาอนุมัติและเปิดคิวให้</>
+                ) : (
+                  <>เนื่องจากคิวนี้มีกำหนดการไลฟ์ในอีก <strong>{daysUntilBooking} วัน (ต่ำกว่า {lockThresholdDays} วัน)</strong> คำร้องนี้จะถูกส่งไปยัง <strong>"เมนูจัดการคำขอแก้ไข"</strong> เพื่อให้ผู้รับผิดชอบพิจารณาและอัปเดตระบบ</>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase">
-                  {requestDialogType === 'edit' ? 'ระบุสิ่งที่ต้องการขอแก้ไข และเหตุผลความจำเป็น *' : 'ระบุเหตุผลการขอยกเลิกคิว *'}
+                  {requestDialogType === 'create_slot' 
+                    ? 'ระบุรายละเอียด Slot และเหตุผลความจำเป็น *'
+                    : requestDialogType === 'edit' 
+                      ? 'ระบุสิ่งที่ต้องการขอแก้ไข และเหตุผลความจำเป็น *' 
+                      : 'ระบุเหตุผลการขอยกเลิกคิว *'}
                 </label>
                 <textarea
-                  rows={4}
-                  placeholder={requestDialogType === 'edit' 
-                    ? "เช่น ขอเปลี่ยนเวลาเป็น 14:00 - 16:00 น. เนื่องจากสินค้าตัวอย่างมาส่งล่าช้า หรือขอเปลี่ยน MC เป็นคุณ..."
-                    : "เช่น แบรนด์แจ้งเลื่อนแคมเปญกะทันหัน หรือมีปัญหาด้านสต็อกสินค้า"
+                  rows={5}
+                  placeholder={requestDialogType === 'create_slot'
+                    ? "เช่น แบรนด์มีแคมเปญ Flash Sale ด่วน หรือเพิ่มรอบไลฟ์พิเศษนอกตารางปกติ..."
+                    : requestDialogType === 'edit' 
+                      ? "เช่น ขอเปลี่ยนเวลาเป็น 14:00 - 16:00 น. เนื่องจากสินค้าตัวอย่างมาส่งล่าช้า หรือขอเปลี่ยน MC เป็นคุณ..."
+                      : "เช่น แบรนด์แจ้งเลื่อนแคมเปญกะทันหัน หรือมีปัญหาด้านสต็อกสินค้า"
                   }
                   value={requestDialogDetails}
                   onChange={(e) => setRequestDialogDetails(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium focus:outline-none focus:border-brand-500"
+                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium focus:outline-none focus:border-brand-500 font-sans"
                   required
                 />
               </div>
@@ -1190,7 +1311,7 @@ export default function BookingModal() {
                 <button
                   type="button"
                   onClick={() => setIsRequestDialogOpen(false)}
-                  className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+                  className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   ยกเลิก
                 </button>
@@ -1198,9 +1319,11 @@ export default function BookingModal() {
                   type="submit"
                   disabled={requestDialogSubmitting}
                   className={`px-5 py-2 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer ${
-                    requestDialogType === 'edit' 
-                      ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/25' 
-                      : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
+                    requestDialogType === 'create_slot'
+                      ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/25'
+                      : requestDialogType === 'edit' 
+                        ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25' 
+                        : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
                   }`}
                 >
                   <Send className="w-3.5 h-3.5" />

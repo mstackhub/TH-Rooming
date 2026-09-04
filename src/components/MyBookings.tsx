@@ -13,7 +13,8 @@ import {
   Lock,
   Compass,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Plus
 } from 'lucide-react';
 
 type SortKey = 'date' | 'roomName' | 'brandName' | 'startTime';
@@ -26,6 +27,7 @@ export default function MyBookings() {
     filters,
     setFilters,
     setActiveBookingIdForEdit,
+    setActiveBookingCreateData,
     currentUser
   } = useApp();
 
@@ -42,7 +44,7 @@ export default function MyBookings() {
     }
   };
 
-  // Date Range and Brand Filters States
+  // Date Range and Brand & Room Filters States
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [allDates, setAllDates] = useState(true); // Default to true (Show all)
@@ -50,6 +52,10 @@ export default function MyBookings() {
   const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
   const [brandSearchQuery, setBrandSearchQuery] = useState('');
   const brandDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
+  const roomDropdownRef = useRef<HTMLDivElement>(null);
 
   // Initialize date range with today
   useEffect(() => {
@@ -59,16 +65,42 @@ export default function MyBookings() {
     setEndDate(todayStr);
   }, []);
 
-  // Click outside listener for brand dropdown
+  // Click outside listener for brand & room dropdowns
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (brandDropdownRef.current && !brandDropdownRef.current.contains(e.target as Node)) {
         setIsBrandDropdownOpen(false);
       }
+      if (roomDropdownRef.current && !roomDropdownRef.current.contains(e.target as Node)) {
+        setIsRoomDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  // Room dropdown selection helpers
+  const handleRoomCheckboxChange = (roomName: string, checked: boolean) => {
+    setFilters(prev => {
+      const room = checked 
+        ? [...prev.room, roomName]
+        : prev.room.filter(r => r !== roomName);
+      return { ...prev, room };
+    });
+  };
+
+  const handleSelectAllRooms = (checked: boolean) => {
+    setFilters(prev => ({
+      ...prev,
+      room: checked ? rooms.map(r => r.name) : []
+    }));
+  };
+
+  const filteredRoomsForDropdown = useMemo(() => {
+    return rooms.map(r => r.name).filter(roomName => 
+      roomName.toLowerCase().includes(roomSearchQuery.toLowerCase())
+    );
+  }, [rooms, roomSearchQuery]);
 
   // Extract brand list dynamically from user's bookings
   const myBrandsList = useMemo(() => {
@@ -105,17 +137,15 @@ export default function MyBookings() {
   const sortedBookings = useMemo(() => {
     const sorted = [...filteredBookings];
     sorted.sort((a, b) => {
-      let valA = a[sortKey] || '';
-      let valB = b[sortKey] || '';
-
-      if (sortKey === 'startTime') {
-        valA = `${a.date} ${a.startTime}`;
-        valB = `${b.date} ${b.startTime}`;
+      if (sortKey === 'date' || sortKey === 'startTime') {
+        const timeA = `${a.date || ''} ${a.startTime || '00:00'}`;
+        const timeB = `${b.date || ''} ${b.startTime || '00:00'}`;
+        return sortOrder === 'asc' ? timeA.localeCompare(timeB) : timeB.localeCompare(timeA);
       }
 
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
+      let valA = String(a[sortKey] || '');
+      let valB = String(b[sortKey] || '');
+      return sortOrder === 'asc' ? valA.localeCompare(valB, 'th') : valB.localeCompare(valA, 'th');
     });
     return sorted;
   }, [filteredBookings, sortKey, sortOrder]);
@@ -145,15 +175,37 @@ export default function MyBookings() {
     setSelectedBrands(checked ? myBrandsList : []);
   };
 
+  const canCreateBooking = currentUser?.permissions?.isAdmin || currentUser?.role === 'Master Admin' || !!currentUser?.permissions?.canCreateBooking;
+
   return (
-    <div className="flex-1 p-6 overflow-y-auto space-y-6 animate-in fade-in duration-200">
+    <div className="flex-1 p-3 sm:p-5 md:p-6 overflow-y-auto space-y-4 sm:space-y-6 animate-in fade-in duration-200">
       {/* 1. Header controls */}
-      <div>
-        <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-          <Compass className="w-5 h-5 text-brand-500" />
-          การจองของฉัน
-        </h2>
-        <p className="text-xs text-slate-400 mt-1">คัดกรองเฉพาะตารางการจองห้องที่คุณเป็นเจ้าของรายการจองเพื่อจัดการได้โดยตรง</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+            <Compass className="w-5 h-5 text-emerald-500" />
+            การจองของฉัน
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">คัดกรองเฉพาะตารางการจองห้องที่คุณเป็นเจ้าของรายการจองเพื่อจัดการได้โดยตรง</p>
+        </div>
+
+        {canCreateBooking && (
+          <button
+            onClick={() => {
+              const today = new Date().toISOString().split('T')[0];
+              setActiveBookingCreateData({
+                date: today,
+                roomName: rooms[0]?.name || '',
+                startTime: '09:00',
+                endTime: '10:00'
+              });
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs"
+          >
+            <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>จองห้องไลฟ์</span>
+          </button>
+        )}
       </div>
 
       {/* 2. Filters bar */}
@@ -165,18 +217,89 @@ export default function MyBookings() {
               <span>ตัวกรอง:</span>
             </div>
 
-            {/* Room Filter */}
-            <CustomSelect
-              value={filters.room[0] || ''}
-              onChange={(v) => setFilters(prev => ({ ...prev, room: v ? [v] : [] }))}
-              options={[
-                { value: '', label: 'ทุกห้องสตูดิโอ (All)' },
-                ...rooms.map(r => ({ value: r.name, label: r.name }))
-              ]}
-              searchable={rooms.length > 5}
-              searchPlaceholder="ค้นหาห้อง..."
-              className="min-w-[150px]"
-            />
+            {/* Room Multiselect dropdown */}
+            <div className="relative" ref={roomDropdownRef}>
+              <button
+                onClick={() => setIsRoomDropdownOpen(!isRoomDropdownOpen)}
+                className={`flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 text-slate-850 dark:text-slate-200 text-xs font-semibold shadow-sm hover:border-brand-400 focus:outline-none transition-all duration-150 cursor-pointer min-w-[160px] ${
+                  isRoomDropdownOpen ? 'border-brand-500 ring-2 ring-brand-400/30' : 'border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <span className="truncate max-w-[130px]">
+                  {filters.room.length === 0 
+                    ? 'ทุกห้องสตูดิโอ (All)' 
+                    : filters.room.length === rooms.length 
+                      ? `เลือกทุกห้อง (${filters.room.length})` 
+                      : filters.room.join(', ')}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${isRoomDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isRoomDropdownOpen && (
+                <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
+                  <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="ค้นหาห้อง..."
+                        value={roomSearchQuery}
+                        onChange={(e) => setRoomSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-850 rounded-lg bg-transparent text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="p-1">
+                    <div
+                      onClick={() => handleSelectAllRooms(!(filters.room.length === rooms.length && rooms.length > 0))}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850"
+                    >
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                        filters.room.length === rooms.length && rooms.length > 0
+                          ? 'bg-brand-500 border-brand-500'
+                          : 'border-slate-300 dark:border-slate-600'
+                      }`}>
+                        {filters.room.length === rooms.length && rooms.length > 0 && (
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-700 dark:text-slate-300 font-bold select-none">เลือกทั้งหมด (Select All)</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col overflow-y-auto flex-1 px-1 pb-1">
+                    {filteredRoomsForDropdown.map(roomName => {
+                      const isChecked = filters.room.includes(roomName);
+                      return (
+                        <div
+                          key={roomName}
+                          onClick={() => handleRoomCheckboxChange(roomName, !isChecked)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-850"
+                        >
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                            isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300 dark:border-slate-650'
+                          }`}>
+                            {isChecked && (
+                              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className={`text-xs truncate select-none ${isChecked ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>{roomName}</span>
+                        </div>
+                      );
+                    })}
+                    {filteredRoomsForDropdown.length === 0 && (
+                      <div className="px-3 py-3 text-xs text-slate-400 text-center">ไม่พบห้องสตูดิโอ</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Brand Multiselect dropdown */}
             <div className="relative" ref={brandDropdownRef}>
@@ -200,7 +323,7 @@ export default function MyBookings() {
                 <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
                   <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                     <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                       <input
                         type="text"
                         placeholder="ค้นหาแบรนด์..."
@@ -240,9 +363,7 @@ export default function MyBookings() {
                           <div
                             key={brand}
                             onClick={() => handleBrandCheckboxChange(brand, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-850'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-850"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -340,53 +461,69 @@ export default function MyBookings() {
       </div>
 
       {/* 3. Tables Data */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse">
+          <table className="w-full text-[12px] text-left border-collapse min-w-[900px]">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold select-none">
-                <th onClick={() => handleSort('date')} className="p-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                  วันที่จอง {sortKey === 'date' && (sortOrder === 'asc' ? '▲' : '▼')}
+              <tr className="bg-slate-50/90 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 font-bold select-none uppercase tracking-wider">
+                <th onClick={() => handleSort('date')} className="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <span>วันที่จอง</span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                      {sortKey === 'date' ? (sortOrder === 'asc' ? '▲ (เก่าไปใหม่)' : '▼ (ใหม่ไปเก่า)') : '⇅'}
+                    </span>
+                  </div>
                 </th>
-                <th onClick={() => handleSort('roomName')} className="p-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                  ห้องสตูดิโอ {sortKey === 'roomName' && (sortOrder === 'asc' ? '▲' : '▼')}
+                <th onClick={() => handleSort('roomName')} className="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <div className="flex items-center gap-1">
+                    <span>ห้องสตูดิโอ</span>
+                    {sortKey === 'roomName' && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                    )}
+                  </div>
                 </th>
-                <th className="p-4">เวลาไลฟ์สด</th>
-                <th onClick={() => handleSort('brandName')} className="p-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                  แบรนด์ลูกค้า {sortKey === 'brandName' && (sortOrder === 'asc' ? '▲' : '▼')}
+                <th className="py-3 px-4">เวลาไลฟ์สด</th>
+                <th onClick={() => handleSort('brandName')} className="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <div className="flex items-center gap-1">
+                    <span>แบรนด์ลูกค้า</span>
+                    {sortKey === 'brandName' && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                    )}
+                  </div>
                 </th>
-                <th className="p-4">ชื่อแคมเปญ</th>
-                <th className="p-4">สถานะคิว</th>
-                <th className="p-4 text-center">จัดการ</th>
+                <th className="py-3 px-4">ชื่อแคมเปญ</th>
+                <th className="py-3 px-4">สถานะคิว</th>
+                <th className="py-3 px-4 text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-normal">
               {sortedBookings.map(b => {
                 const autoStatus = getAutoStatus(b);
-                let statusBadge = 'bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300 border-blue-100';
-                if (autoStatus === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300 border-emerald-100';
-                else if (autoStatus === 'Cancelled') statusBadge = 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200';
+                let statusBadge = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+                if (autoStatus === 'Confirmed') statusBadge = 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent';
+                else if (autoStatus === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';
+                else if (autoStatus === 'Cancelled') statusBadge = 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 border-slate-200 line-through';
 
                 return (
-                  <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 text-slate-800 dark:text-slate-200 transition-colors">
-                    <td className="p-4 font-bold">{formatThaiDate(b.date)}</td>
-                    <td className="p-4 font-extrabold text-slate-900 dark:text-white">{b.roomName}</td>
-                    <td className="p-4 font-semibold">{b.startTime} - {b.endTime} น.</td>
-                    <td className="p-4 font-bold text-brand-600 dark:text-brand-400">{b.brandName}</td>
-                    <td className="p-4 font-semibold text-slate-600 dark:text-slate-400 max-w-[200px] truncate" title={b.campaignName}>
-                      {b.campaignName}
+                  <tr key={b.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/20 text-slate-800 dark:text-slate-200 transition-colors">
+                    <td className="py-3.5 px-4 font-normal">{formatThaiDate(b.date)}</td>
+                    <td className="py-3.5 px-4 font-normal text-slate-900 dark:text-white">{b.roomName}</td>
+                    <td className="py-3.5 px-4 font-normal text-slate-600 dark:text-slate-400">{b.startTime} - {b.endTime} น.</td>
+                    <td className="py-3.5 px-4 font-normal text-slate-900 dark:text-white">{b.brandName}</td>
+                    <td className="py-3.5 px-4 font-normal text-slate-600 dark:text-slate-400 max-w-[200px] truncate" title={b.campaignName}>
+                      {b.campaignName || '-'}
                     </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 text-[10px] font-bold rounded-lg border ${statusBadge}`}>
+                    <td className="py-3.5 px-4">
+                      <span className={`px-2.5 py-0.5 text-[10px] font-semibold rounded-full border whitespace-nowrap ${statusBadge}`}>
                         {autoStatus}
                       </span>
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="py-3.5 px-4 text-center">
                       <button
                         onClick={() => setActiveBookingIdForEdit(b.id)}
-                        className="px-3 py-1.5 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-bold flex items-center gap-1.5 mx-auto transition-all cursor-pointer text-[10px]"
+                        className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-normal flex items-center gap-1.5 mx-auto transition-all cursor-pointer text-[11px]"
                       >
-                        <Edit2 className="w-3 h-3" /> เปิดจัดการ
+                        <Edit2 className="w-3.5 h-3.5" /> เปิดจัดการ
                       </button>
                     </td>
                   </tr>

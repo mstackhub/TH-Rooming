@@ -1,10 +1,17 @@
 export function parseTimeToMinutes(timeStr: string): number {
   if (!timeStr) return -1;
-  const parts = timeStr.split(":");
-  if (parts.length < 2) return -1;
+  const trimmed = String(timeStr).trim();
+  // Strictly validate time format: ONLY digits and : or . (e.g. 09:00, 9:00, 13:30, 13.30)
+  // No Thai letters (like ว, จ, น), no English characters, numbers only!
+  if (!/^(?:0?[0-9]|1[0-9]|2[0-3])[:.][0-5][0-9]$|^23:59$|^24:00$/.test(trimmed)) {
+    return -1;
+  }
+  const normalized = trimmed.replace('.', ':');
+  const parts = normalized.split(':');
+  if (parts.length !== 2) return -1;
   const hh = parseInt(parts[0], 10);
   const mm = parseInt(parts[1], 10);
-  if (isNaN(hh) || isNaN(mm)) return -1;
+  if (isNaN(hh) || isNaN(mm) || hh < 0 || hh > 24 || mm < 0 || mm > 59) return -1;
   if (hh === 23 && mm === 59) {
     return 1440;
   }

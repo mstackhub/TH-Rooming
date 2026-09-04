@@ -51,13 +51,19 @@ export default function CampaignSchedule() {
     setIsImportModalOpen
   } = useApp();
 
-  // Filter & Search States
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Filter & Search States - Default to current full month (e.g. กันยายน / September)
+  const currentMonthNum = new Date().getMonth() + 1; // 1-12
+  const currentYearNum = new Date().getFullYear();
+  const defaultLastDay = new Date(currentYearNum, currentMonthNum, 0).getDate();
+  const defaultStartStr = `${currentYearNum}-${String(currentMonthNum).padStart(2, '0')}-01`;
+  const defaultEndStr = `${currentYearNum}-${String(currentMonthNum).padStart(2, '0')}-${String(defaultLastDay).padStart(2, '0')}`;
+
+  const [startDate, setStartDate] = useState(defaultStartStr);
+  const [endDate, setEndDate] = useState(defaultEndStr);
   const [allDates, setAllDates] = useState(false);
   
   // Upgraded Multi-Select Arrays
-  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([currentMonthNum]);
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
@@ -119,15 +125,16 @@ export default function CampaignSchedule() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Initialize dates
+  // Initialize dates to current full month
   useEffect(() => {
     const today = new Date();
     const localYear = today.getFullYear();
-    const localMonth = String(today.getMonth() + 1).padStart(2, '0');
-    const localDay = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${localYear}-${localMonth}-${localDay}`;
-    setStartDate(todayStr);
-    setEndDate(todayStr);
+    const localMonth = today.getMonth() + 1;
+    const lastDay = new Date(localYear, localMonth, 0).getDate();
+    const monthStr = String(localMonth).padStart(2, '0');
+    setStartDate(`${localYear}-${monthStr}-01`);
+    setEndDate(`${localYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`);
+    setSelectedMonths([localMonth]);
   }, []);
 
   // Click outside listener for all custom dropdowns
@@ -380,8 +387,8 @@ export default function CampaignSchedule() {
       // 1. Month filter check (If selectedMonths has items, check the month of b.date)
       if (selectedMonths.length > 0) {
         if (!b.date) return false;
-        const dateObj = new Date(b.date);
-        const bookingMonth = dateObj.getMonth() + 1; // 1-12
+        const parts = b.date.split('-');
+        const bookingMonth = parts.length >= 2 ? parseInt(parts[1], 10) : new Date(b.date).getMonth() + 1;
         if (!selectedMonths.includes(bookingMonth)) return false;
       }
 
@@ -735,9 +742,18 @@ export default function CampaignSchedule() {
     );
   }, [activeBrandsList, brandSearchQuery]);
 
-  // Clear all filters action
+  // Clear all filters action (resets back to current month default)
   const clearAllFilters = () => {
-    setSelectedMonths([]);
+    const today = new Date();
+    const localYear = today.getFullYear();
+    const localMonth = today.getMonth() + 1;
+    const lastDay = new Date(localYear, localMonth, 0).getDate();
+    const monthStr = String(localMonth).padStart(2, '0');
+
+    setSelectedMonths([localMonth]);
+    setStartDate(`${localYear}-${monthStr}-01`);
+    setEndDate(`${localYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`);
+    setAllDates(false);
     setSelectedRooms([]);
     setSelectedBrands([]);
     setSelectedOwners([]);
@@ -754,21 +770,21 @@ export default function CampaignSchedule() {
 
   // Render Status styling badges
   const getBookingStatusBadge = (status: string) => {
-    let classes = 'bg-slate-100 text-slate-650 border-slate-200 dark:bg-slate-850 dark:text-slate-400 dark:border-slate-800';
-    if (status === 'Confirmed') classes = 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-250';
-    if (status === 'Completed') classes = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-250';
-    if (status === 'Cancelled') classes = 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-500 border-slate-300 dark:border-slate-800 line-through';
-    return <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold border ${classes}`}>{status}</span>;
+    let classes = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    if (status === 'Confirmed') classes = 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent';
+    if (status === 'Completed') classes = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';
+    if (status === 'Cancelled') classes = 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 border-slate-200 dark:border-slate-700 line-through';
+    return <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${classes}`}>{status}</span>;
   };
 
   const getLiveProgressBadge = (status: string) => {
-    let classes = 'bg-slate-100 text-slate-600 dark:bg-slate-850';
-    if (status === 'Live Now') classes = 'bg-rose-600 text-white border-rose-600 animate-pulse';
-    if (status === 'Starting Soon') classes = 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-250';
-    if (status === 'Upcoming') classes = 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border-indigo-200';
-    if (status === 'Completed') classes = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-350 border-emerald-250';
-    if (status === 'Cancelled') classes = 'bg-slate-100 text-slate-400 border-slate-200 line-through';
-    return <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold border ${classes}`}>{status}</span>;
+    let classes = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    if (status === 'Live Now') classes = 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800 font-extrabold';
+    if (status === 'Starting Soon') classes = 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800 font-bold';
+    if (status === 'Upcoming') classes = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-bold';
+    if (status === 'Completed') classes = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 font-bold';
+    if (status === 'Cancelled') classes = 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-500 line-through';
+    return <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${classes}`}>{status}</span>;
   };
 
   // Activity log mapper for timeline history
@@ -856,14 +872,14 @@ export default function CampaignSchedule() {
   };
 
   return (
-    <div className="flex-1 p-6 overflow-y-auto space-y-6 animate-in fade-in duration-200 text-slate-800 dark:text-slate-200">
+    <div className="flex-1 p-3 sm:p-5 md:p-6 overflow-y-auto space-y-4 sm:space-y-6 animate-in fade-in duration-200 text-slate-800 dark:text-slate-200">
       
       {/* 1. Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-            <BookOpen className="w-5.5 h-5.5 text-brand-500" />
-            การบริหารจัดการแคมเปญทั้งหมด (Campaign Management View)
+            <BookOpen className="w-5.5 h-5.5 text-brand-500 dark:text-white" />
+            แคมเปญทั้งหมด
           </h2>
           <p className="text-xs text-slate-400 mt-1">บริหารความพร้อม จัดเตรียมบรีฟ อาร์ตเวิร์ก และคิวจองสตูดิโอให้ครบถ้วนก่อนการออกอากาศสด</p>
         </div>
@@ -876,27 +892,27 @@ export default function CampaignSchedule() {
                 const formatted = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
                 setActiveBookingCreateData({ date: formatted, roomName: activeRoomsList[0] || '', startTime: '09:00', endTime: '10:00' });
               }}
-              className="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-extrabold shadow-md shadow-brand-500/25 flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-emerald-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> จองห้องไลฟ์
+              <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> จองห้องไลฟ์
             </button>
           )}
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-extrabold shadow-md shadow-indigo-500/25 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4" /> นำเข้าคิวจอง Excel
           </button>
           <button
             onClick={handleExportCSV}
-            className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200 dark:border-slate-700"
+            className="px-3.5 py-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200 dark:border-slate-800 shadow-xs"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export CSV
           </button>
         </div>
       </div>
 
-      {/* 2. Section 1: Campaign Summary KPIs */}
+      {/* 2. Section 1: Campaign Summary KPIs (Clean Minimalist Monochrome) */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {/* KPI: Total Campaigns */}
         <div 
@@ -904,15 +920,15 @@ export default function CampaignSchedule() {
             setKpiFilter('all');
             setActionFilter('none');
           }}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 ${
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden flex flex-col justify-between h-24 ${
             kpiFilter === 'all' && actionFilter === 'none'
-              ? 'bg-slate-50 dark:bg-slate-800/40 border-brand-500 dark:border-brand-400 ring-2 ring-brand-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+              ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500/30'
+              : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
-          <span className="text-[10px] text-slate-450 dark:text-slate-400 font-extrabold uppercase tracking-wider">แคมเปญทั้งหมด (Total)</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white mt-1">{kpiStats.total}</span>
-          <div className="absolute right-3.5 bottom-3.5 p-1 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-400">
+          <span className="text-[14px] text-slate-600 dark:text-slate-400 font-normal">แคมเปญทั้งหมด</span>
+          <span className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{kpiStats.total}</span>
+          <div className="absolute right-3.5 bottom-3.5 p-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
             <BookOpen className="w-4 h-4" />
           </div>
         </div>
@@ -923,15 +939,15 @@ export default function CampaignSchedule() {
             setKpiFilter('upcoming');
             setActionFilter('none');
           }}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 ${
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden flex flex-col justify-between h-24 ${
             kpiFilter === 'upcoming'
-              ? 'bg-blue-50/40 dark:bg-blue-950/10 border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+              ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500/30'
+              : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
-          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold uppercase tracking-wider">เตรียมเริ่มไลฟ์ (Upcoming)</span>
-          <span className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">{kpiStats.upcoming}</span>
-          <div className="absolute right-3.5 bottom-3.5 p-1 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-blue-500">
+          <span className="text-[14px] text-slate-600 dark:text-slate-400 font-normal">เตรียมเริ่มไลฟ์</span>
+          <span className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{kpiStats.upcoming}</span>
+          <div className="absolute right-3.5 bottom-3.5 p-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
             <Clock className="w-4 h-4" />
           </div>
         </div>
@@ -942,19 +958,22 @@ export default function CampaignSchedule() {
             setKpiFilter('live');
             setActionFilter('none');
           }}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 ${
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden flex flex-col justify-between h-24 ${
             kpiFilter === 'live'
-              ? 'bg-rose-50/40 dark:bg-rose-950/10 border-rose-500 dark:border-rose-400 ring-2 ring-rose-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+              ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500/30'
+              : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
-          <span className="text-[10px] text-rose-600 dark:text-rose-400 font-extrabold uppercase tracking-wider">กำลังไลฟ์ตอนนี้ (Live Now)</span>
-          <span className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{kpiStats.live}</span>
-          <div className="absolute right-3.5 bottom-3.5 p-1 bg-rose-50 dark:bg-rose-950/20 rounded-lg text-rose-500">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[14px] text-slate-600 dark:text-slate-400 font-normal">กำลังไลฟ์ตอนนี้</span>
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
             </span>
+          </div>
+          <span className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{kpiStats.live}</span>
+          <div className="absolute right-3.5 bottom-3.5 p-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
+            <Clock className="w-4 h-4" />
           </div>
         </div>
 
@@ -964,15 +983,15 @@ export default function CampaignSchedule() {
             setKpiFilter('completed');
             setActionFilter('none');
           }}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 ${
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden flex flex-col justify-between h-24 ${
             kpiFilter === 'completed'
-              ? 'bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+              ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500/30'
+              : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider">เสร็จสิ้นแล้ว (Completed)</span>
-          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{kpiStats.completed}</span>
-          <div className="absolute right-3.5 bottom-3.5 p-1 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg text-emerald-500">
+          <span className="text-[14px] text-slate-600 dark:text-slate-400 font-normal">เสร็จสิ้นแล้ว</span>
+          <span className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{kpiStats.completed}</span>
+          <div className="absolute right-3.5 bottom-3.5 p-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
             <CheckCircle className="w-4 h-4" />
           </div>
         </div>
@@ -983,28 +1002,28 @@ export default function CampaignSchedule() {
             setKpiFilter('action_required');
             setActionFilter('none');
           }}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between h-24 col-span-2 lg:col-span-1 ${
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden flex flex-col justify-between h-24 col-span-2 lg:col-span-1 ${
             kpiFilter === 'action_required'
-              ? 'bg-amber-50/40 dark:bg-amber-950/10 border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/10'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+              ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500/30'
+              : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
-          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider">ต้องดำเนินการอีก (Action Required)</span>
-          <span className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{kpiStats.actionRequired}</span>
-          <div className="absolute right-3.5 bottom-3.5 p-1 bg-amber-50 dark:bg-amber-950/20 rounded-lg text-amber-500">
+          <span className="text-[14px] text-slate-600 dark:text-slate-400 font-normal">ต้องดำเนินการอีก</span>
+          <span className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{kpiStats.actionRequired}</span>
+          <div className="absolute right-3.5 bottom-3.5 p-1.5 bg-amber-50 dark:bg-amber-950/20 rounded-xl text-amber-500">
             <AlertCircle className="w-4 h-4" />
           </div>
         </div>
       </div>
 
-      {/* 3. Section 2: Action Required Detail Quick Filters */}
-      <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+      {/* 3. Section 2: Action Required Detail Quick Filters (De-cluttered) */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
         <div className="shrink-0">
-          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4 text-brand-500" />
+          <h3 className="text-[14px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 text-slate-700 dark:text-slate-300" />
             สิ่งที่ค้างดำเนินการ (Pending Action Items)
           </h3>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-1">คลิกการ์ดด่วนเพื่อกรองรายชื่อที่มีปัญหาด้านเอกสารหรืองานกราฟิกที่ต้องรีบเคลียร์</p>
+          <p className="text-[12px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">คลิกการ์ดด่วนเพื่อกรองรายชื่อที่มีปัญหาด้านเอกสารหรืองานกราฟิกที่ต้องรีบเคลียร์</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 w-full md:w-auto flex-1 max-w-2xl">
@@ -1014,14 +1033,14 @@ export default function CampaignSchedule() {
               setActionFilter(actionFilter === 'missing_brief' ? 'none' : 'missing_brief');
               setKpiFilter('all');
             }}
-            className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
+            className={`px-3.5 py-2.5 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'missing_brief'
-                ? 'bg-brand-50 dark:bg-brand-950/20 border-brand-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200'
+                ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500/30'
+                : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/50'
             }`}
           >
-            <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-extrabold">ขาดข้อมูลบรีฟ</div>
-            <div className="text-sm font-black text-brand-650 dark:text-brand-400 mt-0.5">{actionRequiredCounts.missingBrief} แคมเปญ</div>
+            <div className="text-[14px] text-slate-600 dark:text-slate-400 font-normal">ขาดข้อมูลบรีฟ</div>
+            <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{actionRequiredCounts.missingBrief} แคมเปญ</div>
           </div>
 
           {/* Box: Missing Artwork */}
@@ -1030,14 +1049,14 @@ export default function CampaignSchedule() {
               setActionFilter(actionFilter === 'missing_artwork' ? 'none' : 'missing_artwork');
               setKpiFilter('all');
             }}
-            className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
+            className={`px-3.5 py-2.5 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'missing_artwork'
-                ? 'bg-brand-50 dark:bg-brand-950/20 border-brand-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200'
+                ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500/30'
+                : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/50'
             }`}
           >
-            <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-extrabold">ขาด Artwork</div>
-            <div className="text-sm font-black text-brand-650 dark:text-brand-400 mt-0.5">{actionRequiredCounts.missingArtwork} แคมเปญ</div>
+            <div className="text-[14px] text-slate-600 dark:text-slate-400 font-normal">ขาด Artwork</div>
+            <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{actionRequiredCounts.missingArtwork} แคมเปญ</div>
           </div>
 
           {/* Box: Starting Soon */}
@@ -1046,14 +1065,14 @@ export default function CampaignSchedule() {
               setActionFilter(actionFilter === 'starting_soon' ? 'none' : 'starting_soon');
               setKpiFilter('all');
             }}
-            className={`px-3 py-2 rounded-xl border text-left cursor-pointer transition-all ${
+            className={`px-3.5 py-2.5 rounded-xl border text-left cursor-pointer transition-all ${
               actionFilter === 'starting_soon'
-                ? 'bg-orange-50/80 dark:bg-orange-950/20 border-orange-400 font-bold'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-200'
+                ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500/30'
+                : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/50'
             }`}
           >
-            <div className="text-[9px] text-orange-600 dark:text-orange-400 uppercase tracking-wide font-extrabold">ไลฟ์ภายใน 24 ชม.</div>
-            <div className="text-sm font-black text-orange-600 dark:text-orange-400 mt-0.5">{actionRequiredCounts.startingSoon} คิวงาน</div>
+            <div className="text-[14px] text-slate-600 dark:text-slate-400 font-normal">ไลฟ์ภายใน 24 ชม.</div>
+            <div className="text-sm font-bold text-amber-600 dark:text-amber-400 mt-0.5">{actionRequiredCounts.startingSoon} คิวงาน</div>
           </div>
         </div>
       </div>
@@ -1153,7 +1172,7 @@ export default function CampaignSchedule() {
                   <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
                           placeholder="ค้นหาเดือน..."
@@ -1191,9 +1210,7 @@ export default function CampaignSchedule() {
                           <div
                             key={m.value}
                             onClick={() => handleMonthCheckboxChange(m.value, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1238,7 +1255,7 @@ export default function CampaignSchedule() {
                   <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
                           placeholder="ค้นหาห้อง..."
@@ -1276,9 +1293,7 @@ export default function CampaignSchedule() {
                           <div
                             key={room}
                             onClick={() => handleRoomCheckboxChange(room, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1323,7 +1338,7 @@ export default function CampaignSchedule() {
                   <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
                           placeholder="ค้นหาแบรนด์..."
@@ -1361,9 +1376,7 @@ export default function CampaignSchedule() {
                           <div
                             key={brand}
                             onClick={() => handleBrandCheckboxChange(brand, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1408,7 +1421,7 @@ export default function CampaignSchedule() {
                   <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
                           placeholder="ค้นหาผู้รับผิดชอบ..."
@@ -1446,9 +1459,7 @@ export default function CampaignSchedule() {
                           <div
                             key={owner}
                             onClick={() => handleOwnerCheckboxChange(owner, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1493,7 +1504,7 @@ export default function CampaignSchedule() {
                   <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
                           placeholder="ค้นหาสถานะ..."
@@ -1531,9 +1542,7 @@ export default function CampaignSchedule() {
                           <div
                             key={status.value}
                             onClick={() => handleStatusCheckboxChange(status.value, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1578,7 +1587,7 @@ export default function CampaignSchedule() {
                   <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
                           placeholder="ค้นหาขั้นตอน..."
@@ -1616,9 +1625,7 @@ export default function CampaignSchedule() {
                           <div
                             key={progress.value}
                             onClick={() => handleProgressCheckboxChange(progress.value, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1675,7 +1682,7 @@ export default function CampaignSchedule() {
                   <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden flex flex-col" style={{ maxHeight: '280px' }}>
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
                           placeholder="ค้นหาผู้ดูแล..."
@@ -1693,9 +1700,7 @@ export default function CampaignSchedule() {
                           <div
                             key={u.email}
                             onClick={() => handleStaffCheckboxChange(u.email, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1741,9 +1746,7 @@ export default function CampaignSchedule() {
                           <div
                             key={chan}
                             onClick={() => handleChannelCheckboxChange(chan, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1789,9 +1792,7 @@ export default function CampaignSchedule() {
                           <div
                             key={sc}
                             onClick={() => handleScaleCheckboxChange(sc, !isChecked)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                              isChecked ? 'bg-brand-550/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                               isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300'
@@ -1848,19 +1849,21 @@ export default function CampaignSchedule() {
       {/* 5. Section 3: Upgraded Campaign Table */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col relative">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse min-w-[1000px]">
+          <table className="w-full text-xs text-left border-collapse min-w-[1150px]">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-extrabold select-none uppercase tracking-wide">
-                <th className="p-4 w-40">กำหนดการ</th>
+                <th className="p-4 w-36">ID</th>
+                <th className="p-4 w-40">วันที่ไลฟ์</th>
                 <th className="p-4 w-28">ห้อง</th>
-                <th className="p-4">แคมเปญ</th>
-                <th className="p-4 w-48">ผู้รับผิดชอบ</th>
-                <th className="p-4 w-56">ความพร้อมงาน</th>
+                <th className="p-4">รายละเอียดแคมเปญ</th>
+                <th className="p-4 w-36">MC</th>
+                <th className="p-4 w-40">ผู้รับผิดชอบ</th>
+                <th className="p-4 w-48">ความพร้อมงาน</th>
                 <th className="p-4 w-32 text-center">สถานะ</th>
-                <th className="p-4 w-20 text-center sticky right-0 bg-slate-50 dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-[-4px_0_12px_rgba(0,0,0,0.04)] z-10">ดูรายละเอียด</th>
+                <th className="p-4 w-28 min-w-[110px] text-center sticky right-0 bg-slate-50 dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-[-4px_0_12px_rgba(0,0,0,0.04)] z-10 whitespace-nowrap">รายละเอียด</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-normal text-[12px]">
               {paginatedBookings.map(b => {
                 const meta = parseArtworkMetadata(b);
                 const { issues, isUrgent, isMissingWork } = getBookingIssues(b, meta);
@@ -1869,45 +1872,50 @@ export default function CampaignSchedule() {
                 const isSelected = selectedRowId === b.id;
 
                 // Row Highlighting styling
-                let rowBgStyle = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20';
+                let rowBgStyle = 'hover:bg-slate-100/75 dark:hover:bg-slate-800/50';
                 let rowBorder = 'border-l-0';
                 
                 if (isSelected) {
-                  rowBgStyle = 'bg-brand-50/15 dark:bg-brand-950/20 ring-1 ring-brand-500/20';
-                  rowBorder = 'border-l-4 border-l-brand-500';
+                  rowBgStyle = 'bg-slate-100/90 dark:bg-slate-800/80';
+                  rowBorder = 'border-l-4 border-l-slate-400 dark:border-l-slate-500';
                 } else if (isConflict) {
-                  rowBgStyle = 'bg-rose-50/40 dark:bg-rose-950/10 hover:bg-rose-100/30 dark:hover:bg-rose-900/20';
+                  rowBgStyle = 'bg-rose-50/40 dark:bg-rose-950/10 hover:bg-rose-100/40 dark:hover:bg-rose-900/30';
                   rowBorder = 'border-l-4 border-l-rose-500';
                 } else if (isUrgent) {
-                  rowBgStyle = 'bg-amber-50/30 dark:bg-amber-950/5 hover:bg-amber-100/30 dark:hover:bg-amber-900/10';
+                  rowBgStyle = 'bg-amber-50/30 dark:bg-amber-950/5 hover:bg-amber-100/40 dark:hover:bg-amber-900/20';
                   rowBorder = 'border-l-4 border-l-amber-500';
-                } else if (progressStatus === 'Completed') {
-                  rowBgStyle = 'opacity-65 hover:opacity-100 transition-opacity bg-slate-50/20 dark:bg-slate-900/20';
                 }
 
                 return (
                   <tr 
                     key={b.id} 
-                    className={`${rowBgStyle} ${rowBorder} text-slate-800 dark:text-slate-200 transition-all cursor-pointer`}
+                    className={`group ${rowBgStyle} ${rowBorder} text-slate-800 dark:text-slate-200 transition-colors cursor-pointer`}
                     onClick={() => setSelectedRowId(b.id)}
                   >
-                    {/* Schedule (Date & Time) */}
+                    {/* 1. ID Column */}
+                    <td className="p-4">
+                      <span className="font-mono text-xs text-amber-600 dark:text-amber-400 font-semibold tracking-tight select-all">
+                        {meta.customId || b.id.substring(0, 8)}
+                      </span>
+                    </td>
+
+                    {/* 2. Live Date & Time */}
                     <td className="p-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-slate-900 dark:text-white">{formatThaiDate(b.date)}</span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                        <span className="font-normal text-slate-900 dark:text-white">{formatThaiDate(b.date)}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal flex items-center gap-1">
                           <Clock className="w-3 h-3 text-slate-400" /> {b.startTime} - {b.endTime} น.
                         </span>
                       </div>
                     </td>
                     
-                    {/* Room */}
-                    <td className="p-4 font-extrabold text-slate-800 dark:text-slate-200">{b.roomName}</td>
+                    {/* 3. Room */}
+                    <td className="p-4 font-normal text-slate-900 dark:text-white">{b.roomName}</td>
                     
-                    {/* Campaign (Brand & Name) */}
+                    {/* 4. Campaign Details (Brand & Campaign Name) */}
                     <td className="p-4">
                       <div className="flex flex-col gap-0.5 max-w-[220px]">
-                        <span className="font-extrabold text-brand-600 dark:text-brand-400 text-xs hover:underline cursor-pointer flex items-center gap-1" onClick={() => openBookingDetail(b.id)}>
+                        <span className="font-normal text-slate-900 dark:text-white text-xs hover:underline cursor-pointer flex items-center gap-1" onClick={() => openBookingDetail(b.id)}>
                           {(() => {
                             let isImportant = false;
                             if (b.lsArtworkLayout) {
@@ -1920,44 +1928,42 @@ export default function CampaignSchedule() {
                           })()}
                           <span>{b.brandName}</span>
                         </span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-semibold animate-in fade-in" title={b.campaignName}>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-normal animate-in fade-in" title={b.campaignName}>
                           {b.campaignName || <span className="text-slate-400 dark:text-slate-650 italic font-normal">ยังไม่ระบุชื่อแคมเปญ</span>}
                         </span>
-                        <span className="text-[9px] font-mono text-amber-600 dark:text-amber-400 font-bold tracking-tight select-all">
-                          ID: {meta.customId}
-                        </span>
-                        {/* MC Names */}
-                        {(() => {
-                          if (!b.mcId) return null;
-                          const ids = b.mcId.split(',').map(x => x.trim()).filter(Boolean);
-                          const names = ids.map(id => mcList.find(mc => mc.id === id)?.name).filter(Boolean);
-                          if (names.length === 0) return null;
-                          return (
-                            <span className="text-[9px] text-brand-550 dark:text-brand-350 font-bold truncate mt-0.5" title={`MC: ${names.join(', ')}`}>
-                              🎤 MC: {names.join(', ')}
-                            </span>
-                          );
-                        })()}
                       </div>
                     </td>
+
+                    {/* 5. MC Column */}
+                    <td className="p-4">
+                      {(() => {
+                        if (!b.mcId) return <span className="text-slate-400 italic text-[11px]">-</span>;
+                        const ids = b.mcId.split(',').map(x => x.trim()).filter(Boolean);
+                        const names = ids.map(id => mcList.find(mc => mc.id === id)?.name).filter(Boolean);
+                        if (names.length === 0) return <span className="text-slate-400 italic text-[11px]">-</span>;
+                        return (
+                          <span className="text-[11px] text-slate-700 dark:text-slate-300 font-normal truncate block max-w-[140px]" title={`MC: ${names.join(', ')}`}>
+                            🎤 {names.join(', ')}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     
-                    {/* Owner */}
+                    {/* 6. Owner */}
                     <td className="p-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{b.ownerName}</span>
+                        <span className="font-normal text-slate-900 dark:text-white">{b.ownerName}</span>
                         {meta.lastUpdated && (
-                          <span className="text-[9px] text-slate-450 dark:text-slate-500 font-semibold italic">
+                          <span className="text-[9px] text-slate-450 dark:text-slate-500 font-normal italic">
                             {formatTimeElapsed(meta.lastUpdated)}
                           </span>
                         )}
                       </div>
                     </td>
                     
-                    {/* Readiness (Brief & Artwork Link) */}
+                    {/* 7. Readiness (Brief & Artwork Link) */}
                     <td className="p-4">
                       <div className="flex flex-col gap-1.5 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                        {/* Deleted Brief Tag or Link */}
-
                         {/* Artwork Link */}
                         {meta.artworkLink ? (
                           <a href={meta.artworkLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40 rounded text-[10px] font-extrabold hover:bg-emerald-100/50 transition-all w-fit">
@@ -1971,26 +1977,26 @@ export default function CampaignSchedule() {
                       </div>
                     </td>
                     
-                    {/* Status (Live Progress & Booking Status) */}
+                    {/* 8. Status (Live Progress & Booking Status) */}
                     <td className="p-4 text-center">
                       <div className="flex flex-col gap-1 items-center">
                         <div className="flex justify-center">{getLiveProgressBadge(progressStatus)}</div>
-                        <span className="text-[9px] text-slate-450 dark:text-slate-500 font-extrabold uppercase tracking-wide">
+                        <span className="text-[9px] text-slate-550 dark:text-slate-400 font-bold uppercase tracking-wide">
                           Booking: {getAutoStatus(b)}
                         </span>
                       </div>
                     </td>
 
-                    {/* Eye icon column (Sticky Right) */}
+                    {/* 9. Eye icon column (Sticky Right) */}
                     <td 
-                      className="sticky right-0 bg-white dark:bg-slate-900 z-10 px-4 py-4 border-l border-slate-200 dark:border-slate-800 shadow-[-4px_0_12px_rgba(0,0,0,0.04)] text-center w-20 hover:bg-slate-50 dark:hover:bg-slate-850 transition-all"
+                      className="sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-100/75 dark:group-hover:bg-slate-800/50 z-10 px-4 py-4 border-l border-slate-200 dark:border-slate-800 shadow-[-4px_0_12px_rgba(0,0,0,0.04)] text-center w-28 min-w-[110px] transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         openBookingDetail(b.id);
                       }}
                       title="ดูรายละเอียดแคมเปญ"
                     >
-                      <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center mx-auto cursor-pointer">
+                      <button className="p-2 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-full transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center mx-auto cursor-pointer">
                         <Eye className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400" />
                       </button>
                     </td>
@@ -2001,7 +2007,7 @@ export default function CampaignSchedule() {
               {/* Empty state conditional renderer */}
               {paginatedBookings.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center select-none">
+                  <td colSpan={9} className="p-12 text-center select-none">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-full text-slate-400">
                         <Info className="w-6 h-6" />

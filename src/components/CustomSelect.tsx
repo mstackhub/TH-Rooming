@@ -123,7 +123,7 @@ export function CustomSelect({
           {searchable && (
             <div className="p-2 border-b border-slate-100 dark:border-slate-800">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                 <input
                   ref={searchRef}
                   type="text"
@@ -131,7 +131,7 @@ export function CustomSelect({
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder={searchPlaceholder}
                   className="
-                    w-full pl-7 pr-3 py-1.5
+                    w-full pl-9 pr-3 py-1.5
                     text-xs rounded-lg
                     border border-slate-200 dark:border-slate-700
                     bg-slate-50 dark:bg-slate-900

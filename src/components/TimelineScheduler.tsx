@@ -479,7 +479,7 @@ export default function TimelineScheduler() {
   };
 
   return (
-    <div className="flex-1 p-6 overflow-y-auto space-y-6 animate-in fade-in duration-200">
+    <div className="flex-1 p-3 sm:p-5 md:p-6 overflow-y-auto space-y-4 sm:space-y-6 animate-in fade-in duration-200">
       {/* 1. Header controls */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
@@ -566,13 +566,13 @@ export default function TimelineScheduler() {
                 {activeRooms.length > 5 && (
                   <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                     <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                       <input
                         type="text"
                         placeholder="ค้นหาห้อง..."
                         value={roomSearchQuery}
                         onChange={(e) => setRoomSearchQuery(e.target.value)}
-                        className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                        className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
                       />
                     </div>
                   </div>
@@ -607,11 +607,7 @@ export default function TimelineScheduler() {
                       <div
                         key={room.id}
                         onClick={() => handleRoomCheckboxChange(room.name, !isChecked)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                          isChecked
-                            ? 'bg-brand-50 dark:bg-brand-900/20'
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                        }`}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       >
                         <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                           isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300 dark:border-slate-600'
@@ -658,13 +654,13 @@ export default function TimelineScheduler() {
                 {/* Search */}
                 <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="ค้นหาแบรนด์..."
                       value={brandSearchQuery}
                       onChange={(e) => setBrandSearchQuery(e.target.value)}
-                      className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                      className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
                     />
                   </div>
                 </div>
@@ -698,11 +694,7 @@ export default function TimelineScheduler() {
                       <div
                         key={brand.id}
                         onClick={() => handleBrandCheckboxChange(brand.name, !isChecked)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                          isChecked
-                            ? 'bg-brand-50 dark:bg-brand-900/20'
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                        }`}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       >
                         <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                           isChecked ? 'bg-brand-500 border-brand-500' : 'border-slate-300 dark:border-slate-600'
@@ -819,13 +811,9 @@ export default function TimelineScheduler() {
                     </div>
 
                     <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200 pl-1.5">{room.name}</span>
-                    {isLive && liveBooking ? (
+                    {isLive && liveBooking && (
                       <span className="inline-flex items-center gap-1 text-[9px] font-black text-rose-500 dark:text-rose-400 animate-pulse mt-0.5 select-none whitespace-nowrap">
                         🔴 LIVE NOW ({liveBooking.startTime} - {liveBooking.endTime})
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate" title={room.description}>
-                        {room.description || 'ห้องจัดไลฟ์สด'}
                       </span>
                     )}
                   </div>

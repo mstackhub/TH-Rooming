@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { useApp, Booking } from '@/context/AppContext';
-import { parseTimeToMinutes, generateBookingCustomId } from '@/utils/time';
+import { parseTimeToMinutes, minutesToTimeStr, generateBookingCustomId } from '@/utils/time';
 import * as XLSX from 'xlsx';
 import { 
   X, 
@@ -32,6 +32,8 @@ interface ParsedRow {
   remark: string;
   mcName?: string;
   mcId?: string | null;
+  ownerEmail?: string;
+  ownerName?: string;
   isUpdateAction?: boolean;
   changesList?: string[];
   success: boolean;
@@ -45,6 +47,8 @@ export default function ExcelImportModal() {
     rooms,
     brands,
     calendarBookings,
+    allUsersAdmin,
+    currentUser,
     apiCall,
     refreshActiveTabData,
     showToast,
@@ -143,14 +147,12 @@ export default function ExcelImportModal() {
     const idxBrief = headers.findIndex(h => h.includes('บรีฟ') || h.includes('รายละเอียด') || h.includes('brief'));
     const idxRemark = headers.findIndex(h => h.includes('หมายเหตุ') || h.includes('remark'));
     const idxMc = headers.findIndex(h => h.includes('mc') || h.includes('พิธีกร'));
+    const idxOwner = headers.findIndex(h => h.includes('owner') || h.includes('ผู้จอง') || h.includes('ผู้รับผิดชอบ'));
 
     if (idxDate === -1 || idxRoom === -1 || idxStart === -1 || idxEnd === -1 || idxBrand === -1) {
       showToast("คอลัมน์ในไฟล์ไม่ถูกต้องตามเทมเพลต กรุณาใช้ไฟล์ตัวอย่างที่กำหนดให้ดาวน์โหลด", "error");
       return;
     }
-
-    const roomsList = rooms.map(r => r.name.toLowerCase().trim());
-    const brandsList = brands.map(b => b.name.toLowerCase().trim());
 
     const rows: ParsedRow[] = [];
     
@@ -171,70 +173,103 @@ export default function ExcelImportModal() {
       const briefVal = idxBrief !== -1 && cells[idxBrief] ? cells[idxBrief].trim() : '';
       const remarkVal = idxRemark !== -1 && cells[idxRemark] ? cells[idxRemark].trim() : '';
       const mcVal = idxMc !== -1 && cells[idxMc] ? cells[idxMc].trim() : '';
+      const ownerVal = idxOwner !== -1 && cells[idxOwner] ? cells[idxOwner].trim() : '';
 
       const startMins = parseTimeToMinutes(startVal);
       const endMins = parseTimeToMinutes(endVal);
 
-      let success = true;
-      let reason = '';
+      const errorReasons: string[] = [];
+      let isUpdateAction = false;
+      let matchedExistingBooking: Booking | null = null;
       let resolvedMcId = '';
+      let resolvedOwnerEmail = currentUser?.email || '';
+      let resolvedOwnerName = currentUser?.name || '';
 
-      // Check MC IDs
+      // 0. Booking ID Validation (If provided, it must match an existing booking; ID cannot be modified)
+      if (idVal) {
+        const byId = calendarBookings.find(b => {
+          if (b.status === 'Cancelled') return false;
+          const customId = generateBookingCustomId(b, calendarBookings);
+          return customId.toLowerCase() === idVal.toLowerCase() || b.id.toLowerCase() === idVal.toLowerCase();
+        });
+        if (byId) {
+          matchedExistingBooking = byId;
+          isUpdateAction = true;
+        } else {
+          errorReasons.push(`ไม่พบรหัส Booking ID "${idVal}" ในระบบ (ห้ามแก้ไขรหัส ID หากต้องการสร้างคิวใหม่ให้เว้นว่างช่องนี้)`);
+        }
+      }
+
+      // 1. Room Validation (Must exist in system)
+      const matchedRoom = rooms.find(r => r.name.toLowerCase().trim() === roomVal.toLowerCase().trim());
+      if (!matchedRoom) {
+        errorReasons.push(`ไม่พบชื่อห้องสตูดิโอ "${roomVal}" ในระบบ (ต้องสะกดให้ตรงกับในระบบ)`);
+      }
+
+      // 2. Brand Validation (Must exist in system)
+      const matchedBrand = brands.find(b => b.name.toLowerCase().trim() === brandVal.toLowerCase().trim());
+      if (!matchedBrand) {
+        errorReasons.push(`ไม่พบชื่อแบรนด์ "${brandVal}" ในระบบ (ต้องสะกดให้ตรงกับในระบบ)`);
+      }
+
+      // 3. MC Validation (If provided, must exist in system)
       if (mcVal) {
-        const mcNames = mcVal.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+        const mcNames = mcVal.split(',').map(x => x.trim()).filter(Boolean);
         const resolvedIds: string[] = [];
         for (const name of mcNames) {
-          const matched = mcList.find(m => m.name.toLowerCase().trim() === name);
+          const matched = mcList.find(m => m.name.toLowerCase().trim() === name.toLowerCase().trim());
           if (matched) {
             resolvedIds.push(matched.id);
           } else {
-            success = false;
-            reason = `ไม่พบรายชื่อ MC "${name}" ในระบบ`;
-            break;
+            errorReasons.push(`ไม่พบรายชื่อ MC "${name}" ในระบบ (ต้องสะกดให้ตรงกับในระบบ)`);
           }
         }
         resolvedMcId = resolvedIds.join(',');
       }
 
-      // 1. Structural Checks
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
-        success = false;
-        reason = 'รูปแบบวันที่ต้องเป็น YYYY-MM-DD เช่น 2026-07-20';
-      } else if (startMins === -1 || endMins === -1 || startMins >= endMins) {
-        success = false;
-        reason = 'ช่วงเวลาไม่ถูกต้อง เช่น 10:00 - 12:00';
-      } else if (!roomsList.includes(roomVal.toLowerCase())) {
-        success = false;
-        reason = 'ไม่พบชื่อห้องสตูดิโอนี้ในระบบ';
-      } else if (!brandsList.includes(brandVal.toLowerCase())) {
-        success = false;
-        reason = 'ไม่พบชื่อแบรนด์ลูกค้านี้ในระบบ';
+      // 4. Owner Validation (If provided, must exist in system)
+      if (ownerVal) {
+        const matchedUser = (allUsersAdmin || []).find(u => 
+          u.name.toLowerCase().trim() === ownerVal.toLowerCase().trim() ||
+          u.email.toLowerCase().trim() === ownerVal.toLowerCase().trim() ||
+          u.email.split('@')[0].toLowerCase().trim() === ownerVal.toLowerCase().trim()
+        );
+        if (matchedUser) {
+          resolvedOwnerEmail = matchedUser.email;
+          resolvedOwnerName = matchedUser.name || matchedUser.email.split('@')[0];
+        } else {
+          errorReasons.push(`ไม่พบรายชื่อ Owner / ผู้รับผิดชอบ "${ownerVal}" ในระบบ (ต้องสะกดให้ตรงกับในระบบ)`);
+        }
       }
 
-      // 2. Conflict database bookings: Check by ID first, then fallback to (date + room + start + end)
-      let isUpdateAction = false;
-      let matchedExistingBooking: Booking | null = null;
+      const isValidTimeStr = (val: string) => {
+        if (!val) return false;
+        return /^(?:0?[0-9]|1[0-9]|2[0-3])[:.][0-5][0-9]$|^23:59$|^24:00$/.test(val.trim());
+      };
+
+      // 5. Structural Date & Time Checks
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
+        errorReasons.push('รูปแบบวันที่ต้องเป็น YYYY-MM-DD เช่น 2026-07-20');
+      }
+      if (!isValidTimeStr(startVal)) {
+        errorReasons.push(`เวลาเริ่มต้นไม่ถูกต้อง ("${startVal}") ต้องเป็นตัวเลขเวลาเท่านั้น เช่น 09:00 หรือ 13:30 (ห้ามมีตัวอักษรอื่นปน)`);
+      }
+      if (!isValidTimeStr(endVal)) {
+        errorReasons.push(`เวลาสิ้นสุดไม่ถูกต้อง ("${endVal}") ต้องเป็นตัวเลขเวลาเท่านั้น เช่น 12:00 หรือ 16:00 (ห้ามมีตัวอักษรอื่นปน)`);
+      }
+      if (isValidTimeStr(startVal) && isValidTimeStr(endVal) && (startMins === -1 || endMins === -1 || startMins >= endMins)) {
+        errorReasons.push('ช่วงเวลาไม่ถูกต้อง (เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด เช่น 10:00 - 12:00)');
+      }
+
+      // 6. Conflict database bookings: Check fallback to (date + room + start + end)
       const changesList: string[] = [];
 
-      if (success) {
-        // Step A: Search existing booking by Booking ID
-        if (idVal) {
-          const byId = calendarBookings.find(b => {
-            if (b.status === 'Cancelled') return false;
-            const customId = generateBookingCustomId(b, calendarBookings);
-            return customId.toLowerCase() === idVal.toLowerCase() || b.id.toLowerCase() === idVal.toLowerCase();
-          });
-          if (byId) {
-            matchedExistingBooking = byId;
-            isUpdateAction = true;
-          }
-        }
-
-        // Step B: Fallback search by exact (Date + Room + Start + End)
-        if (!matchedExistingBooking) {
+      if (errorReasons.length === 0) {
+        // Step B: Fallback search by exact (Date + Room + Start + End) if ID was not specified
+        if (!matchedExistingBooking && !idVal) {
           const bySlot = calendarBookings.find(b => {
             if (b.status === 'Cancelled') return false;
-            if (b.roomName.toLowerCase().trim() !== roomVal.toLowerCase() || b.date !== dateVal) return false;
+            if (b.roomName.toLowerCase().trim() !== (matchedRoom ? matchedRoom.name.toLowerCase().trim() : roomVal.toLowerCase().trim()) || b.date !== dateVal) return false;
             const bStart = parseTimeToMinutes(b.startTime);
             const bEnd = parseTimeToMinutes(b.endTime);
             return bStart === startMins && bEnd === endMins;
@@ -249,7 +284,7 @@ export default function ExcelImportModal() {
         const conflict = calendarBookings.find(b => {
           if (b.status === 'Cancelled') return false;
           if (matchedExistingBooking && b.id === matchedExistingBooking.id) return false;
-          if (b.roomName.toLowerCase().trim() !== roomVal.toLowerCase() || b.date !== dateVal) return false;
+          if (b.roomName.toLowerCase().trim() !== (matchedRoom ? matchedRoom.name.toLowerCase().trim() : roomVal.toLowerCase().trim()) || b.date !== dateVal) return false;
           
           const bStart = parseTimeToMinutes(b.startTime);
           const bEnd = parseTimeToMinutes(b.endTime);
@@ -257,25 +292,26 @@ export default function ExcelImportModal() {
         });
 
         if (conflict) {
-          success = false;
-          reason = `ชนกับคิวแบรนด์ "${conflict.brandName}" (${conflict.startTime}-${conflict.endTime})`;
+          errorReasons.push(`ชนกับคิวแบรนด์ "${conflict.brandName}" (${conflict.startTime}-${conflict.endTime})`);
         }
       }
 
-      // 3. Collision within the file rows
-      if (success) {
+      // 7. Collision within the file rows
+      if (errorReasons.length === 0) {
         const fileConflict = rows.find(b => {
-          if (b.roomName.toLowerCase().trim() !== roomVal.toLowerCase() || b.date !== dateVal) return false;
+          if (b.roomName.toLowerCase().trim() !== (matchedRoom ? matchedRoom.name.toLowerCase().trim() : roomVal.toLowerCase().trim()) || b.date !== dateVal) return false;
           const bStart = parseTimeToMinutes(b.startTime);
           const bEnd = parseTimeToMinutes(b.endTime);
           return !(endMins <= bStart || startMins >= bEnd);
         });
 
         if (fileConflict) {
-          success = false;
-          reason = `ชนกับคิวภายในไฟล์แถวที่ ${fileConflict.index} (${fileConflict.startTime}-${fileConflict.endTime})`;
+          errorReasons.push(`ชนกับคิวภายในไฟล์แถวที่ ${fileConflict.index} (${fileConflict.startTime}-${fileConflict.endTime})`);
         }
       }
+
+      const success = errorReasons.length === 0;
+      const reason = errorReasons.join('\n');
 
       // 4. Compute diff / changes summary if it's an update
       if (success && isUpdateAction && matchedExistingBooking) {
@@ -285,17 +321,26 @@ export default function ExcelImportModal() {
           return ids.map(id => mcList.find(m => m.id === id)?.name).filter(Boolean).join(', ');
         })();
 
+        const normalizedStart = startMins !== -1 ? minutesToTimeStr(startMins) : startVal;
+        const normalizedEnd = endMins !== -1 ? minutesToTimeStr(endMins) : endVal;
+
+        const prevStartMins = parseTimeToMinutes(matchedExistingBooking.startTime);
+        const prevEndMins = parseTimeToMinutes(matchedExistingBooking.endTime);
+
         if (mcVal && mcVal.toLowerCase() !== prevMcNames.toLowerCase()) {
           changesList.push(`🎤 MC: ${prevMcNames ? `เปลี่ยน "${prevMcNames}" ➔ "${mcVal}"` : `เพิ่ม "${mcVal}"`}`);
         }
-        if (campaignVal && campaignVal !== matchedExistingBooking.campaignName) {
+        if (campaignVal && campaignVal.trim() !== (matchedExistingBooking.campaignName || '').trim()) {
           changesList.push(`🏷️ แคมเปญ: "${matchedExistingBooking.campaignName || '-'}" ➔ "${campaignVal}"`);
         }
-        if (matchedExistingBooking.roomName !== roomVal) {
-          changesList.push(`🚪 ย้ายห้อง: ${matchedExistingBooking.roomName} ➔ ${roomVal}`);
+        if (matchedRoom && matchedRoom.name !== matchedExistingBooking.roomName) {
+          changesList.push(`🚪 ย้ายห้อง: ${matchedExistingBooking.roomName} ➔ ${matchedRoom.name}`);
         }
-        if (matchedExistingBooking.startTime !== startVal || matchedExistingBooking.endTime !== endVal) {
-          changesList.push(`🕒 เวลา: ${matchedExistingBooking.startTime}-${matchedExistingBooking.endTime} ➔ ${startVal}-${endVal}`);
+        if (matchedBrand && matchedBrand.name !== matchedExistingBooking.brandName) {
+          changesList.push(`🏢 แบรนด์: ${matchedExistingBooking.brandName} ➔ ${matchedBrand.name}`);
+        }
+        if (prevStartMins !== startMins || prevEndMins !== endMins) {
+          changesList.push(`🕒 เวลา: ${matchedExistingBooking.startTime}-${matchedExistingBooking.endTime} ➔ ${normalizedStart}-${normalizedEnd}`);
         }
         if (briefVal && briefVal !== matchedExistingBooking.briefLink) {
           changesList.push(`📝 อัปเดตบรีฟ`);
@@ -309,22 +354,24 @@ export default function ExcelImportModal() {
         }
       }
 
-      const rowDisplayId = idVal || (matchedExistingBooking ? generateBookingCustomId(matchedExistingBooking, calendarBookings) : generateBookingCustomId({ date: dateVal, roomName: roomVal, brandName: brandVal, startTime: startVal, endTime: endVal }, calendarBookings));
+      const rowDisplayId = idVal || (matchedExistingBooking ? generateBookingCustomId(matchedExistingBooking, calendarBookings) : generateBookingCustomId({ date: dateVal, roomName: matchedRoom ? matchedRoom.name : roomVal, brandName: matchedBrand ? matchedBrand.name : brandVal, startTime: startVal, endTime: endVal }, calendarBookings));
 
       rows.push({
         index: i,
         bookingId: idVal || (matchedExistingBooking ? matchedExistingBooking.id : undefined),
         displayCustomId: rowDisplayId,
         date: dateVal,
-        roomName: roomVal,
-        startTime: startVal,
-        endTime: endVal,
-        brandName: brandVal,
+        roomName: matchedRoom ? matchedRoom.name : roomVal,
+        startTime: startMins !== -1 ? minutesToTimeStr(startMins) : startVal,
+        endTime: endMins !== -1 ? minutesToTimeStr(endMins) : endVal,
+        brandName: matchedBrand ? matchedBrand.name : brandVal,
         campaignName: campaignVal || 'Live Streaming',
         briefText: briefVal,
         remark: remarkVal,
         mcName: mcVal,
         mcId: resolvedMcId || null,
+        ownerEmail: resolvedOwnerEmail,
+        ownerName: resolvedOwnerName,
         isUpdateAction, // Store the flag
         changesList,
         success,
@@ -429,7 +476,11 @@ export default function ExcelImportModal() {
       campaignName: r.campaignName,
       briefText: r.briefText,
       remark: r.remark,
+      mcName: r.mcName || '',
       mcId: r.mcId || null,
+      changesSummary: (r.changesList || []).filter(c => !c.includes('ไม่มีข้อมูล')).join(', '),
+      ownerEmail: r.ownerEmail || currentUser?.email,
+      ownerName: r.ownerName || currentUser?.name,
       status: 'Confirmed'
     }));
 
@@ -478,12 +529,12 @@ export default function ExcelImportModal() {
         dayOfWeek,
         '09:00',
         '12:00',
-        rooms[0]?.name || '(Special) Onsite LIVE Streaming 1',
-        brands[0]?.name || 'Aristotle',
+        rooms[0]?.name || 'Room 01',
+        brands[0]?.name || 'Babimild',
         'Live Streaming Promo',
-        mcList[0]?.name || 'อั้มอิ๊ง',
-        'Master Admin',
-        'https://drive.google.com/sample',
+        mcList[0]?.name || 'น้ำทิพย์',
+        currentUser?.name || 'Master Admin',
+        '',
         'Confirmed',
         ''
       ],
@@ -497,7 +548,7 @@ export default function ExcelImportModal() {
         brands[1]?.name || brands[0]?.name || 'Foremost',
         'Mid Month Live Event',
         mcList.slice(0, 2).map(m => m.name).join(', ') || 'แอน, มีน',
-        'Master Admin',
+        currentUser?.name || 'Master Admin',
         '',
         'Confirmed',
         ''
@@ -522,25 +573,25 @@ export default function ExcelImportModal() {
     ];
 
     // === Sheet 2: คู่มือและข้อมูลอ้างอิง (Guide & Reference) ===
-    const maxRefRows = Math.max(brands.length, rooms.length, mcList.length, 1);
+    const maxRefRows = Math.max(brands.length, rooms.length, mcList.length, (allUsersAdmin || []).length, 1);
     const sheet2Data: any[][] = [
       ['=== คู่มือและคำอธิบายการกรอกคอลัมน์ ===', '', '', ''],
       ['ชื่อคอลัมน์', 'ความจำเป็น', 'รูปแบบที่ถูกต้อง (Format)', 'คำอธิบายเพิ่มเติม'],
       ['Booking ID', 'ทางเลือก (Optional)', 'YYYYMMDDBrandSocialRoom (เช่น 20260823ARTTR01001)', '• สร้างคิวใหม่: ให้ "เว้นว่างไว้" ระบบจะสร้างรหัสให้อัตโนมัติ\n• อัปเดตข้อมูลเดิม: ให้ใส่ Booking ID เดิมจากที่ Export ออกมา'],
       ['Live Date', 'จำเป็น (Required)', 'YYYY-MM-DD (เช่น 2026-08-25)', 'วันที่จัดไลฟ์สด (ห้ามเว้นว่าง)'],
       ['Day', 'อัตโนมัติ', 'Mon, Tue, Wed, ...', 'ชื่อวันในสัปดาห์ (เว้นว่างได้)'],
-      ['Start Time', 'จำเป็น (Required)', 'HH:MM (เช่น 09:00, 13:30)', 'เวลาเริ่มต้นไลฟ์ 24 ชม.'],
-      ['End Time', 'จำเป็น (Required)', 'HH:MM (เช่น 12:00, 16:30)', 'เวลาสิ้นสุดไลฟ์ 24 ชม.'],
-      ['Room', 'จำเป็น (Required)', 'ดูรายชื่อห้องในตารางด้านล่าง', 'ชื่อห้องสตูดิโอ (ต้องสะกดให้ตรงกับในระบบ)'],
-      ['Brand', 'จำเป็น (Required)', 'ดูรายชื่อแบรนด์ในตารางด้านล่าง', 'ชื่อแบรนด์ลูกค้า (ต้องสะกดให้ตรงกับในระบบ)'],
+      ['Start Time', 'จำเป็น (Required)', 'HH:MM (เช่น 09:00, 13:30)', 'เวลาเริ่มต้นไลฟ์ 24 ชม. (ตัวเลขและ : เท่านั้น)'],
+      ['End Time', 'จำเป็น (Required)', 'HH:MM (เช่น 12:00, 16:30)', 'เวลาสิ้นสุดไลฟ์ 24 ชม. (ตัวเลขและ : เท่านั้น)'],
+      ['Room', 'จำเป็น (Required)', 'ดูรายชื่อห้องในตารางด้านล่าง', 'ชื่อห้องสตูดิโอ (ต้องตรงกับในระบบ)'],
+      ['Brand', 'จำเป็น (Required)', 'ดูรายชื่อแบรนด์ในตารางด้านล่าง', 'ชื่อแบรนด์ลูกค้า (ต้องตรงกับในระบบ)'],
       ['Campaign Name', 'ทางเลือก (Optional)', 'ข้อความ (เช่น 9.9 Mega Sale)', 'ชื่อแคมเปญไลฟ์ (หากเว้นว่าง ระบบจะใส่ Live Streaming)'],
       ['MC Name', 'ทางเลือก (Optional)', 'ดูรายชื่อ MC ในตารางด้านล่าง', 'ชื่อ MC (หากมีมากกว่า 1 คน ให้คั่นด้วยเครื่องหมายจุลภาค ,)'],
-      ['Owner', 'ทางเลือก (Optional)', 'ชื่อผู้รับผิดชอบ', 'ชื่อผู้จอง (เว้นว่างได้)'],
+      ['Owner', 'ทางเลือก (Optional)', 'ดูรายชื่อผู้ใช้งานในตารางด้านล่าง', 'ชื่อผู้รับผิดชอบ / ผู้จอง (หากเว้นว่าง ระบบจะใส่ชื่อผู้ที่กด Import)'],
       ['Artwork Link', 'ทางเลือก (Optional)', 'URL ลิงก์', 'ลิงก์เอกสาร บรีฟ หรือ Canva/Drive'],
       ['Booking Status', 'ทางเลือก (Optional)', 'Confirmed / Pending', 'สถานะการจอง (ค่าเริ่มต้นคือ Confirmed)'],
       [''],
-      ['=== ข้อมูลอ้างอิงในระบบ (สามารถ Copy ชื่อไปวางในตารางได้เลย) ===', '', '', '', '', ''],
-      ['ลำดับ', 'รายชื่อแบรนด์ลูกค้า (Brands)', 'ลำดับ', 'รายชื่อห้องสตูดิโอ (Rooms)', 'ลำดับ', 'รายชื่อ MC ทั้งหมด (MCs)']
+      ['=== ข้อมูลอ้างอิงในระบบ (สามารถ Copy ชื่อไปวางในตารางได้เลย) ===', '', '', '', '', '', '', ''],
+      ['ลำดับ', 'รายชื่อแบรนด์ลูกค้า (Brands)', 'ลำดับ', 'รายชื่อห้องสตูดิโอ (Rooms)', 'ลำดับ', 'รายชื่อ MC ทั้งหมด (MCs)', 'ลำดับ', 'รายชื่อผู้ดูแล / Owner (Users)']
     ];
 
     for (let r = 0; r < maxRefRows; r++) {
@@ -550,7 +601,9 @@ export default function ExcelImportModal() {
         rooms[r] ? r + 1 : '',
         rooms[r]?.name || '',
         mcList[r] ? r + 1 : '',
-        mcList[r]?.name || ''
+        mcList[r]?.name || '',
+        allUsersAdmin && allUsersAdmin[r] ? r + 1 : '',
+        allUsersAdmin && allUsersAdmin[r] ? (allUsersAdmin[r]?.name || allUsersAdmin[r]?.email || '') : ''
       ]);
     }
 
@@ -561,7 +614,9 @@ export default function ExcelImportModal() {
       { wch: 8 },  // No
       { wch: 34 }, // Room Name
       { wch: 8 },  // No
-      { wch: 24 }  // MC Name
+      { wch: 24 }, // MC Name
+      { wch: 8 },  // No
+      { wch: 24 }  // Owner Name
     ];
 
     // Build Workbook
@@ -745,9 +800,14 @@ export default function ExcelImportModal() {
                               </span>
                             )
                           ) : (
-                            <span className="text-rose-500 dark:text-rose-450 font-bold text-[9px]">
-                              {row.reason}
-                            </span>
+                            <div className="flex flex-col gap-1 text-rose-500 dark:text-rose-450 font-bold text-[9.5px] py-0.5">
+                              {row.reason.split('\n').filter(Boolean).map((err, errIdx) => (
+                                <div key={errIdx} className="flex items-start gap-1">
+                                  <span className="text-rose-500 shrink-0 font-extrabold">•</span>
+                                  <span className="leading-tight">{err}</span>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </td>
                       </tr>

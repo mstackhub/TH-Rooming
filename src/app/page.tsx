@@ -11,7 +11,8 @@ import AnalyticsView from '@/components/AnalyticsView';
 import AdminPanels from '@/components/AdminPanels';
 import BookingModal from '@/components/BookingModal';
 import ExcelImportModal from '@/components/ExcelImportModal';
-import { Moon, Sun, Lock, ShieldAlert, KeyRound, User as UserIcon, X } from 'lucide-react';
+import ChatWidget from '@/components/ChatWidget';
+import { Moon, Sun, Lock, ShieldAlert, KeyRound, User as UserIcon, X, Video, Radio, Menu } from 'lucide-react';
 
 export default function Home() {
   const { 
@@ -28,6 +29,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [liveTimeStr, setLiveTimeStr] = useState('');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Live running clock timer
   useEffect(() => {
@@ -360,15 +362,56 @@ export default function Home() {
     }
   };
 
-  // ── 0. RENDER PREMIUM LOADER DURING SESSION RESTORE ──────────────────────────
+  // ── 0. RENDER CUTE DELIGHTFUL LOADER DURING SESSION RESTORE ──────────────────────────
   if (isSessionRestoring) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-brand-500/20 border-t-brand-500 rounded-full animate-spin" />
-          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest animate-pulse">
-            กำลังโหลด...
-          </p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors duration-300 select-none p-4">
+        <div className="flex flex-col items-center">
+          
+          {/* Cute Floating Studio Mascot Box */}
+          <div className="relative mb-6">
+            {/* Soft Ambient Glow */}
+            <div className="absolute -inset-4 bg-emerald-500/20 dark:bg-emerald-500/10 rounded-full blur-2xl animate-pulse" />
+
+            {/* Cute Floating Studio Card */}
+            <div className="relative w-24 h-24 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/60 dark:shadow-black/50 flex flex-col items-center justify-center animate-float-cute">
+              
+              {/* Cute mini ON AIR pill tag */}
+              <div className="absolute -top-2.5 px-2.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-black tracking-wider uppercase shadow-xs flex items-center gap-1 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                ON AIR
+              </div>
+
+              {/* Center Cute Icon with broadcast rings */}
+              <div className="relative flex items-center justify-center text-emerald-600 dark:text-emerald-400 mt-1">
+                <Video className="w-8 h-8 transition-transform" />
+              </div>
+
+              {/* Equalizer Sound Wave Bars */}
+              <div className="flex items-end gap-1 mt-1.5 h-3.5">
+                <span className="w-1 bg-emerald-500 rounded-full animate-wave-1" />
+                <span className="w-1 bg-emerald-500 rounded-full animate-wave-2" />
+                <span className="w-1 bg-emerald-500 rounded-full animate-wave-3" />
+                <span className="w-1 bg-emerald-500 rounded-full animate-wave-4" />
+              </div>
+            </div>
+          </div>
+
+          {/* Title & Animated Status */}
+          <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 tracking-tight">
+            Tuesday House Agency
+          </h2>
+          
+          {/* Animated 3 Bouncing Dots Status */}
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-400 dark:text-slate-500 font-medium">
+            <span>กำลังเตรียมพร้อมห้องไลฟ์</span>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+          </div>
+
         </div>
       </div>
     );
@@ -485,7 +528,7 @@ export default function Home() {
         {/* Login form box */}
         <div className="w-full max-w-sm glass-modal border border-slate-200/80 dark:border-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 animate-in zoom-in-95 duration-250">
           <div className="text-center">
-            <h1 className="text-lg font-black text-slate-955 dark:text-white leading-tight">TH Room Booking Portal</h1>
+            <h1 className="text-lg font-black text-slate-955 dark:text-white leading-tight">Tuesday House Agency</h1>
             <p 
               onClick={handleSilentTitleClick}
               className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 cursor-default select-none"
@@ -529,7 +572,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full py-3 bg-slate-900 hover:bg-black text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Lock className="w-3.5 h-3.5" />
               {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
@@ -547,54 +590,65 @@ export default function Home() {
   // ── 2. RENDER MAIN WORKSPACE (IF LOGGED IN) ───────────────────────────────
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-      {/* Left side sidebar */}
-      <Navigation />
+      {/* Left side sidebar & Mobile Drawer */}
+      <Navigation mobileOpen={isMobileNavOpen} onCloseMobile={() => setIsMobileNavOpen(false)} />
 
       {/* Right side main pane */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top Header bar */}
-        <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-10 select-none">
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
-              {(() => {
-                const tabTitles: Record<string, string> = {
-                  'scheduler': 'ตารางงานรายวัน',
-                  'calendar': 'ปฏิทินห้องไลฟ์',
-                  'my-bookings': 'การจองของฉัน',
-                  'campaign-schedule': 'แคมเปญทั้งหมด',
-                  'change-requests': 'จัดการคำขอแก้ไขคิว',
-                  'analytics': 'รายงานและสถิติการใช้งาน',
-                  'analytics-staff': 'รายงานประสิทธิภาพ Staff',
-                  'analytics-mc': 'รายงานประสิทธิภาพ MC',
-                  'rooms': 'ตั้งค่า • ห้องสตูดิโอ',
-                  'brands': 'ตั้งค่า • แบรนด์ลูกค้า',
-                  'mc-live': 'ตั้งค่า • การจัดการ MC ไลฟ์สด',
-                  'users': 'ตั้งค่า • ผู้ใช้งานระบบ',
-                  'roles-mgmt': 'ตั้งค่า • ระดับสิทธิ์การจอง',
-                  'audit-log': 'ตั้งค่า • ประวัติกิจกรรม',
-                  'settings': 'ตั้งค่า • ระบบการแจ้งเตือน'
-                };
-                return tabTitles[currentTab] || `${currentTab.replace('-', ' ')} view`;
-              })()}
-            </h1>
+        <header className="h-14 lg:h-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-6 shrink-0 z-10 select-none">
+          {/* Left side: Hamburger button on Mobile/Tablet */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileNavOpen(true)}
+              className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center justify-center focus:outline-none shadow-2xs"
+              title="เปิดเมนูนำทาง"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Mobile/Tablet Brand Logo & Tab indicator */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white font-black text-[11px] flex items-center justify-center shadow-xs">
+                TH
+              </div>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px] sm:max-w-[250px]">
+                {(() => {
+                  const tabTitles: Record<string, string> = {
+                    'campaign-schedule': 'แคมเปญทั้งหมด',
+                    'calendar': 'ปฏิทินห้องไลฟ์',
+                    'scheduler': 'ตารางงานรายวัน',
+                    'my-bookings': 'การจองของฉัน',
+                    'change-requests': 'คำขอแก้ไขคิว',
+                    'analytics': 'รายงานและสถิติ',
+                    'analytics-staff': 'สถิติ Staff',
+                    'analytics-mc': 'สถิติ MC',
+                    'rooms': 'จัดการห้องสตูดิโอ',
+                    'brands': 'จัดการแบรนด์',
+                    'mc-live': 'จัดการ MC ไลฟ์สด',
+                    'users': 'จัดการผู้ใช้งาน',
+                    'roles-mgmt': 'ระดับสิทธิ์การจอง',
+                    'audit-log': 'ประวัติกิจกรรม',
+                    'settings': 'ตั้งค่าระบบ'
+                  };
+                  return tabTitles[currentTab] || 'Tuesday House';
+                })()}
+              </span>
+            </div>
           </div>
 
+          {/* Right side: Live clock & User Avatar */}
           <div className="flex items-center gap-2.5">
-            {/* Quick status bar (Click action hidden/no-hover) */}
-            <span
-              className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-550 dark:text-slate-400 font-bold px-2.5 py-1 rounded-lg select-none"
-            >
+            <span className="text-[10px] sm:text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium px-2.5 py-1 rounded-lg select-none">
               {liveTimeStr}
             </span>
 
-            {/* Dark mode button (hidden) */}
-            <button
-              onClick={toggleDarkMode}
-              className="hidden p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 transition-all cursor-pointer shadow-sm"
-              title="สลับธีมหน้าเว็บ"
-            >
-              {isDarkMode ? <Sun className="w-3.5 h-3.5 text-amber-500" /> : <Moon className="w-3.5 h-3.5" />}
-            </button>
+            {/* Mobile user quick avatar */}
+            <div className="flex items-center gap-1.5 lg:hidden">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 text-white font-bold text-[10px] flex items-center justify-center uppercase shadow-xs">
+                {currentUser?.name ? currentUser.name.substring(0, 2) : 'US'}
+              </div>
+            </div>
           </div>
         </header>
 
@@ -609,6 +663,9 @@ export default function Home() {
 
       {/* Global SpreadSheet uploader ExcelImportModal overlay */}
       <ExcelImportModal />
+
+      {/* Team Chat & Notification Widget (Hidden for now) */}
+      {/* <ChatWidget /> */}
 
       {/* Secret Control Center Overlay */}
       {isSecretOpen && (
